@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DayOS · 작업 리추얼 와이어프레임</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --paper: #fffdf8;
+      --ink: #211f1b;
+      --muted: #777066;
+      --line: #ded5c6;
+      --soft: #f8f1e6;
+      --accent: #d2763d;
+      --night: #171521;
+      --night-ink: #eeeaf5;
+      --night-soft: #8f89a8;
+      --night-accent: #8c7fe2;
+      --shadow: 0 22px 70px rgba(54, 44, 30, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 1px 1px, rgba(33, 31, 27, 0.05) 1px, transparent 0),
+        var(--bg);
+      background-size: 22px 22px;
+      color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    .page {
+      width: min(1280px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 44px 0 88px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 32px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--ink);
+      margin-bottom: 34px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: ui-serif, Georgia, "Apple SD Gothic Neo", serif;
+      font-size: clamp(36px, 6vw, 72px);
+      line-height: 0.98;
+      font-weight: 650;
+    }
+
+    .meta {
+      max-width: 340px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      text-align: right;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin: 34px 0 16px;
+    }
+
+    .section-title span {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-family: ui-serif, Georgia, "Apple SD Gothic Neo", serif;
+      font-size: 25px;
+      line-height: 1.2;
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .screen {
+      min-height: 520px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen.dark {
+      background: var(--night);
+      color: var(--night-ink);
+      border-color: #2f2a43;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 22px 26px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dark .topbar {
+      border-bottom-color: #2f2a43;
+      color: var(--night-soft);
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .screen-body { padding: 28px; }
+
+    .hero-line {
+      font-family: ui-serif, Georgia, "Apple SD Gothic Neo", serif;
+      font-size: 34px;
+      line-height: 1.25;
+      margin: 0 0 22px;
+      max-width: 460px;
+    }
+
+    .muted { color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .dark .muted { color: var(--night-soft); }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      background: #fffaf0;
+      min-height: 96px;
+    }
+
+    .stat .label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .stat .value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 22px;
+      font-weight: 650;
+    }
+
+    .timeline { margin-top: 24px; display: grid; gap: 10px; }
+
+    /* ── 세션 카드 ── */
+    .session {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: #fff;
+    }
+
+    .session-main {
+      display: grid;
+      grid-template-columns: 84px 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .session .app { font-weight: 700; }
+    .session .time { color: var(--muted); font-size: 13px; }
+    .session .duration {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+
+    /* ── 메모 3-상태 ── */
+
+    /* 상태 1: + 메모 */
+    .memo-add { margin-top: 8px; }
+
+    .btn-memo {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      padding: 3px 0;
+      font: inherit;
+      font-size: 12px;
+      color: #a79b8d;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .btn-memo:hover { color: var(--accent); }
+
+    .btn-memo svg {
+      width: 13px; height: 13px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round;
+    }
+
+    /* 상태 2: 입력창 */
+    .memo-input-area {
+      margin-top: 10px;
+      border-top: 1px solid #eee5d6;
+      padding-top: 10px;
+    }
+
+    .memo-input-area textarea {
+      width: 100%;
+      font: inherit;
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--soft);
+      border: 1px dashed #d8cbb9;
+      border-radius: 9px;
+      padding: 9px 10px;
+      resize: none;
+      min-height: 52px;
+      line-height: 1.5;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .memo-input-area textarea::placeholder { color: #b0a494; }
+    .memo-input-area textarea:focus {
+      border-color: var(--accent);
+      background: #fffdf8;
+    }
+
+    .memo-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    .btn-save {
+      font: inherit;
+      font-size: 12px;
+      color: var(--paper);
+      background: var(--ink);
+      border: none;
+      border-radius: 999px;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-save:hover { opacity: 0.82; }
+
+    /* 상태 3: 저장된 한 줄 메모 */
+    .memo-saved {
+      margin-top: 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .memo-saved .memo-text {
+      font-size: 13px;
+      color: #6d6258;
+      line-height: 1.45;
+      flex: 1;
+    }
+
+    .btn-edit {
+      background: none;
+      border: none;
+      font: inherit;
+      font-size: 11px;
+      color: #b0a494;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+
+    .btn-edit:hover { color: var(--accent); }
+
+    /* ── 기타 화면 요소 ── */
+    .prompt-card {
+      width: min(420px, calc(100% - 48px));
+      margin: 72px auto 0;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .prompt-time {
+      color: var(--accent);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .prompt-title {
+      font-family: ui-serif, Georgia, "Apple SD Gothic Neo", serif;
+      font-size: 30px;
+      line-height: 1.25;
+      margin-bottom: 22px;
+    }
+
+    .button-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    .button {
+      display: inline-block;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      color: white;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1;
+      cursor: default;
+    }
+
+    .button.secondary {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .review-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .input-card { background: var(--soft); border-color: #eadcc7; }
+
+    .reflection-card { display: grid; gap: 14px; }
+
+    .field {
+      border: 1px solid #eadcc7;
+      border-radius: 12px;
+      background: #fffdf8;
+      padding: 14px 15px;
+    }
+
+    .field-label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+
+    .field-value {
+      min-height: 34px;
+      color: var(--ink);
+      font-family: ui-serif, Georgia, "Apple SD Gothic Neo", serif;
+      font-size: 18px;
+      line-height: 1.45;
+    }
+
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .chip {
+      border: 1px solid #e1d3c0;
+      border-radius: 999px;
+      background: #fff;
+      padding: 7px 11px;
+      font-size: 13px;
+      color: #5f554b;
+    }
+
+    .chip.selected {
+      border-color: var(--accent);
+      background: #fff1df;
+      color: #9b4d22;
+    }
+
+    .ritual-visual {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(140, 127, 226, 0.55) 0 7%, rgba(140, 127, 226, 0.22) 22%, transparent 45%),
+        radial-gradient(circle at 50% 48%, #25213d 0%, #171521 58%, #0d0c13 100%);
+    }
+
+    .ritual-content {
+      position: relative;
+      z-index: 1;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px;
+    }
+
+    .ritual-title {
+      font-family: ui-serif, Georgia, "Apple SD Gothic Neo", serif;
+      font-size: 42px;
+      line-height: 1.25;
+      margin: 0 0 18px;
+    }
+
+    .ritual-sub { color: var(--night-soft); font-size: 15px; line-height: 1.7; margin-bottom: 28px; }
+
+    .audio-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(238, 234, 245, 0.22);
+      border-radius: 999px;
+      padding: 10px 16px;
+      color: var(--night-ink);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 14px;
+    }
+
+    .note {
+      margin-top: 18px;
+      padding: 14px 18px;
+      border-left: 4px solid var(--accent);
+      background: #fff8ed;
+      color: #5c4c3d;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 980px) {
+      header { display: block; }
+      .meta { text-align: left; margin-top: 16px; }
+      .screen-grid { grid-template-columns: 1fr; }
+      .review-layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .page { width: min(100% - 24px, 1280px); padding-top: 28px; }
+      .stat-row { grid-template-columns: 1fr; }
+      .session-main { grid-template-columns: 1fr; }
+      .screen { min-height: auto; }
+      .ritual-content { min-height: 480px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+
+    <header>
+      <h1>작업 리추얼<br>와이어프레임</h1>
+      <div class="meta">
+        hi-fi wireframe · DayOS · 개인용 Mac 로컬 앱<br>
+        메모 3-상태 업데이트 · 2026-05-27
+      </div>
+    </header>
+
+    <!-- 01. 오늘 작업 흐름 -->
+    <div class="section-title">
+      <span>01</span>
+      <h2>오늘 작업 흐름</h2>
+    </div>
+    <div class="screen-grid">
+
+      <section class="screen">
+        <div class="topbar">
+          <span class="mono">Today</span>
+          <span>밤 리추얼 12:00</span>
+        </div>
+        <div class="screen-body">
+          <p class="hero-line">오늘 작업시간을 확인할 수 있게 조용히 기록해요.</p>
+          <p class="muted">컴퓨터 켠 시간, 주요 앱 활성 구간, 맥북 잠자기 시간을 참고값으로 봅니다.</p>
+
+          <div class="stat-row">
+            <div class="stat">
+              <div class="label">컴퓨터 켠 시간</div>
+              <div class="value">08:42</div>
+            </div>
+            <div class="stat">
+              <div class="label">추정 작업</div>
+              <div class="value">5h 21m</div>
+            </div>
+            <div class="stat">
+              <div class="label">잠자기</div>
+              <div class="value">50m</div>
+            </div>
+          </div>
+
+          <div class="timeline">
+            <!-- 기본 상태: + 메모 버튼만 -->
+            <div class="session">
+              <div class="session-main">
+                <div class="app">Codex</div>
+                <div class="time">12:05-12:48</div>
+                <div class="duration">43분</div>
+              </div>
+              <div class="memo-add">
+                <button class="btn-memo" onclick="openMemo(this)">
+                  <svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+                  메모
+                </button>
+              </div>
+            </div>
+
+            <div class="session">
+              <div class="session-main">
+                <div class="app">Cowork</div>
+                <div class="time">14:02-14:18</div>
+                <div class="duration">16분</div>
+              </div>
+              <div class="memo-add">
+                <button class="btn-memo" onclick="openMemo(this)">
+                  <svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+                  메모
+                </button>
+              </div>
+            </div>
+
+            <div class="session">
+              <div class="session-main">
+                <div class="app">잠자기</div>
+                <div class="time">15:10-16:00</div>
+                <div class="duration">50분</div>
+              </div>
+              <div class="memo-add">
+                <button class="btn-memo" onclick="openMemo(this)">
+                  <svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+                  메모
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="topbar">
+          <span class="mono">12:00</span>
+          <span>밤 리추얼</span>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-time">12:00</div>
+          <div class="prompt-title">오늘을 정리할 시간이에요.</div>
+          <div class="button-row">
+            <span class="button">지금 정리하기</span>
+            <span class="button secondary">10분 뒤</span>
+            <span class="button secondary">오늘은 건너뛰기</span>
+          </div>
+        </div>
+        <div class="screen-body">
+          <div class="note">강제로 화면을 바꾸지 않고, 사용자가 선택해서 정리 흐름으로 들어갑니다.</div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 02. 작업시간 확인 → 밤 리추얼 -->
+    <div class="section-title">
+      <span>02</span>
+      <h2>작업시간 확인 → 밤 리추얼</h2>
+    </div>
+    <div class="screen-grid">
+
+      <section class="screen">
+        <div class="topbar">
+          <span class="mono">Daily Debrief</span>
+          <span>한 문장만 남기기</span>
+        </div>
+        <div class="screen-body">
+          <p class="hero-line">오늘을 한 문장으로 남기면?</p>
+          <p class="muted">시간 기록은 참고만 하고, 회고는 짧게 끝냅니다.</p>
+
+          <div class="review-layout">
+            <div class="panel">
+              <div class="muted">오늘 작업 흐름</div>
+              <div class="timeline" style="margin-top: 12px;">
+
+                <!-- Codex: 상태 3 — 메모 저장됨 -->
+                <div class="session">
+                  <div class="session-main">
+                    <div class="app">Codex</div>
+                    <div class="time">12:05-12:48</div>
+                    <div class="duration">43분</div>
+                  </div>
+                  <div class="memo-saved">
+                    <span class="memo-text">PRD를 짧게 다시 정리했다.</span>
+                    <button class="btn-edit" onclick="editMemo(this)">수정</button>
+                  </div>
+                </div>
+
+                <!-- Cowork: 상태 2 — 입력창 펼쳐짐 -->
+                <div class="session">
+                  <div class="session-main">
+                    <div class="app">Cowork</div>
+                    <div class="time">14:02-14:18</div>
+                    <div class="duration">16분</div>
+                  </div>
+                  <div class="memo-input-area">
+                    <textarea placeholder="기억나는 것만 짧게 적기"></textarea>
+                    <div class="memo-actions">
+                      <button class="btn-save" onclick="saveMemo(this)">저장</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 잠자기: 상태 1 — + 메모 버튼만 -->
+                <div class="session">
+                  <div class="session-main">
+                    <div class="app">잠자기</div>
+                    <div class="time">15:10-16:00</div>
+                    <div class="duration">50분</div>
+                  </div>
+                  <div class="memo-add">
+                    <button class="btn-memo" onclick="openMemo(this)">
+                      <svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+                      메모
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+              <div class="note">저장할 작업시간: <strong>5h 21m</strong></div>
+            </div>
+
+            <div class="panel input-card reflection-card">
+              <div class="field">
+                <div class="field-label">오늘 한 일</div>
+                <div class="field-value">작업 리추얼 앱 방향을 정리했다.</div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">오늘 느낌</div>
+                <div class="chips">
+                  <span class="chip selected">방향을 찾았다</span>
+                  <span class="chip">헤맸지만 필요했다</span>
+                  <span class="chip">너무 길어졌다</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">내일 할 것</div>
+                <div class="field-value">기록 화면을 더 가볍게 만들기</div>
+              </div>
+
+              <div class="button-row" style="justify-content: flex-start; margin-top: 22px;">
+                <span class="button">저장하고 리추얼 시작</span>
+                <span class="button secondary">자세히 회고하기</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen dark">
+        <div class="ritual-visual"></div>
+        <div class="topbar" style="position: relative; z-index: 2;">
+          <span class="mono">Night Ritual</span>
+          <span>화면 내려놓기</span>
+        </div>
+        <div class="ritual-content">
+          <p class="ritual-title">오늘은 여기까지.</p>
+          <p class="ritual-sub">작업시간을 저장했어요.<br>이제 화면을 내려놓는 시간입니다.</p>
+          <div class="audio-pill">♪ 음악 / 명상 화면</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    /* 상태 1 → 2: + 메모 클릭 */
+    function openMemo(btn) {
+      const session = btn.closest('.session');
+      btn.closest('.memo-add').remove();
+      const area = document.createElement('div');
+      area.className = 'memo-input-area';
+      area.innerHTML =
+        '<textarea placeholder="기억나는 것만 짧게 적기"></textarea>' +
+        '<div class="memo-actions"><button class="btn-save" onclick="saveMemo(this)">저장</button></div>';
+      session.appendChild(area);
+      area.querySelector('textarea').focus();
+    }
+
+    /* 상태 2 → 3: 저장 클릭 */
+    function saveMemo(btn) {
+      const area = btn.closest('.memo-input-area');
+      const val = area.querySelector('textarea').value.trim();
+      if (!val) { area.querySelector('textarea').focus(); return; }
+      const session = area.closest('.session');
+      area.remove();
+      const saved = document.createElement('div');
+      saved.className = 'memo-saved';
+      saved.innerHTML =
+        '<span class="memo-text">' + val + '</span>' +
+        '<button class="btn-edit" onclick="editMemo(this)">수정</button>';
+      session.appendChild(saved);
+    }
+
+    /* 상태 3 → 2: 수정 클릭 */
+    function editMemo(btn) {
+      const saved = btn.closest('.memo-saved');
+      const currentText = saved.querySelector('.memo-text').textContent;
+      const session = saved.closest('.session');
+      saved.remove();
+      const area = document.createElement('div');
+      area.className = 'memo-input-area';
+      area.innerHTML =
+        '<textarea placeholder="기억나는 것만 짧게 적기"></textarea>' +
+        '<div class="memo-actions"><button class="btn-save" onclick="saveMemo(this)">저장</button></div>';
+      session.appendChild(area);
+      const ta = area.querySelector('textarea');
+      ta.value = currentText;
+      ta.focus();
+    }
+  </script>
+</body>
+</html>

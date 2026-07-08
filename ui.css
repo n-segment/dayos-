@@ -1277,6 +1277,22 @@ html, body {
 
 .checkin-save-btn:hover { opacity: 0.8; }
 
+.checkin-cancel-btn {
+  background: var(--color-paper-white);
+  color: var(--color-ink-black);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 7px 20px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.checkin-cancel-btn:hover { opacity: 0.55; }
+
 .checkin-skip-btn {
   background: none;
   color: var(--color-graphite);
