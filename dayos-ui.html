@@ -61,24 +61,34 @@
             <p class="date-chip"><span class="date-chip__dot" aria-hidden="true"></span><span id="focusTodayText"></span></p>
             <p class="focus-panel__meta" id="startedMetaText"></p>
             <p class="focus-panel__time" id="elapsedTimeText">0시간 00분</p>
-            <!-- 시간별 체크인 -->
+            <!-- 기록 -->
             <div class="checkin-zone" id="checkinZone">
-              <div class="checkin-next" id="checkinNext"></div>
               <ul class="checkin-log" id="checkinLog"></ul>
-              <div class="checkin-input-wrap hidden" id="checkinInputWrap">
-                <p class="checkin-input-label" id="checkinInputLabel">이번 시간에 뭐 했어?</p>
-                <textarea class="checkin-textarea" id="checkinTextarea" placeholder="짧게 적어도 돼요"></textarea>
+              <div class="checkin-input-wrap" id="checkinInputWrap">
+                <textarea class="checkin-textarea" id="checkinTextarea" placeholder="지금 뭐 하고 있어요?"></textarea>
                 <div class="checkin-input-actions">
-                  <button class="checkin-save-btn" id="checkinSaveBtn">저장</button>
+                  <button class="checkin-save-btn" id="checkinSaveBtn">추가</button>
                 </div>
               </div>
             </div>
 
             <div class="focus-panel__actions">
               <button class="button button--ghost" id="pauseButton">일시정지</button>
-              <button class="button button--ghost" id="viewRecordButton">기록하기</button>
               <button class="button button--primary" id="endButton">작업 끝내기</button>
             </div>
+          </div>
+        </section>
+
+        <!-- 회고 모달 -->
+        <div class="retro-modal hidden" id="retroModal">
+          <div class="retro-modal__box">
+            <p class="retro-modal__label">오늘 회고</p>
+            <textarea class="retro-modal__textarea" id="retroModalTextarea" placeholder="자유롭게 적어주세요."></textarea>
+            <div class="retro-modal__actions">
+              <button class="button button--ghost" id="retroSkipBtn">건너뛰기</button>
+              <button class="button button--primary" id="retroSaveBtn">저장하고 끝내기</button>
+            </div>
+          </div>
           </div>
         </section>
 
@@ -87,23 +97,10 @@
           <div class="summary-panel">
             <p class="summary-panel__eyebrow">오늘 작업시간 확인</p>
             <p class="summary-panel__date" id="summaryDateText"></p>
-
             <div class="summary-panel__big-time" id="summaryFocusText">0시간 00분</div>
-
-            <div class="summary-panel__retro">
-              <label class="summary-retro__label" for="summaryRetro">오늘 회고</label>
-              <textarea
-                id="summaryRetro"
-                class="summary-retro__input"
-                placeholder="자유롭게 적어주세요."
-              ></textarea>
-            </div>
-
             <!-- 시간별 작업 로그 타임라인 -->
             <div class="timeline-wrap" id="timelineWrap"></div>
-
-
-<div class="summary-panel__actions">
+            <div class="summary-panel__actions">
               <button class="button button--ghost" id="summaryBackButton">이전으로</button>
               <button class="button button--primary" id="summarySaveButton">〜(￣▽￣〜) oO(끝)</button>
             </div>

@@ -519,6 +519,61 @@ html, body {
   margin-bottom: var(--spacing-40);
 }
 
+/* ── 회고 모달 ── */
+.retro-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.retro-modal.hidden { display: none; }
+
+.retro-modal__box {
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.retro-modal__label {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
+
+.retro-modal__textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-family: var(--font-base);
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 8px 0;
+  resize: none;
+  min-height: 100px;
+  outline: none;
+}
+.retro-modal__textarea::placeholder { color: rgba(255,255,255,0.25); }
+
+.retro-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 /* ── Retro ── */
 .summary-panel__retro {
   margin-bottom: var(--spacing-40);

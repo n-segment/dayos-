@@ -32,6 +32,10 @@ const els = {
   summaryDateText: $("summaryDateText"),
   summaryFocusText: $("summaryFocusText"),
   summaryRetro: $("summaryRetro"),
+  retroModal: $("retroModal"),
+  retroModalTextarea: $("retroModalTextarea"),
+  retroSkipBtn: $("retroSkipBtn"),
+  retroSaveBtn: $("retroSaveBtn"),
   summaryBackButton: $("summaryBackButton"),
   summarySaveButton: $("summarySaveButton"),
   checkinZone: $("checkinZone"),
@@ -189,34 +193,19 @@ function checkinLabel(nthHour) {
   return `${nthHour}시간`;
 }
 
-function openCheckinInput() {
-  if (checkinPending) return;
-  checkinPending = true;
-  const nthHour = checkIns.length + 1;
-  sendHourNotification(nthHour);
-  els.checkinInputLabel.textContent = `${nthHour}시간 지났어요.`;
-  els.checkinTextarea.value = "";
-  els.checkinInputWrap.classList.remove("hidden");
-  els.checkinInputWrap.classList.add("checkin-active");
-  els.checkinTextarea.focus();
-}
-
+function openCheckinInput() { /* 더 이상 자동 호출 안 함 */ }
 function closeCheckinInput() {
-  checkinPending = false;
-  els.checkinInputWrap.classList.add("hidden");
-  els.checkinInputWrap.classList.remove("checkin-active");
   els.checkinTextarea.value = "";
 }
 
 function saveCheckin() {
   const text = els.checkinTextarea.value.trim();
-  const nthHour = checkIns.length + 1;
+  if (!text) return;
   checkIns.push({
     timeMs: Date.now(),
-    label: checkinLabel(nthHour),
-    text: text || "(기록 없음)",
+    label: formatClock(new Date()),
+    text,
   });
-  nextCheckInMs = startedAtMs + checkIns.length * 3600000;
   closeCheckinInput();
   renderCheckinLog();
 }
@@ -760,6 +749,26 @@ function startSession() {
   timerId = setInterval(updateFocusScreen, 1000);
 }
 
+function openRetroModal() {
+  if (!els.retroModal) return;
+  if (els.retroModalTextarea) els.retroModalTextarea.value = "";
+  els.retroModal.classList.remove("hidden");
+  setTimeout(() => els.retroModalTextarea?.focus(), 100);
+}
+
+function closeRetroModal() {
+  if (els.retroModal) els.retroModal.classList.add("hidden");
+}
+
+function finishSession(retro = "") {
+  if (els.summaryRetro) els.summaryRetro.value = retro;
+  closeRetroModal();
+  if (timerId) clearInterval(timerId);
+  timerId = null;
+  els.sessionBadge.textContent = "대기";
+  openSummaryScreen();
+}
+
 function endSession() {
   if (!startedAtMs) return;
   if (isPaused) resumeSession();
@@ -771,10 +780,7 @@ function endSession() {
   pausedAt = null;
   totalPausedMs = 0;
   saveState();
-  if (timerId) clearInterval(timerId);
-  timerId = null;
-  els.sessionBadge.textContent = "대기";
-  openSummaryScreen();
+  openRetroModal();
 }
 
 window.openTlEdit = function(idx) {
@@ -925,6 +931,18 @@ function init() {
   els.summarySaveButton?.addEventListener("click", async () => {
     await saveSessionToHistory();
     showScreen("welcome");
+  });
+
+  els.retroSaveBtn?.addEventListener("click", () => {
+    const retro = els.retroModalTextarea?.value.trim() || "";
+    finishSession(retro);
+  });
+  els.retroSkipBtn?.addEventListener("click", () => finishSession(""));
+  els.retroModalTextarea?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      const retro = els.retroModalTextarea.value.trim();
+      finishSession(retro);
+    }
   });
 
   els.historyLinkButton?.addEventListener("click", () => {
