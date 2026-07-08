@@ -1501,26 +1501,27 @@ function init() {
   // 음악 버튼
   const musicBtn = document.getElementById("musicBtn");
   const musicFrame = document.getElementById("musicFrame");
-  const bgVideo = document.getElementById("bgVideo");
   let musicPlaying = false;
   const hour = new Date().getHours();
   const isDawn = hour >= 0 && hour < 6; // 새벽 0~5시
 
-  // 새벽: 배경 영상 자동 재생 (무음)
-  if (isDawn && bgVideo) {
-    bgVideo.src = "./dawn-drive.mp4";
-    bgVideo.style.display = "block";
-    bgVideo.style.zIndex = "1";
-    document.body.classList.add("dawn-video");
-    bgVideo.play().catch(() => {});
+  // 새벽: welcome 화면 배경 영상을 드라이브 영상으로 교체
+  if (isDawn) {
+    document.querySelectorAll(".welcome-bg-video").forEach(v => {
+      v.innerHTML = '<source src="./dawn-drive.mp4" type="video/mp4">';
+      v.load();
+      v.play().catch(() => {});
+    });
   }
 
   musicBtn?.addEventListener("click", () => {
     if (!musicPlaying) {
-      if (isDawn && bgVideo) {
+      if (isDawn) {
         // 새벽: 배경 영상 소리 ON
-        bgVideo.muted = false;
-        bgVideo.play().catch(() => {});
+        document.querySelectorAll(".welcome-bg-video").forEach(v => {
+          v.muted = false;
+          v.play().catch(() => {});
+        });
       } else {
         // 낮: YouTube 음악
         const MUSIC_ID = "46e80ussWc0";
@@ -1539,8 +1540,8 @@ function init() {
       musicBtn.title = "음악 정지";
       musicPlaying = true;
     } else {
-      if (isDawn && bgVideo) {
-        bgVideo.muted = true;
+      if (isDawn) {
+        document.querySelectorAll(".welcome-bg-video").forEach(v => { v.muted = true; });
       } else {
         const frame = document.getElementById("musicFrame");
         if (frame) frame.src = "";
