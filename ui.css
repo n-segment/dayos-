@@ -184,7 +184,7 @@ html, body {
 .feedback-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,14 +193,14 @@ html, body {
 }
 .feedback-modal.hidden { display: none; }
 .feedback-modal__box {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(20,20,20,0.2);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 16px;
   padding: 28px;
   width: 100%;
-  max-width: 400px;
+  max-width: 480px;
   display: flex;
   flex-direction: column;
   gap: 16px;
