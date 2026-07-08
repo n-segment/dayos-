@@ -430,7 +430,7 @@ html, body {
 }
 
 .summary-panel__big-time {
-  font-size: clamp(52px, 9vw, 78px);
+  font-size: clamp(60px, 10vw, 94px);
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1.0;

@@ -760,7 +760,9 @@ function updateFocusScreen() {
   const elH = Math.floor(elTotalSec / 3600);
   const elM = Math.floor((elTotalSec % 3600) / 60);
   const elS = elTotalSec % 60;
-  els.elapsedTimeText.textContent = `${elH}시간 ${String(elM).padStart(2,"0")}분 ${String(elS).padStart(2,"0")}초`;
+  const liveTimeText = `${elH}시간 ${String(elM).padStart(2,"0")}분 ${String(elS).padStart(2,"0")}초`;
+  els.elapsedTimeText.textContent = liveTimeText;
+  if (els.summaryFocusText) els.summaryFocusText.textContent = liveTimeText;
   els.startedMetaText.textContent = `${formatClock(new Date(startedAtMs))} 시작했어요`;
   updateCheckinNext();
   renderLiveSegments();
@@ -927,7 +929,17 @@ function renderTimeline(startMs, endMs) {
 
 function renderSummaryScreen() {
   els.summaryDateText.textContent = formatDate();
-  els.summaryFocusText.textContent = formatDuration(lastSessionMs || 0);
+  if (startedAtMs) {
+    // 세션 진행 중 - updateFocusScreen 인터벌이 계속 업데이트함
+    const elMs = Date.now() - startedAtMs;
+    const elTotalSec = Math.max(0, Math.floor(elMs / 1000));
+    const elH = Math.floor(elTotalSec / 3600);
+    const elM = Math.floor((elTotalSec % 3600) / 60);
+    const elS = elTotalSec % 60;
+    els.summaryFocusText.textContent = `${elH}시간 ${String(elM).padStart(2,"0")}분 ${String(elS).padStart(2,"0")}초`;
+  } else {
+    els.summaryFocusText.textContent = formatDuration(lastSessionMs || 0);
+  }
 
   // 타임라인
   const sessionStart = endedAtMs ? endedAtMs - lastSessionMs : Date.now() - lastSessionMs;
