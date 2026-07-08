@@ -214,6 +214,13 @@ html, body {
   background: #000;
   place-items: center;
 }
+.screen--login::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1;
+}
 
 .login-panel {
   position: relative;
