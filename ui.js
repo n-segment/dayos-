@@ -1080,14 +1080,16 @@ function renderDetailContent(container, records, dateStr) {
     ul.appendChild(li);
   });
 
-  // + 기록 추가 폼
-  const addLi = document.createElement("li");
-  addLi.className = "hd-checkin hd-checkin--add";
+  container.appendChild(ul);
+
+  // + 기록 추가 폼 (시간 아래, 회고 위)
+  const addWrap = document.createElement("div");
+  addWrap.style.cssText = "margin:6px 0 2px;";
   const addBtn = document.createElement("button");
   addBtn.className = "hd-edit-btn";
   addBtn.textContent = "+ 기록 추가";
   addBtn.addEventListener("click", () => {
-    if (addLi.querySelector(".hd-add-form")) return;
+    if (addWrap.querySelector(".hd-add-form")) return;
     addBtn.style.display = "none";
     const form = document.createElement("div");
     form.className = "hd-add-form";
@@ -1110,7 +1112,7 @@ function renderDetailContent(container, records, dateStr) {
       rec.checkIns = rec.checkIns || [];
       rec.checkIns.push(newEntry);
       await updateRecord(rec._id, { checkIns: rec.checkIns });
-      renderDetailContent(container, records);
+      renderDetailContent(container, records, dateStr);
     });
     const cancelBtn = document.createElement("button");
     cancelBtn.className = "checkin-cancel-btn";
@@ -1120,13 +1122,10 @@ function renderDetailContent(container, records, dateStr) {
     actions.appendChild(cancelBtn);
     form.appendChild(ta);
     form.appendChild(actions);
-    addLi.appendChild(form);
+    addWrap.appendChild(form);
     ta.focus();
   });
-  addLi.appendChild(addBtn);
-  ul.appendChild(addLi);
-
-  container.appendChild(ul);
+  addWrap.appendChild(addBtn);
 
   // ── 3. 시간 범위 + 수정 ──
   if (valid.length > 0) {
@@ -1220,7 +1219,8 @@ function renderDetailContent(container, records, dateStr) {
     }
   }
 
-  // ── 4. 전체 회고 (맨 아래) ──
+  // ── 4. 기록 추가 버튼 + 전체 회고 (맨 아래) ──
+  container.appendChild(addWrap);
   container.appendChild(retroWrap);
 }
 
