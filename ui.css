@@ -1096,6 +1096,165 @@ html, body {
   padding-bottom: 40px;
 }
 
+/* ── 목표 설정 화면 ── */
+.screen--goal {
+  background-image: url('./bg2.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.screen--goal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 0;
+}
+.screen--goal > * { position: relative; z-index: 1; }
+
+.goal-panel {
+  width: min(520px, 100%);
+  text-align: left;
+}
+
+.goal-start-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+}
+
+.goal-field-label {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+  flex-shrink: 0;
+}
+
+.goal-start-input {
+  background: transparent;
+  border: none;
+  color: var(--color-paper-white);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 300;
+  padding: 2px 0;
+  outline: none;
+  flex: 1;
+}
+.goal-start-input::placeholder { color: rgba(255,255,255,0.22); }
+
+.goal-panel__heading {
+  margin: 0 0 24px;
+  font-size: clamp(22px, 4vw, 28px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--color-paper-white);
+}
+
+.goal-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 10px;
+}
+
+.goal-task-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 24px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  animation: checkin-pop 0.2s ease;
+}
+
+.goal-task-name {
+  background: transparent;
+  border: none;
+  color: var(--color-paper-white);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 300;
+  padding: 2px 0;
+  outline: none;
+  width: 100%;
+}
+.goal-task-name::placeholder { color: rgba(255,255,255,0.22); }
+
+.goal-task-hours-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.goal-task-hours {
+  width: 42px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 7px;
+  color: rgba(255,255,255,0.8);
+  font: inherit;
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 6px;
+  outline: none;
+}
+
+.goal-task-hours-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+}
+
+.goal-task-del {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.goal-task-del:hover { color: rgba(255,255,255,0.5); }
+
+.goal-add-btn {
+  background: none;
+  border: 1px dashed rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.35);
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 0;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  margin: 10px 0 24px;
+}
+.goal-add-btn:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.6); }
+
+.goal-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  margin-bottom: 28px;
+}
+
+.goal-total-label { font-size: 12px; color: rgba(255,255,255,0.35); }
+.goal-total-val { font-size: 16px; font-weight: 300; color: rgba(255,255,255,0.75); }
+
+.goal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 /* ── 체크인 ── */
 .checkin-zone {
   width: 100%;

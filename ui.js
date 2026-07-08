@@ -18,6 +18,7 @@ const els = {
   loginScreen: $("loginScreen"),
   googleLoginBtn: $("googleLoginBtn"),
   welcomeScreen: $("welcomeScreen"),
+  goalScreen: $("goalScreen"),
   focusScreen: $("focusScreen"),
   summaryScreen: $("summaryScreen"),
   startButton: $("startButton"),
@@ -360,11 +361,82 @@ function restoreState() {
 function showScreen(screen) {
   els.loginScreen.classList.toggle("is-active", screen === "login");
   els.welcomeScreen.classList.toggle("is-active", screen === "welcome");
+  els.goalScreen?.classList.toggle("is-active", screen === "goal");
   els.focusScreen.classList.toggle("is-active", screen === "focus");
   els.summaryScreen.classList.toggle("is-active", screen === "summary");
   els.historyScreen.classList.toggle("is-active", screen === "history");
   const endBtn = document.getElementById("endButtonFixed");
   if (endBtn) endBtn.classList.toggle("visible", screen === "focus");
+}
+
+// ── 목표 설정 ──
+let todayGoals = [];
+
+function renderGoalTasks() {
+  const container = $("goalTasks");
+  if (!container) return;
+  container.innerHTML = "";
+  todayGoals.forEach((g, i) => {
+    const row = document.createElement("div");
+    row.className = "goal-task-row";
+    row.innerHTML = `
+      <input class="goal-task-name" type="text" placeholder="할 일을 적어요" value="${g.task}" data-idx="${i}" />
+      <div class="goal-task-hours-wrap">
+        <input class="goal-task-hours" type="number" min="0" max="24" step="0.5" value="${g.hours}" data-idx="${i}" />
+        <span class="goal-task-hours-label">시간</span>
+      </div>
+      <button class="goal-task-del" data-idx="${i}" aria-label="삭제">×</button>
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll(".goal-task-name").forEach(input => {
+    input.addEventListener("input", e => {
+      todayGoals[+e.target.dataset.idx].task = e.target.value;
+    });
+  });
+  container.querySelectorAll(".goal-task-hours").forEach(input => {
+    input.addEventListener("input", e => {
+      todayGoals[+e.target.dataset.idx].hours = parseFloat(e.target.value) || 0;
+      updateGoalTotal();
+    });
+  });
+  container.querySelectorAll(".goal-task-del").forEach(btn => {
+    btn.addEventListener("click", e => {
+      todayGoals.splice(+e.target.dataset.idx, 1);
+      renderGoalTasks();
+      updateGoalTotal();
+    });
+  });
+}
+
+function updateGoalTotal() {
+  const total = todayGoals.reduce((s, g) => s + (g.hours || 0), 0);
+  const el = $("goalTotalVal");
+  if (!el) return;
+  if (total <= 0) { el.textContent = "—"; return; }
+  const h = Math.floor(total);
+  const m = Math.round((total - h) * 60);
+  el.textContent = h > 0 && m > 0 ? `${h}시간 ${m}분` : h > 0 ? `${h}시간` : `${m}분`;
+}
+
+function addGoalTask() {
+  todayGoals.push({ task: "", hours: 1 });
+  renderGoalTasks();
+  updateGoalTotal();
+  const inputs = document.querySelectorAll(".goal-task-name");
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function openGoalScreen() {
+  todayGoals = [{ task: "", hours: 1 }];
+  renderGoalTasks();
+  updateGoalTotal();
+  const dateEl = $("goalTodayText");
+  if (dateEl) dateEl.textContent = formatDate();
+  const timeEl = $("goalStartTime");
+  if (timeEl) timeEl.value = formatClock();
+  showScreen("goal");
 }
 
 // ── Google 로그인 ──
@@ -921,7 +993,10 @@ function init() {
   // Google 로그인 버튼
   els.googleLoginBtn?.addEventListener("click", signInWithGoogle);
 
-  els.startButton?.addEventListener("click", startSession);
+  els.startButton?.addEventListener("click", openGoalScreen);
+  $("goalAddBtn")?.addEventListener("click", addGoalTask);
+  $("goalSkipBtn")?.addEventListener("click", startSession);
+  $("goalStartBtn")?.addEventListener("click", startSession);
   els.pauseButton?.addEventListener("click", () => {
     if (isPaused) resumeSession(); else pauseSession();
   });
