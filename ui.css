@@ -215,8 +215,7 @@ html, body {
   place-items: center;
 }
 
-.dayos-app:has(.screen--login.is-active) .session-badge,
-.dayos-app:has(.screen--login.is-active) .brand-left {
+.dayos-app:has(.screen--login.is-active) .app-header {
   display: none;
 }
 .screen--login::before {
