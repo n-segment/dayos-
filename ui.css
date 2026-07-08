@@ -1190,6 +1190,30 @@ html, body {
 }
 .goal-start-input::placeholder { color: rgba(255,255,255,0.22); }
 
+.goal-memo-row {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.goal-memo-input {
+  background: transparent;
+  border: none;
+  color: var(--color-paper-white);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 300;
+  padding: 2px 0;
+  outline: none;
+  resize: none;
+  flex: 1;
+  line-height: 1.6;
+}
+.goal-memo-input::placeholder { color: rgba(255,255,255,0.22); }
+
 .goal-panel__heading {
   margin: 0 0 24px;
   font-size: clamp(22px, 4vw, 28px);
