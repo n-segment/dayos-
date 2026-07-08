@@ -1502,7 +1502,10 @@ function init() {
   const musicBtn = document.getElementById("musicBtn");
   const musicFrame = document.getElementById("musicFrame");
   let musicPlaying = false;
-  const MUSIC_SRC = "https://www.youtube.com/embed/46e80ussWc0?autoplay=1&loop=1&playlist=46e80ussWc0&enablejsapi=1";
+  const hour = new Date().getHours();
+  const isDawn = hour >= 0 && hour < 6; // 새벽 0~5시
+  const MUSIC_ID = isDawn ? "aB2z36lEJ_E" : "46e80ussWc0";
+  const MUSIC_SRC = `https://www.youtube.com/embed/${MUSIC_ID}?autoplay=1&loop=1&playlist=${MUSIC_ID}&enablejsapi=1`;
 
   musicBtn?.addEventListener("click", () => {
     if (!musicPlaying) {
