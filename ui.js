@@ -22,6 +22,7 @@ const els = {
   summaryScreen: $("summaryScreen"),
   startButton: $("startButton"),
   endButton: $("endButton"),
+  pauseButton: $("pauseButton"),
   viewRecordButton: $("viewRecordButton"),
   todayText: $("todayText"),
   nowTimeText: $("nowTimeText"),
@@ -56,6 +57,9 @@ const TRACKED_APPS = ["Codex", "Cowork", "Claude", "Claude - Cowork", "Cursor"];
 
 let startedAtMs = null;
 let endedAtMs = null;
+let pausedAt = null;
+let totalPausedMs = 0;
+let isPaused = false;
 let timerId = null;
 let trackerPollId = null;
 let trackerAvailable = false;
@@ -697,10 +701,10 @@ function toggleDayDetail(row, records, date) {
 
 function updateFocusScreen() {
   if (!startedAtMs) return;
-  const nowMs = Date.now();
+  const nowMs = isPaused ? pausedAt : Date.now();
   const focusToday = document.getElementById("focusTodayText");
   if (focusToday) focusToday.textContent = formatDate();
-  const elMs = nowMs - startedAtMs;
+  const elMs = nowMs - startedAtMs - totalPausedMs;
   const elTotalSec = Math.max(0, Math.floor(elMs / 1000));
   const elH = Math.floor(elTotalSec / 3600);
   const elM = Math.floor((elTotalSec % 3600) / 60);
@@ -715,15 +719,42 @@ function updateFocusScreen() {
   maybeTriggerBounce();
 }
 
+function pauseSession() {
+  if (!startedAtMs || isPaused) return;
+  isPaused = true;
+  pausedAt = Date.now();
+  clearInterval(timerId);
+  timerId = null;
+  els.sessionBadge.textContent = "일시정지";
+  if (els.pauseButton) { els.pauseButton.textContent = "재개하기"; }
+  updateFocusScreen();
+}
+
+function resumeSession() {
+  if (!startedAtMs || !isPaused) return;
+  totalPausedMs += Date.now() - pausedAt;
+  isPaused = false;
+  pausedAt = null;
+  els.sessionBadge.textContent = "작업 기록 중";
+  if (els.pauseButton) { els.pauseButton.textContent = "일시정지"; }
+  if (timerId) clearInterval(timerId);
+  timerId = setInterval(updateFocusScreen, 1000);
+  updateFocusScreen();
+}
+
 function startSession() {
   requestNotificationPermission();
   startedAtMs = Date.now();
   endedAtMs = null;
   lastSessionMs = 0;
+  isPaused = false;
+  pausedAt = null;
+  totalPausedMs = 0;
   initCheckin();
   saveState();
   showScreen("focus");
   els.sessionBadge.textContent = "작업 기록 중";
+  if (els.pauseButton) els.pauseButton.textContent = "일시정지";
   updateFocusScreen();
   if (timerId) clearInterval(timerId);
   timerId = setInterval(updateFocusScreen, 1000);
@@ -731,10 +762,14 @@ function startSession() {
 
 function endSession() {
   if (!startedAtMs) return;
+  if (isPaused) resumeSession();
   endedAtMs = Date.now();
-  const elapsed = endedAtMs - startedAtMs;
+  const elapsed = endedAtMs - startedAtMs - totalPausedMs;
   lastSessionMs = elapsed;
   startedAtMs = null;
+  isPaused = false;
+  pausedAt = null;
+  totalPausedMs = 0;
   saveState();
   if (timerId) clearInterval(timerId);
   timerId = null;
@@ -874,6 +909,9 @@ function init() {
   els.googleLoginBtn?.addEventListener("click", signInWithGoogle);
 
   els.startButton?.addEventListener("click", startSession);
+  els.pauseButton?.addEventListener("click", () => {
+    if (isPaused) resumeSession(); else pauseSession();
+  });
   document.getElementById("endButtonFixed")?.addEventListener("click", endSession);
   els.endButton?.addEventListener("click", endSession);
   els.viewRecordButton?.addEventListener("click", () => {
