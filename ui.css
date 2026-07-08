@@ -864,12 +864,19 @@ html, body {
 }
 
 /* ── 히스토리 화면 ── */
+.screen--history {
+  display: block !important;
+  overflow-y: auto;
+  align-items: unset;
+}
+
 .screen--history .history-panel {
   width: min(680px, 100%);
+  margin: 0 auto;
   text-align: left;
-  padding: 80px 0 40px;
-  overflow-y: auto;
-  max-height: 100vh;
+  padding: 100px 24px 80px;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .history-header {
