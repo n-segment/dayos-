@@ -1501,29 +1501,48 @@ function init() {
   // 음악 버튼
   const musicBtn = document.getElementById("musicBtn");
   const musicFrame = document.getElementById("musicFrame");
+  const bgVideo = document.getElementById("bgVideo");
   let musicPlaying = false;
   const hour = new Date().getHours();
   const isDawn = hour >= 0 && hour < 6; // 새벽 0~5시
-  const MUSIC_ID = isDawn ? "aB2z36lEJ_E" : "46e80ussWc0";
-  const MUSIC_SRC = `https://www.youtube.com/embed/${MUSIC_ID}?autoplay=1&loop=1&playlist=${MUSIC_ID}&enablejsapi=1`;
+
+  // 새벽: 배경 영상 자동 재생 (무음)
+  if (isDawn && bgVideo) {
+    bgVideo.src = "./dawn-drive.mp4";
+    bgVideo.style.display = "block";
+    bgVideo.play().catch(() => {});
+  }
 
   musicBtn?.addEventListener("click", () => {
     if (!musicPlaying) {
-      const newFrame = document.createElement("iframe");
-      newFrame.id = "musicFrame";
-      newFrame.src = MUSIC_SRC;
-      newFrame.style.cssText = musicFrame.style.cssText;
-      newFrame.frameBorder = "0";
-      newFrame.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
-      newFrame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-      newFrame.allowFullscreen = true;
-      musicFrame.replaceWith(newFrame);
+      if (isDawn && bgVideo) {
+        // 새벽: 배경 영상 소리 ON
+        bgVideo.muted = false;
+        bgVideo.play().catch(() => {});
+      } else {
+        // 낮: YouTube 음악
+        const MUSIC_ID = "46e80ussWc0";
+        const MUSIC_SRC = `https://www.youtube.com/embed/${MUSIC_ID}?autoplay=1&loop=1&playlist=${MUSIC_ID}&enablejsapi=1`;
+        const newFrame = document.createElement("iframe");
+        newFrame.id = "musicFrame";
+        newFrame.src = MUSIC_SRC;
+        newFrame.style.cssText = musicFrame.style.cssText;
+        newFrame.frameBorder = "0";
+        newFrame.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+        newFrame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        newFrame.allowFullscreen = true;
+        musicFrame.replaceWith(newFrame);
+      }
       musicBtn.classList.add("is-playing");
       musicBtn.title = "음악 정지";
       musicPlaying = true;
     } else {
-      const frame = document.getElementById("musicFrame");
-      if (frame) frame.src = "";
+      if (isDawn && bgVideo) {
+        bgVideo.muted = true;
+      } else {
+        const frame = document.getElementById("musicFrame");
+        if (frame) frame.src = "";
+      }
       musicBtn.classList.remove("is-playing");
       musicBtn.title = "음악 재생";
       musicPlaying = false;
