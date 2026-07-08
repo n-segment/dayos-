@@ -660,12 +660,10 @@ function renderWeekView(history) {
       <span class="history-day-name">${DAYS[i]}</span>
       <span class="history-day-date">${d.getMonth()+1}/${d.getDate()}</span>
       <span class="history-day-time">${timeStr}</span>
-      ${hasData ? '<span class="history-day-arrow">›</span>' : ''}
+      <span class="history-day-arrow">›</span>
     `;
-    if (hasData) {
-      row.style.cursor = "pointer";
-      row.addEventListener("click", () => toggleDayDetail(row, dayRecords, dateStr));
-    }
+    row.style.cursor = "pointer";
+    row.addEventListener("click", () => toggleDayDetail(row, dayRecords, dateStr));
     els.historyList.appendChild(row);
   }
 
@@ -865,13 +863,72 @@ function toggleDayDetail(row, records, date) {
 
   const detail = document.createElement("div");
   detail.className = "history-detail";
-  renderDetailContent(detail, records);
+  renderDetailContent(detail, records, date);
   row.after(detail);
 }
 
-function renderDetailContent(container, records) {
+function renderDetailContent(container, records, dateStr) {
   const valid = records.filter(r => r.durationMs >= 60000);
   container.innerHTML = "";
+
+  // ── 기록 없는 날: 빈 세션 만들고 기록 추가 ──
+  if (records.length === 0) {
+    const emptyWrap = document.createElement("div");
+    emptyWrap.style.cssText = "padding:4px 0 8px;";
+    const addBtn = document.createElement("button");
+    addBtn.className = "hd-edit-btn";
+    addBtn.textContent = "+ 기록 추가";
+    addBtn.addEventListener("click", () => {
+      if (emptyWrap.querySelector(".hd-add-form")) return;
+      addBtn.style.display = "none";
+      const form = document.createElement("div");
+      form.className = "hd-add-form";
+      const ta = document.createElement("textarea");
+      ta.className = "checkin-textarea";
+      ta.placeholder = "어떤 작업을 했나요?";
+      ta.style.cssText = "width:100%;margin-top:6px;";
+      const actions = document.createElement("div");
+      actions.className = "checkin-input-actions";
+      actions.style.marginTop = "6px";
+      const saveBtn = document.createElement("button");
+      saveBtn.className = "checkin-save-btn";
+      saveBtn.textContent = "저장";
+      saveBtn.addEventListener("click", async () => {
+        const text = ta.value.trim();
+        if (!text) return;
+        const targetDate = dateStr || toDateStr(Date.now());
+        const now = Date.now();
+        const newRecord = {
+          date: targetDate,
+          startMs: now,
+          endMs: now,
+          durationMs: 0,
+          checkIns: [{ label: formatClock(new Date()), text, timeMs: now }],
+          retro: ""
+        };
+        if (currentUser) {
+          const ref = await db.collection("users").doc(currentUser.uid)
+            .collection("history").add(newRecord);
+          newRecord._id = ref.id;
+        }
+        records.push(newRecord);
+        renderDetailContent(container, records, dateStr);
+      });
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "checkin-cancel-btn";
+      cancelBtn.textContent = "취소";
+      cancelBtn.addEventListener("click", () => { form.remove(); addBtn.style.display = ""; });
+      actions.appendChild(saveBtn);
+      actions.appendChild(cancelBtn);
+      form.appendChild(ta);
+      form.appendChild(actions);
+      emptyWrap.appendChild(form);
+      ta.focus();
+    });
+    emptyWrap.appendChild(addBtn);
+    container.appendChild(emptyWrap);
+    return;
+  }
 
   // ── 0. 세션 합치기 (2개 이상일 때만) ──
   if (valid.length > 1) {
