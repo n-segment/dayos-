@@ -675,6 +675,7 @@ function renderMonthView(history) {
 
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
+  const daysInMonth = monthEnd.getDate();
 
   const monthRecords = history.filter(r => {
     const d = new Date(r.startMs);
@@ -693,82 +694,125 @@ function renderMonthView(history) {
 
   els.historyList.innerHTML = "";
 
+  // 월 총합
   const totalEl = document.createElement("p");
   totalEl.className = "history-period-total";
   totalEl.textContent = monthTotalMs > 0 ? `총 ${mh > 0 ? mh + "시간 " : ""}${mm}분` : "기록 없음";
   els.historyList.appendChild(totalEl);
 
-  const daysInMonth = monthEnd.getDate();
-  for (let day = daysInMonth; day >= 1; day--) {
+  // 캘린더 그리드
+  const cal = document.createElement("div");
+  cal.className = "cal-grid";
+
+  // 요일 헤더 (일 월 화 수 목 금 토)
+  const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
+  DAY_HEADERS.forEach(d => {
+    const h = document.createElement("div");
+    h.className = "cal-header";
+    h.textContent = d;
+    cal.appendChild(h);
+  });
+
+  // 첫째 날 앞 빈칸
+  const firstDow = monthStart.getDay(); // 0=일
+  for (let i = 0; i < firstDow; i++) {
+    cal.appendChild(document.createElement("div"));
+  }
+
+  // 날짜 셀
+  const todayStr = toDateStr(Date.now());
+  for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, month, day);
     const dateStr = toDateStr(d.getTime());
-    const dayRecords = byDate[dateStr] || [];
-    if (!dayRecords.length && d > now) continue;
+    const recs = byDate[dateStr] || [];
+    const totalMs = recs.reduce((s, r) => s + (r.durationMs || 0), 0);
+    const hasData = totalMs > 0;
+    const isToday = dateStr === todayStr;
+    const isFuture = d > now && !isToday;
 
-    const dayTotalMs = dayRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
-    const isToday = dateStr === toDateStr(Date.now());
-    const hasData = dayRecords.length > 0;
+    const cell = document.createElement("div");
+    cell.className = "cal-cell" +
+      (isToday ? " cal-cell--today" : "") +
+      (isFuture ? " cal-cell--future" : "") +
+      (hasData ? " cal-cell--has-data" : "");
 
-    const row = document.createElement("div");
-    row.className = "history-day-row" + (isToday ? " history-day-row--today" : "") + (!hasData ? " history-day-row--empty" : "");
+    const dayNum = document.createElement("span");
+    dayNum.className = "cal-cell__day";
+    dayNum.textContent = day;
+    cell.appendChild(dayNum);
 
-    const dayH = Math.floor(dayTotalMs / 3600000);
-    const dayM = Math.floor((dayTotalMs % 3600000) / 60000);
-    const timeStr = hasData ? (dayH > 0 ? `${dayH}시간 ${dayM}분` : `${dayM}분`) : "—";
-
-    row.innerHTML = `
-      <span class="history-day-name">${WEEKDAYS[d.getDay()]}</span>
-      <span class="history-day-date">${month+1}/${day}</span>
-      <span class="history-day-time">${timeStr}</span>
-      ${hasData ? '<span class="history-day-arrow">›</span>' : ''}
-    `;
     if (hasData) {
-      row.style.cursor = "pointer";
-      row.addEventListener("click", () => toggleDayDetail(row, dayRecords, dateStr));
+      const h = Math.floor(totalMs / 3600000);
+      const m = Math.floor((totalMs % 3600000) / 60000);
+      const timeEl = document.createElement("span");
+      timeEl.className = "cal-cell__time";
+      timeEl.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+      cell.appendChild(timeEl);
+
+      // 강도 표시 (최대 4시간 기준)
+      const intensity = Math.min(totalMs / (4 * 3600000), 1);
+      cell.style.setProperty("--cal-intensity", intensity);
+      cell.style.cursor = "pointer";
+      cell.addEventListener("click", () => showCalDayDetail(recs, dateStr, d));
     }
-    els.historyList.appendChild(row);
+
+    cal.appendChild(cell);
   }
 
-  const olderRecords = history.filter(r => new Date(r.startMs) < monthStart);
-  if (olderRecords.length > 0) {
-    const byMonth = {};
-    olderRecords.forEach(r => {
-      const d = new Date(r.startMs);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      if (!byMonth[key]) byMonth[key] = { records: [], label: `${d.getFullYear()}년 ${d.getMonth()+1}월` };
-      byMonth[key].records.push(r);
-    });
+  els.historyList.appendChild(cal);
 
-    Object.entries(byMonth).sort((a,b) => b[0].localeCompare(a[0])).forEach(([key, { records, label }]) => {
-      const sep = document.createElement("p");
-      sep.className = "history-section-label";
-      sep.textContent = label;
-      els.historyList.appendChild(sep);
+  // 날짜 클릭 시 상세 패널
+  const detailPanel = document.createElement("div");
+  detailPanel.className = "cal-detail-panel";
+  detailPanel.id = "calDetailPanel";
+  els.historyList.appendChild(detailPanel);
+}
 
-      const mByDate = {};
-      records.forEach(r => {
-        if (!mByDate[r.date]) mByDate[r.date] = [];
-        mByDate[r.date].push(r);
-      });
+function showCalDayDetail(records, dateStr, d) {
+  const panel = document.getElementById("calDetailPanel");
+  if (!panel) return;
 
-      Object.entries(mByDate).sort((a,b) => b[0].localeCompare(a[0])).forEach(([date, recs]) => {
-        const d = new Date(date);
-        const totalMs = recs.reduce((s,r) => s + (r.durationMs||0), 0);
-        const h = Math.floor(totalMs/3600000), m = Math.floor((totalMs%3600000)/60000);
-        const row = document.createElement("div");
-        row.className = "history-day-row";
-        row.style.cursor = "pointer";
-        row.innerHTML = `
-          <span class="history-day-name">${WEEKDAYS[d.getDay()]}</span>
-          <span class="history-day-date">${d.getMonth()+1}/${d.getDate()}</span>
-          <span class="history-day-time">${h > 0 ? h+"시간 "+m+"분" : m+"분"}</span>
-          <span class="history-day-arrow">›</span>
-        `;
-        row.addEventListener("click", () => toggleDayDetail(row, recs, date));
-        els.historyList.appendChild(row);
-      });
-    });
+  // 같은 날 다시 클릭하면 닫기
+  if (panel.dataset.date === dateStr && panel.style.display !== "none" && panel.innerHTML !== "") {
+    panel.innerHTML = "";
+    panel.dataset.date = "";
+    document.querySelectorAll(".cal-cell--selected").forEach(c => c.classList.remove("cal-cell--selected"));
+    return;
   }
+
+  document.querySelectorAll(".cal-cell--selected").forEach(c => c.classList.remove("cal-cell--selected"));
+  document.querySelectorAll(".cal-cell--has-data").forEach(c => {
+    const day = parseInt(c.querySelector(".cal-cell__day")?.textContent);
+    if (day === d.getDate()) c.classList.add("cal-cell--selected");
+  });
+
+  panel.dataset.date = dateStr;
+
+  const totalMs = records.reduce((s, r) => s + (r.durationMs || 0), 0);
+  const th = Math.floor(totalMs / 3600000);
+  const tm = Math.floor((totalMs % 3600000) / 60000);
+  const timeStr = th > 0 ? `${th}시간 ${tm}분` : `${tm}분`;
+
+  panel.innerHTML = `
+    <div class="cal-detail__header">
+      <span class="cal-detail__date">${d.getMonth()+1}월 ${d.getDate()}일 ${WEEKDAYS[d.getDay()]}요일</span>
+      <span class="cal-detail__total">${timeStr}</span>
+    </div>
+    <div class="cal-detail__sessions">
+      ${records.filter(r => r.durationMs >= 60000).map(r => {
+        const sh = Math.floor(r.durationMs / 3600000);
+        const sm = Math.floor((r.durationMs % 3600000) / 60000);
+        const start = new Date(r.startMs);
+        const ampm = start.getHours() < 12 ? "오전" : "오후";
+        const h12 = start.getHours() % 12 || 12;
+        const minStr = String(start.getMinutes()).padStart(2, "0");
+        return `<div class="cal-detail__session">
+          <span class="cal-detail__session-time">${ampm} ${h12}:${minStr}</span>
+          <span class="cal-detail__session-dur">${sh > 0 ? sh+"시간 "+sm+"분" : sm+"분"}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
 }
 
 function toggleDayDetail(row, records, date) {
