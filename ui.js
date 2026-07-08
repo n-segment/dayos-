@@ -950,8 +950,6 @@ function renderDetailContent(container, records) {
     });
     retroWrap.appendChild(btn);
   }
-  container.appendChild(retroWrap);
-
   // ── 2. 시간별 기록 (check-ins) — 수정 + 삭제 ──
   const targetRecord = records[records.length - 1]; // 기록 추가할 레코드 (마지막)
   const allCheckins = records.flatMap(r =>
@@ -1164,6 +1162,9 @@ function renderDetailContent(container, records) {
       container.appendChild(barEl);
     }
   }
+
+  // ── 4. 전체 회고 (맨 아래) ──
+  container.appendChild(retroWrap);
 }
 
 function updateFocusScreen() {
