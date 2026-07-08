@@ -178,7 +178,7 @@ function openCheckinInput() {
   checkinPending = true;
   const nthHour = checkIns.length + 1;
   sendHourNotification(nthHour);
-  els.checkinInputLabel.textContent = `${nthHour}시간 지남~`;
+  els.checkinInputLabel.textContent = `${nthHour}시간 지났어요.`;
   els.checkinTextarea.value = "";
   els.checkinInputWrap.classList.remove("hidden");
   els.checkinInputWrap.classList.add("checkin-active");
@@ -300,7 +300,7 @@ function requestNotificationPermission() {
 
 function sendHourNotification(nthHour) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  new Notification(`${nthHour}시간 지남~`, {
+  new Notification(`${nthHour}시간 지났어요.`, {
     body: "잠깐 스트레칭하고 뭐 했는지 기록해봐요 ദ്ദി (ˊᗜˋა)",
     icon: "./hidden_1.png",
   });
