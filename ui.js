@@ -952,62 +952,126 @@ function renderDetailContent(container, records) {
   }
   container.appendChild(retroWrap);
 
-  // ── 2. 시간별 기록 (check-ins) — 각각 수정 가능 ──
+  // ── 2. 시간별 기록 (check-ins) — 수정 + 삭제 ──
+  const targetRecord = records[records.length - 1]; // 기록 추가할 레코드 (마지막)
   const allCheckins = records.flatMap(r =>
     (r.checkIns || [])
       .map((c, idx) => ({ ...c, _idx: idx, _record: r }))
       .filter(c => c.text && c.text !== "(기록 없음)")
   );
-  if (allCheckins.length > 0) {
-    const ul = document.createElement("ul");
-    ul.className = "hd-checkins";
-    allCheckins.forEach(c => {
-      const li = document.createElement("li");
-      li.className = "hd-checkin";
-      const labelEl = document.createElement("span");
-      labelEl.className = "hd-checkin-label";
-      labelEl.textContent = c.label;
-      const textEl = document.createElement("span");
-      textEl.className = "hd-checkin-text";
-      textEl.textContent = c.text;
-      li.appendChild(labelEl);
-      li.appendChild(textEl);
-      if (c._record?._id) {
-        const editBtn = document.createElement("button");
-        editBtn.className = "hd-edit-btn";
-        editBtn.style.marginLeft = "6px";
-        editBtn.textContent = "수정";
-        editBtn.addEventListener("click", () => {
-          if (li.querySelector(".hd-inline-edit")) return;
-          const input = document.createElement("input");
-          input.type = "text";
-          input.className = "hd-checkin-inline-input";
-          input.value = c.text;
-          const saveBtn = document.createElement("button");
-          saveBtn.className = "hd-save-btn";
-          saveBtn.textContent = "저장";
-          saveBtn.addEventListener("click", async () => {
-            c._record.checkIns[c._idx].text = input.value.trim();
-            await updateRecord(c._record._id, { checkIns: c._record.checkIns });
-            records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
-            renderDetailContent(container, records);
-          });
-          const cancelBtn = document.createElement("button");
-          cancelBtn.className = "hd-edit-btn";
-          cancelBtn.textContent = "취소";
-          cancelBtn.addEventListener("click", () => { input.remove(); saveBtn.remove(); cancelBtn.remove(); });
-          textEl.style.display = "none";
-          li.appendChild(input);
-          li.appendChild(saveBtn);
-          li.appendChild(cancelBtn);
-          input.focus();
+
+  const ul = document.createElement("ul");
+  ul.className = "hd-checkins";
+
+  allCheckins.forEach(c => {
+    const li = document.createElement("li");
+    li.className = "hd-checkin";
+    const labelEl = document.createElement("span");
+    labelEl.className = "hd-checkin-label";
+    labelEl.textContent = c.label;
+    const textEl = document.createElement("span");
+    textEl.className = "hd-checkin-text";
+    textEl.textContent = c.text;
+    li.appendChild(labelEl);
+    li.appendChild(textEl);
+
+    if (c._record?._id) {
+      // 수정 버튼
+      const editBtn = document.createElement("button");
+      editBtn.className = "hd-edit-btn";
+      editBtn.style.marginLeft = "6px";
+      editBtn.textContent = "수정";
+      editBtn.addEventListener("click", () => {
+        if (li.querySelector(".hd-checkin-inline-input")) return;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "hd-checkin-inline-input";
+        input.value = c.text;
+        const saveBtn = document.createElement("button");
+        saveBtn.className = "hd-save-btn";
+        saveBtn.textContent = "저장";
+        saveBtn.addEventListener("click", async () => {
+          c._record.checkIns[c._idx].text = input.value.trim();
+          await updateRecord(c._record._id, { checkIns: c._record.checkIns });
+          records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
+          renderDetailContent(container, records);
         });
-        li.appendChild(editBtn);
-      }
-      ul.appendChild(li);
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "hd-edit-btn";
+        cancelBtn.textContent = "취소";
+        cancelBtn.addEventListener("click", () => { input.remove(); saveBtn.remove(); cancelBtn.remove(); textEl.style.display = ""; });
+        textEl.style.display = "none";
+        li.appendChild(input);
+        li.appendChild(saveBtn);
+        li.appendChild(cancelBtn);
+        input.focus();
+      });
+
+      // 삭제 버튼
+      const delBtn = document.createElement("button");
+      delBtn.className = "hd-edit-btn";
+      delBtn.style.cssText = "margin-left:4px;color:rgba(255,100,100,0.6);border-color:rgba(255,100,100,0.25);";
+      delBtn.textContent = "삭제";
+      delBtn.addEventListener("click", async () => {
+        c._record.checkIns.splice(c._idx, 1);
+        await updateRecord(c._record._id, { checkIns: c._record.checkIns });
+        records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
+        renderDetailContent(container, records);
+      });
+
+      li.appendChild(editBtn);
+      li.appendChild(delBtn);
+    }
+    ul.appendChild(li);
+  });
+
+  // + 기록 추가 폼
+  const addLi = document.createElement("li");
+  addLi.className = "hd-checkin hd-checkin--add";
+  const addBtn = document.createElement("button");
+  addBtn.className = "hd-edit-btn";
+  addBtn.textContent = "+ 기록 추가";
+  addBtn.addEventListener("click", () => {
+    if (addLi.querySelector(".hd-add-form")) return;
+    addBtn.style.display = "none";
+    const form = document.createElement("div");
+    form.className = "hd-add-form";
+    const ta = document.createElement("textarea");
+    ta.className = "checkin-textarea";
+    ta.placeholder = "어떤 작업을 했나요?";
+    ta.style.cssText = "width:100%;margin-top:6px;";
+    const actions = document.createElement("div");
+    actions.className = "checkin-input-actions";
+    actions.style.marginTop = "6px";
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "checkin-save-btn";
+    saveBtn.textContent = "저장";
+    saveBtn.addEventListener("click", async () => {
+      const text = ta.value.trim();
+      if (!text) return;
+      const rec = targetRecord;
+      if (!rec._id) return;
+      const newEntry = { label: formatClock(new Date()), text, timeMs: Date.now() };
+      rec.checkIns = rec.checkIns || [];
+      rec.checkIns.push(newEntry);
+      await updateRecord(rec._id, { checkIns: rec.checkIns });
+      renderDetailContent(container, records);
     });
-    container.appendChild(ul);
-  }
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "checkin-cancel-btn";
+    cancelBtn.textContent = "취소";
+    cancelBtn.addEventListener("click", () => { form.remove(); addBtn.style.display = ""; });
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+    form.appendChild(ta);
+    form.appendChild(actions);
+    addLi.appendChild(form);
+    ta.focus();
+  });
+  addLi.appendChild(addBtn);
+  ul.appendChild(addLi);
+
+  container.appendChild(ul);
 
   // ── 3. 시간 범위 + 수정 ──
   if (valid.length > 0) {
