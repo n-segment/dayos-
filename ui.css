@@ -864,7 +864,7 @@ html, body {
 }
 
 /* ── 히스토리 화면 ── */
-.screen--history {
+.screen--history.is-active {
   display: block !important;
   overflow-y: auto;
   align-items: unset;
