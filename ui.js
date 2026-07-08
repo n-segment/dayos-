@@ -32,6 +32,8 @@ const els = {
   summaryDateText: $("summaryDateText"),
   summaryFocusText: $("summaryFocusText"),
   summaryRetro: $("summaryRetro"),
+  addNoteBtn: $("addNoteBtn"),
+  checkinCancelBtn: $("checkinCancelBtn"),
   retroModal: $("retroModal"),
   retroModalTextarea: $("retroModalTextarea"),
   retroSkipBtn: $("retroSkipBtn"),
@@ -193,8 +195,13 @@ function checkinLabel(nthHour) {
   return `${nthHour}시간`;
 }
 
-function openCheckinInput() { /* 더 이상 자동 호출 안 함 */ }
+function openCheckinInput() {
+  els.checkinInputWrap.classList.remove("hidden");
+  els.checkinTextarea.focus();
+}
+
 function closeCheckinInput() {
+  els.checkinInputWrap.classList.add("hidden");
   els.checkinTextarea.value = "";
 }
 
@@ -983,10 +990,13 @@ function init() {
     }
   });
 
-  // 체크인 버튼
+  // 기록 버튼
+  els.addNoteBtn?.addEventListener("click", openCheckinInput);
+  els.checkinCancelBtn?.addEventListener("click", closeCheckinInput);
   els.checkinSaveBtn?.addEventListener("click", saveCheckin);
   els.checkinTextarea?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveCheckin(); }
+    if (e.key === "Escape") closeCheckinInput();
   });
 }
 

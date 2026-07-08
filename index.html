@@ -64,16 +64,18 @@
             <!-- 기록 -->
             <div class="checkin-zone" id="checkinZone">
               <ul class="checkin-log" id="checkinLog"></ul>
-              <div class="checkin-input-wrap" id="checkinInputWrap">
+              <div class="checkin-input-wrap hidden" id="checkinInputWrap">
                 <textarea class="checkin-textarea" id="checkinTextarea" placeholder="지금 뭐 하고 있어요?"></textarea>
                 <div class="checkin-input-actions">
-                  <button class="checkin-save-btn" id="checkinSaveBtn">추가</button>
+                  <button class="checkin-save-btn" id="checkinSaveBtn">저장</button>
+                  <button class="checkin-cancel-btn" id="checkinCancelBtn">취소</button>
                 </div>
               </div>
             </div>
 
             <div class="focus-panel__actions">
               <button class="button button--ghost" id="pauseButton">일시정지</button>
+              <button class="button button--ghost" id="addNoteBtn">기록하기</button>
               <button class="button button--primary" id="endButton">작업 끝내기</button>
             </div>
           </div>
