@@ -1226,6 +1226,68 @@ html, body {
   animation: checkin-pop 0.2s ease;
 }
 
+.hd-retro-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.hd-edit-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.45);
+  font-size: 11px;
+  padding: 2px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.hd-edit-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4); }
+.hd-save-btn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  border-radius: 4px;
+  color: var(--color-paper-white);
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.hd-save-btn:hover { background: rgba(255,255,255,0.2); }
+.hd-inline-edit {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: var(--color-paper-white);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  width: 100%;
+  resize: vertical;
+  outline: none;
+  min-height: 60px;
+}
+.hd-time-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.hd-time-input {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: var(--color-paper-white);
+  font-size: 12px;
+  padding: 3px 6px;
+  outline: none;
+  width: 90px;
+  color-scheme: dark;
+}
+
 .hd-session { margin-bottom: 12px; }
 
 .hd-session-meta {
