@@ -848,12 +848,18 @@ html, body {
   background-position: center;
 }
 .screen--focus::before,
-.screen--summary::before,
-.screen--history::before {
+.screen--summary::before {
   content: '';
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+.screen--history::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
   z-index: 0;
 }
 .screen--focus > *,
