@@ -1205,7 +1205,7 @@ html, body {
 
 .tl-dot--start { background: var(--color-paper-white); }
 .tl-dot--end   { background: var(--color-paper-white); }
-.tl-row--skip .tl-dot { background: #2a2a2a; }
+.tl-row--skip .tl-dot { opacity: 0; }
 
 .tl-content {
   display: flex;
