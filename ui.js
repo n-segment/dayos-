@@ -408,7 +408,7 @@ function renderGoalTasks() {
     row.innerHTML = `
       <input class="goal-task-name" type="text" placeholder="할 일을 적어요" value="${g.task}" data-idx="${i}" />
       <div class="goal-task-hours-wrap">
-        <input class="goal-task-hours" type="number" min="0" max="24" step="0.5" value="${g.hours}" data-idx="${i}" />
+        <input class="goal-task-hours" type="text" inputmode="decimal" value="${g.hours}" data-idx="${i}" />
         <span class="goal-task-hours-label">시간</span>
       </div>
       <button class="goal-task-del" data-idx="${i}" aria-label="삭제">×</button>
