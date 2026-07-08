@@ -1002,16 +1002,26 @@ function init() {
   const musicBtn = document.getElementById("musicBtn");
   const musicFrame = document.getElementById("musicFrame");
   let musicPlaying = false;
-  const MUSIC_SRC = "https://www.youtube.com/embed/46e80ussWc0?autoplay=1&loop=1&playlist=46e80ussWc0";
+  const MUSIC_SRC = "https://www.youtube.com/embed/46e80ussWc0?autoplay=1&loop=1&playlist=46e80ussWc0&enablejsapi=1";
 
   musicBtn?.addEventListener("click", () => {
     if (!musicPlaying) {
-      musicFrame.src = MUSIC_SRC;
+      // iframe을 새로 교체해야 autoplay가 확실히 작동
+      const newFrame = document.createElement("iframe");
+      newFrame.id = "musicFrame";
+      newFrame.src = MUSIC_SRC;
+      newFrame.style.cssText = musicFrame.style.cssText;
+      newFrame.frameBorder = "0";
+      newFrame.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+      newFrame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      newFrame.allowFullscreen = true;
+      musicFrame.replaceWith(newFrame);
       musicBtn.classList.add("is-playing");
       musicBtn.title = "음악 정지";
       musicPlaying = true;
     } else {
-      musicFrame.src = "";
+      const frame = document.getElementById("musicFrame");
+      if (frame) frame.src = "";
       musicBtn.classList.remove("is-playing");
       musicBtn.title = "음악 재생";
       musicPlaying = false;
