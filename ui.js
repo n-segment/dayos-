@@ -146,8 +146,8 @@ function getTimeOfDayText() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12)  return { eyebrow: "MORNING", title: "오전부터 시작하다니", desc: "진짜 대단하다. 이 시간에 이러는 사람 별로 없음." };
   if (h >= 12 && h < 17) return { eyebrow: "AFTERNOON", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "어제보다 조금만 더. 그거면 충분해." };
-  if (h >= 17 && h < 20) return { eyebrow: "", title: "ദ്ദി (ˊᗜˋა)", desc: "오늘도 화이팅" };
-  return { eyebrow: "", title: "ദ്ദി (ˊᗜˋა)", desc: "오늘도 화이팅" };
+  if (h >= 17 && h < 20) return { eyebrow: "", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "" };
+  return { eyebrow: "", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "" };
 }
 
 function updateWelcomeScreen() {
