@@ -700,6 +700,12 @@ function renderMonthView(history) {
   totalEl.textContent = monthTotalMs > 0 ? `총 ${mh > 0 ? mh + "시간 " : ""}${mm}분` : "기록 없음";
   els.historyList.appendChild(totalEl);
 
+  // 월 표시
+  const monthLabel = document.createElement("p");
+  monthLabel.className = "cal-month-label";
+  monthLabel.textContent = `${month + 1}월`;
+  els.historyList.appendChild(monthLabel);
+
   // 캘린더 그리드
   const cal = document.createElement("div");
   cal.className = "cal-grid";
