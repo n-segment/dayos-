@@ -1183,14 +1183,32 @@ function init() {
   feedbackModal?.addEventListener("click", (e) => {
     if (e.target === feedbackModal) feedbackModal.classList.add("hidden");
   });
-  feedbackSend?.addEventListener("click", () => {
+  feedbackSend?.addEventListener("click", async () => {
     const text = feedbackTextarea?.value?.trim();
     if (!text) return;
-    const subject = encodeURIComponent("DayOS 피드백");
-    const body = encodeURIComponent(text);
-    window.open(`mailto:naraee.prk@gmail.com?subject=${subject}&body=${body}`, "_blank");
-    feedbackTextarea.value = "";
-    feedbackModal?.classList.add("hidden");
+
+    feedbackSend.disabled = true;
+    feedbackSend.textContent = "보내는 중...";
+
+    try {
+      await db.collection("feedback").add({
+        text,
+        from: currentUser?.email || "anonymous",
+        uid: currentUser?.uid || null,
+        createdAt: Date.now(),
+      });
+      feedbackTextarea.value = "";
+      feedbackSend.textContent = "보냈어요 ✓";
+      setTimeout(() => {
+        feedbackModal?.classList.add("hidden");
+        feedbackSend.textContent = "보내기";
+        feedbackSend.disabled = false;
+      }, 1200);
+    } catch (e) {
+      feedbackSend.textContent = "실패 :(";
+      feedbackSend.disabled = false;
+      setTimeout(() => { feedbackSend.textContent = "보내기"; }, 2000);
+    }
   });
 
   // 기록 버튼
