@@ -460,10 +460,10 @@ function updateGoalTotal() {
     const endM = totalMin % 60;
     const ampm = endH24 < 12 ? "오전" : "오후";
     const endH12 = endH24 % 12 === 0 ? 12 : endH24 % 12;
-    endStr = ` · ${ampm} ${endH12}:${String(endM).padStart(2, "0")} 끝`;
+    endStr = `${ampm} ${endH12}:${String(endM).padStart(2, "0")} (${durationStr})`;
   }
 
-  el.textContent = durationStr + endStr;
+  el.textContent = endStr || durationStr;
 }
 
 function addGoalTask() {
