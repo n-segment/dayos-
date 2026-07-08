@@ -1110,9 +1110,9 @@ html, body {
 .goal-modal.hidden { display: none; }
 
 .goal-modal__box {
-  background: rgba(20,20,20,0.55);
-  backdrop-filter: blur(48px);
-  -webkit-backdrop-filter: blur(48px);
+  background: rgba(20,20,20,0.15);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 16px;
   padding: 28px;
