@@ -1365,6 +1365,19 @@ html, body {
 .hd-checkin-text {
   color: var(--color-smoke);
   font-weight: 300;
+  flex: 1;
+}
+
+.hd-checkin-inline-input {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: var(--color-paper-white);
+  font-size: 12px;
+  padding: 3px 8px;
+  outline: none;
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── 마무리 고정 버튼 ── */
