@@ -348,7 +348,7 @@ html, body {
 }
 
 .welcome-now-time {
-  margin: 0 0 var(--spacing-28);
+  margin: 0 0 8px;
   font-size: clamp(72px, 12vw, 94px);
   font-weight: 300;
   letter-spacing: -0.03em;
