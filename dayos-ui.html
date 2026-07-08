@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko-KR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,16 +11,16 @@
 <div class="dayos-app">
       <header class="app-header">
         <div class="brand-left">
-          <button class="music-btn" id="musicBtn" title="음악 재생/정지">♪</button>
+          <button class="music-btn" id="musicBtn" aria-label="음악 재생" aria-pressed="false">♪</button>
         </div>
-        <div class="session-badge" id="sessionBadge">대기</div>
+        <div class="session-badge" id="sessionBadge" role="status" aria-live="polite">대기</div>
         <div class="header-right-placeholder"></div>
       </header>
       <main class="screen-stack">
 
         <!-- 0. 로그인 화면 -->
-        <section class="screen screen--login is-active" id="loginScreen">
-          <video class="welcome-bg-video" autoplay muted loop playsinline>
+        <section class="screen screen--login is-active" id="loginScreen" aria-label="로그인">
+          <video class="welcome-bg-video" autoplay muted loop playsinline aria-hidden="true">
             <source src="./bg.MOV" type="video/mp4">
           </video>
           <div class="login-panel">
@@ -34,8 +34,8 @@
         </section>
 
         <!-- 1. 시작 화면 -->
-        <section class="screen screen--welcome" id="welcomeScreen">
-          <video class="welcome-bg-video" autoplay muted loop playsinline>
+        <section class="screen screen--welcome" id="welcomeScreen" aria-label="홈">
+          <video class="welcome-bg-video" autoplay muted loop playsinline aria-hidden="true">
             <source src="./bg.MOV" type="video/mp4">
           </video>
           <div class="welcome-panel">
@@ -55,7 +55,7 @@
         </section>
 
         <!-- 2. 작업시간 기록 화면 -->
-        <section class="screen screen--focus" id="focusScreen">
+        <section class="screen screen--focus" id="focusScreen" aria-label="작업 기록 중">
           <button class="end-btn-fixed" id="endButtonFixed">마무리 →</button>
           <div class="focus-panel">
             <p class="date-chip"><span class="date-chip__dot" aria-hidden="true"></span><span id="focusTodayText"></span></p>

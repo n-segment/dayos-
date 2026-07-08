@@ -4,6 +4,33 @@
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; }
 
+/* ── 접근성 ── */
+/* 키보드 포커스 표시 */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* 모션 줄이기 설정 시 비디오·애니메이션 정지 */
+@media (prefers-reduced-motion: reduce) {
+  .welcome-bg-video { display: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* 스크린리더 전용 텍스트 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ── Design tokens — monopo saigon system ── */
 :root {
   --color-paper-white: #ffffff;
