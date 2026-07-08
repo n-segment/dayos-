@@ -22,8 +22,23 @@
       </header>
       <main class="screen-stack">
 
+        <!-- 0. 로그인 화면 -->
+        <section class="screen screen--login is-active" id="loginScreen">
+          <video class="welcome-bg-video" autoplay muted loop playsinline>
+            <source src="./bg.MOV" type="video/mp4">
+          </video>
+          <div class="login-panel">
+            <div class="login-brand">
+              <img src="./logo.png" style="width:28px;height:28px;object-fit:contain;border-radius:6px;" />
+              <span>DayOS</span>
+            </div>
+            <h2 class="login-title">오늘 하루도<br>기록해봐요.</h2>
+            <button class="button button--start" id="googleLoginBtn">Google로 시작하기 →</button>
+          </div>
+        </section>
+
         <!-- 1. 시작 화면 -->
-        <section class="screen screen--welcome is-active" id="welcomeScreen">
+        <section class="screen screen--welcome" id="welcomeScreen">
           <video class="welcome-bg-video" autoplay muted loop playsinline>
             <source src="./bg.MOV" type="video/mp4">
           </video>
@@ -115,6 +130,10 @@
       <footer class="app-footer">DayOS</footer>
     </div>
 
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <iframe id="musicFrame" style="position:fixed;width:200px;height:113px;opacity:0.001;pointer-events:none;bottom:0;left:0;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
     <script src="./ui.js"></script>
   </body>

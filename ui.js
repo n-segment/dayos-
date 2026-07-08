@@ -1,6 +1,22 @@
 const $ = (id) => document.getElementById(id);
 
+// ── Firebase 초기화 ──
+const firebaseConfig = {
+  apiKey: "AIzaSyAvYUxEMeE2u7r-xG54oLikYONw5czF0As",
+  authDomain: "dayos-a94ff.firebaseapp.com",
+  projectId: "dayos-a94ff",
+  storageBucket: "dayos-a94ff.firebasestorage.app",
+  messagingSenderId: "916662677161",
+  appId: "1:916662677161:web:77f7b72beb4648cd1943b8",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+
 const els = {
+  loginScreen: $("loginScreen"),
+  googleLoginBtn: $("googleLoginBtn"),
   welcomeScreen: $("welcomeScreen"),
   focusScreen: $("focusScreen"),
   summaryScreen: $("summaryScreen"),
@@ -17,8 +33,6 @@ const els = {
   summaryRetro: $("summaryRetro"),
   summaryBackButton: $("summaryBackButton"),
   summarySaveButton: $("summarySaveButton"),
-  liveSegments: $("liveSegments"),
-  // 체크인
   checkinZone: $("checkinZone"),
   checkinNext: $("checkinNext"),
   checkinLog: $("checkinLog"),
@@ -49,7 +63,6 @@ let trackerMinutes = 0;
 let lastSessionMs = 0;
 let lastTrackerSegments = [];
 
-// 세그먼트별 메모 저장 { segKey: string }
 const segmentMemos = {};
 
 // ── 바운싱 이미지 이스터에그 ──
@@ -110,10 +123,9 @@ function maybeTriggerBounce() {
 }
 
 // ── 시간별 체크인 ──
-// checkIns: [{ timeMs, label, text }]  label = "2시간째", text = 입력내용
 let checkIns = [];
-let nextCheckInMs = null;   // 다음 체크인 예정 시각 (startedAtMs + n*3600000)
-let checkinPending = false; // 체크인 입력창 열려있는지
+let nextCheckInMs = null;
+let checkinPending = false;
 
 function segKey(seg) {
   return `${seg.app}__${seg.start}__${seg.end}`;
@@ -200,8 +212,7 @@ function saveCheckin() {
     label: checkinLabel(nthHour),
     text: text || "(기록 없음)",
   });
-  // 다음 체크인 예정 시각 갱신
-  nextCheckInMs = startedAtMs + checkIns.length * 3600000; // 1시간
+  nextCheckInMs = startedAtMs + checkIns.length * 3600000;
   closeCheckinInput();
   renderCheckinLog();
 }
@@ -211,9 +222,9 @@ function skipCheckin() {
   checkIns.push({
     timeMs: Date.now(),
     label: checkinLabel(nthHour),
-    text: null,  // 건너뜀
+    text: null,
   });
-  nextCheckInMs = startedAtMs + checkIns.length * 3600000; // 1시간
+  nextCheckInMs = startedAtMs + checkIns.length * 3600000;
   closeCheckinInput();
   renderCheckinLog();
 }
@@ -309,28 +320,10 @@ function sendHourNotification(nthHour) {
 function initCheckin() {
   checkIns = [];
   checkinPending = false;
-  nextCheckInMs = startedAtMs + 3600000; // 1시간
+  nextCheckInMs = startedAtMs + 3600000;
   closeCheckinInput();
   renderCheckinLog();
   if (els.checkinNext) els.checkinNext.textContent = "";
-}
-
-function buildTrackerQuery() {
-  const apps = encodeURIComponent(TRACKED_APPS.join(","));
-  return `/status?apps=${apps}`;
-}
-
-async function trackerFetch(path, options = {}) {
-  const res = await fetch(`${TRACKER_BASE}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-  });
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = payload && payload.error ? payload.error : `tracker error ${res.status}`;
-    throw new Error(msg);
-  }
-  return payload;
 }
 
 function getTrackerMinutesFromSegments(segments) {
@@ -346,82 +339,8 @@ function getTrackerMinutesFromSegments(segments) {
   return Math.floor(totalMs / 60000);
 }
 
-function renderLiveSegments() {
-  if (!els.liveSegments) return;
-  if (!trackerAvailable || lastTrackerSegments.length === 0) {
-    els.liveSegments.innerHTML = "";
-    return;
-  }
-
-  // 앱별 합치기 (summary와 동일)
-  const appMap = {};
-  const merged = [];
-  lastTrackerSegments.forEach((seg) => {
-    const app = seg.app || "App";
-    if (!appMap[app]) {
-      appMap[app] = { app, start: seg.start, end: seg.end, startMs: seg.startMs, endMs: seg.endMs, minutes: seg.minutes || 0, isSleep: seg.isSleep };
-      merged.push(appMap[app]);
-    } else {
-      const e = appMap[app];
-      if (seg.startMs < e.startMs) { e.startMs = seg.startMs; e.start = seg.start; }
-      if (seg.endMs > e.endMs) { e.endMs = seg.endMs; e.end = seg.end; }
-      e.minutes += seg.minutes || 0;
-    }
-  });
-
-  els.liveSegments.innerHTML = merged.map((seg) => `
-    <div class="live-seg${seg.isSleep ? " live-seg--sleep" : ""}">
-      <span class="live-seg__app">${seg.app}</span>
-      <span class="live-seg__range">${seg.start} – ${seg.end}</span>
-      <span class="live-seg__min">${seg.minutes}분</span>
-    </div>
-  `).join("");
-}
-
-function renderTrackerSummary() {
-  // tracker UI removed
-}
-
-async function refreshTrackerStatus() {
-  const status = await trackerFetch(buildTrackerQuery());
-  trackerAvailable = true;
-  trackerMinutes = getTrackerMinutesFromSegments(status.segments);
-  lastTrackerSegments = Array.isArray(status.segments) ? status.segments : [];
-  renderTrackerSummary();
-}
-
-async function startTrackerFlow() {
-  try {
-    await trackerFetch("/health");
-    await trackerFetch("/start", { method: "POST" });
-    trackerAvailable = true;
-    trackerMinutes = 0;
-    renderTrackerSummary();
-    if (trackerPollId) clearInterval(trackerPollId);
-    trackerPollId = setInterval(() => {
-      refreshTrackerStatus().catch(() => {
-        trackerAvailable = false;
-        renderTrackerSummary();
-      });
-    }, 5000);
-    await refreshTrackerStatus();
-  } catch {
-    trackerAvailable = false;
-    renderTrackerSummary();
-  }
-}
-
-async function stopTrackerFlow() {
-  if (trackerPollId) clearInterval(trackerPollId);
-  trackerPollId = null;
-  try {
-    await trackerFetch("/stop", { method: "POST" });
-    await refreshTrackerStatus();
-  } catch {
-    trackerAvailable = false;
-    renderTrackerSummary();
-  }
-}
+function renderLiveSegments() { /* tracker UI removed */ }
+function renderTrackerSummary() { /* tracker UI removed */ }
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ startedAtMs }));
@@ -439,6 +358,7 @@ function restoreState() {
 }
 
 function showScreen(screen) {
+  els.loginScreen.classList.toggle("is-active", screen === "login");
   els.welcomeScreen.classList.toggle("is-active", screen === "welcome");
   els.focusScreen.classList.toggle("is-active", screen === "focus");
   els.summaryScreen.classList.toggle("is-active", screen === "summary");
@@ -447,14 +367,26 @@ function showScreen(screen) {
   if (endBtn) endBtn.classList.toggle("visible", screen === "focus");
 }
 
-// ── 히스토리 저장/조회 ──
+// ── Google 로그인 ──
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch((err) => {
+    console.error("로그인 실패:", err);
+  });
+}
+
+function signOut() {
+  auth.signOut();
+}
+
+// ── 히스토리 저장/조회 (Firestore + localStorage fallback) ──
 
 function toDateStr(ms) {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function saveSessionToHistory() {
+async function saveSessionToHistory() {
   const retro = els.summaryRetro ? els.summaryRetro.value.trim() : "";
   const sessionStart = endedAtMs ? endedAtMs - lastSessionMs : Date.now() - lastSessionMs;
   const record = {
@@ -465,19 +397,39 @@ function saveSessionToHistory() {
     checkIns: checkIns.map(c => ({...c})),
     retro,
   };
-  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-  // 같은 날 기록이 있으면 덮어쓰지 않고 추가
-  history.push(record);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+  // localStorage 저장 (항상)
+  const localHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  localHistory.push(record);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(localHistory));
+
+  // Firestore 저장 (로그인 시)
+  if (currentUser) {
+    try {
+      await db.collection("users").doc(currentUser.uid)
+        .collection("history").add(record);
+    } catch (e) {
+      console.error("Firestore 저장 실패:", e);
+    }
+  }
 }
 
-function getHistory() {
+async function getHistory() {
+  if (currentUser) {
+    try {
+      const snapshot = await db.collection("users").doc(currentUser.uid)
+        .collection("history").orderBy("startMs", "asc").get();
+      return snapshot.docs.map(doc => doc.data());
+    } catch (e) {
+      console.error("Firestore 로드 실패:", e);
+    }
+  }
   return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
 }
 
 function getWeekRange() {
   const now = new Date();
-  const day = now.getDay(); // 0=일
+  const day = now.getDay();
   const mon = new Date(now);
   mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
   mon.setHours(0,0,0,0);
@@ -487,12 +439,11 @@ function getWeekRange() {
   return { mon, sun };
 }
 
-let historyTab = "week"; // "week" | "month"
+let historyTab = "week";
 
-function renderHistoryScreen() {
+async function renderHistoryScreen() {
   if (!els.historyWeekTotal || !els.historyList) return;
 
-  // 탭 UI
   els.historyWeekTotal.innerHTML = `
     <div class="history-tabs">
       <button class="history-tab ${historyTab === 'week' ? 'is-active' : ''}" data-tab="week">이번 주</button>
@@ -506,12 +457,14 @@ function renderHistoryScreen() {
     });
   });
 
-  if (historyTab === "week") renderWeekView();
-  else renderMonthView();
+  els.historyList.innerHTML = `<p style="opacity:0.4;text-align:center;padding:24px;">불러오는 중...</p>`;
+  const history = await getHistory();
+
+  if (historyTab === "week") renderWeekView(history);
+  else renderMonthView(history);
 }
 
-function renderWeekView() {
-  const history = getHistory();
+function renderWeekView(history) {
   const { mon, sun } = getWeekRange();
   const DAYS = ["월","화","수","목","금","토","일"];
 
@@ -563,7 +516,6 @@ function renderWeekView() {
     els.historyList.appendChild(row);
   }
 
-  // 이전 기록
   const olderRecords = history.filter(r => new Date(r.startMs) < mon);
   if (olderRecords.length > 0) {
     const sep = document.createElement("p");
@@ -596,8 +548,7 @@ function renderWeekView() {
   }
 }
 
-function renderMonthView() {
-  const history = getHistory();
+function renderMonthView(history) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -632,7 +583,7 @@ function renderMonthView() {
     const d = new Date(year, month, day);
     const dateStr = toDateStr(d.getTime());
     const dayRecords = byDate[dateStr] || [];
-    if (!dayRecords.length && d > now) continue; // 미래 날짜 스킵
+    if (!dayRecords.length && d > now) continue;
 
     const dayTotalMs = dayRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
     const isToday = dateStr === toDateStr(Date.now());
@@ -658,10 +609,8 @@ function renderMonthView() {
     els.historyList.appendChild(row);
   }
 
-  // 이전 달 기록
   const olderRecords = history.filter(r => new Date(r.startMs) < monthStart);
   if (olderRecords.length > 0) {
-    // 월별로 묶기
     const byMonth = {};
     olderRecords.forEach(r => {
       const d = new Date(r.startMs);
@@ -703,7 +652,6 @@ function renderMonthView() {
 }
 
 function toggleDayDetail(row, records, date) {
-  // 이미 열려있으면 닫기
   const existing = row.nextElementSibling;
   if (existing && existing.classList.contains("history-detail")) {
     existing.remove();
@@ -716,7 +664,6 @@ function toggleDayDetail(row, records, date) {
   detail.className = "history-detail";
 
   records.forEach(r => {
-    // 1분 미만 세션은 숨김
     if (r.durationMs < 60000) return;
 
     const startTime = formatClock(new Date(r.startMs));
@@ -725,12 +672,10 @@ function toggleDayDetail(row, records, date) {
 
     let html = `<div class="hd-session">`;
 
-    // 회고 먼저
     if (r.retro) {
       html += `<div class="hd-retro">${r.retro}</div>`;
     }
 
-    // 체크인
     if (r.checkIns && r.checkIns.length > 0) {
       const validCheckins = r.checkIns.filter(c => c.text && c.text !== "(기록 없음)");
       if (validCheckins.length > 0) {
@@ -782,7 +727,6 @@ function startSession() {
   updateFocusScreen();
   if (timerId) clearInterval(timerId);
   timerId = setInterval(updateFocusScreen, 1000);
-  startTrackerFlow().catch(() => {});
 }
 
 function endSession() {
@@ -795,58 +739,9 @@ function endSession() {
   if (timerId) clearInterval(timerId);
   timerId = null;
   els.sessionBadge.textContent = "대기";
-  stopTrackerFlow().catch(() => {});
-  renderTrackerSummary();
   openSummaryScreen();
 }
 
-// ── 메모 3-상태 함수 ──
-
-window.openSegMemo = function (btn) {
-  const item = btn.closest(".summary-list__item");
-  btn.closest(".seg-memo-add").remove();
-  const area = document.createElement("div");
-  area.className = "seg-memo-input";
-  area.innerHTML =
-    '<textarea class="seg-memo-textarea" placeholder="기억나는 것만 짧게 적기"></textarea>' +
-    '<div class="seg-memo-actions"><button class="seg-memo-save" onclick="saveSegMemo(this)">저장</button></div>';
-  item.appendChild(area);
-  area.querySelector("textarea").focus();
-};
-
-window.saveSegMemo = function (btn) {
-  const area = btn.closest(".seg-memo-input");
-  const val = area.querySelector("textarea").value.trim();
-  if (!val) { area.querySelector("textarea").focus(); return; }
-  const item = area.closest(".summary-list__item");
-  const key = item.dataset.segKey;
-  segmentMemos[key] = val;
-  area.remove();
-  const saved = document.createElement("div");
-  saved.className = "seg-memo-saved";
-  saved.innerHTML =
-    '<span class="seg-memo-text">' + val + '</span>' +
-    '<button class="seg-memo-edit" onclick="editSegMemo(this)">수정</button>';
-  item.appendChild(saved);
-};
-
-window.editSegMemo = function (btn) {
-  const saved = btn.closest(".seg-memo-saved");
-  const currentText = saved.querySelector(".seg-memo-text").textContent;
-  const item = saved.closest(".summary-list__item");
-  saved.remove();
-  const area = document.createElement("div");
-  area.className = "seg-memo-input";
-  area.innerHTML =
-    '<textarea class="seg-memo-textarea" placeholder="기억나는 것만 짧게 적기"></textarea>' +
-    '<div class="seg-memo-actions"><button class="seg-memo-save" onclick="saveSegMemo(this)">저장</button></div>';
-  item.appendChild(area);
-  const ta = area.querySelector("textarea");
-  ta.value = currentText;
-  ta.focus();
-};
-
-// ── 타임라인 체크인 인라인 수정 ──
 window.openTlEdit = function(idx) {
   const row = els.timelineWrap.querySelector(`[data-checkin-idx="${idx}"]`);
   if (!row) return;
@@ -870,14 +765,11 @@ window.saveTlEdit = function(idx) {
   openSummaryScreen();
 };
 
-// ── 타임라인 렌더링 ──
-
 function renderTimeline(startMs, endMs) {
   if (!els.timelineWrap) return;
 
   const rows = [];
 
-  // 시작
   rows.push(`
     <div class="tl-row tl-row--start">
       <div class="tl-dot tl-dot--start"></div>
@@ -888,7 +780,6 @@ function renderTimeline(startMs, endMs) {
     </div>
   `);
 
-  // 체크인들
   checkIns.forEach((c, idx) => {
     const skipped = c.text === null || c.text === "(기록 없음)";
     rows.push(`
@@ -906,7 +797,6 @@ function renderTimeline(startMs, endMs) {
     `);
   });
 
-  // 마무리
   if (endMs) {
     rows.push(`
       <div class="tl-row tl-row--end">
@@ -925,12 +815,9 @@ function renderTimeline(startMs, endMs) {
   `;
 }
 
-// ── 요약 화면 렌더링 ──
-
 function renderSummaryScreen() {
   els.summaryDateText.textContent = formatDate();
   if (startedAtMs) {
-    // 세션 진행 중 - updateFocusScreen 인터벌이 계속 업데이트함
     const elMs = Date.now() - startedAtMs;
     const elTotalSec = Math.max(0, Math.floor(elMs / 1000));
     const elH = Math.floor(elTotalSec / 3600);
@@ -941,7 +828,6 @@ function renderSummaryScreen() {
     els.summaryFocusText.textContent = formatDuration(lastSessionMs || 0);
   }
 
-  // 타임라인
   const sessionStart = endedAtMs ? endedAtMs - lastSessionMs : Date.now() - lastSessionMs;
   renderTimeline(sessionStart, endedAtMs);
 }
@@ -952,40 +838,54 @@ function openSummaryScreen() {
 }
 
 function init() {
-  restoreState();
-  els.todayText.textContent = formatDate();
+  // Firebase 인증 상태 감지
+  auth.onAuthStateChanged((user) => {
+    currentUser = user;
 
-  if (startedAtMs) {
-    showScreen("focus");
-    els.sessionBadge.textContent = "작업 기록 중";
-    updateFocusScreen();
-    timerId = setInterval(updateFocusScreen, 1000);
-    startTrackerFlow().catch(() => {});
-  } else {
-    showScreen("welcome");
-    els.sessionBadge.textContent = "대기";
-  }
+    if (!user) {
+      // 로그인 안 됨 → 로그인 화면
+      showScreen("login");
+      return;
+    }
 
-  updateWelcomeScreen();
-  setInterval(() => {
+    // 로그인 됨 → 기존 초기화
+    restoreState();
     els.todayText.textContent = formatDate();
-    if (startedAtMs) els.nowTimeText.textContent = formatClock();
+
+    if (startedAtMs) {
+      showScreen("focus");
+      els.sessionBadge.textContent = "작업 기록 중";
+      updateFocusScreen();
+      timerId = setInterval(updateFocusScreen, 1000);
+    } else {
+      showScreen("welcome");
+      els.sessionBadge.textContent = "대기";
+    }
+
+    updateWelcomeScreen();
+  });
+
+  setInterval(() => {
+    if (els.todayText) els.todayText.textContent = formatDate();
     updateWelcomeScreen();
   }, 30000);
 
-  els.startButton.addEventListener("click", startSession);
+  // Google 로그인 버튼
+  els.googleLoginBtn?.addEventListener("click", signInWithGoogle);
+
+  els.startButton?.addEventListener("click", startSession);
   document.getElementById("endButtonFixed")?.addEventListener("click", endSession);
-  els.endButton.addEventListener("click", endSession);
-  els.viewRecordButton.addEventListener("click", () => {
+  els.endButton?.addEventListener("click", endSession);
+  els.viewRecordButton?.addEventListener("click", () => {
     if (startedAtMs) lastSessionMs = Date.now() - startedAtMs;
     openSummaryScreen();
   });
-  els.summaryBackButton.addEventListener("click", () => {
+  els.summaryBackButton?.addEventListener("click", () => {
     if (startedAtMs) showScreen("focus");
     else showScreen("welcome");
   });
-  els.summarySaveButton.addEventListener("click", () => {
-    saveSessionToHistory();
+  els.summarySaveButton?.addEventListener("click", async () => {
+    await saveSessionToHistory();
     showScreen("welcome");
   });
 
@@ -1006,7 +906,6 @@ function init() {
 
   musicBtn?.addEventListener("click", () => {
     if (!musicPlaying) {
-      // iframe을 새로 교체해야 autoplay가 확실히 작동
       const newFrame = document.createElement("iframe");
       newFrame.id = "musicFrame";
       newFrame.src = MUSIC_SRC;
@@ -1029,12 +928,10 @@ function init() {
   });
 
   // 체크인 버튼
-  els.checkinSaveBtn.addEventListener("click", saveCheckin);
-  els.checkinTextarea.addEventListener("keydown", (e) => {
+  els.checkinSaveBtn?.addEventListener("click", saveCheckin);
+  els.checkinTextarea?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveCheckin(); }
   });
-
-  renderTrackerSummary();
 }
 
 init();
