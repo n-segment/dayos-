@@ -156,8 +156,91 @@ html, body {
   flex: 1;
 }
 
-.header-right-placeholder {
+.brand-right {
   flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.feedback-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  color: var(--color-paper-white);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, opacity 0.15s;
+  opacity: 0.7;
+}
+.feedback-btn:hover { opacity: 1; border-color: rgba(255,255,255,0.6); }
+
+/* 피드백 모달 */
+.feedback-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+.feedback-modal.hidden { display: none; }
+.feedback-modal__box {
+  background: rgba(20,20,20,0.2);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.feedback-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.feedback-modal__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--color-paper-white);
+}
+.feedback-modal__close {
+  background: none;
+  border: none;
+  color: var(--color-ash);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.feedback-modal__textarea {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--color-paper-white);
+  font: inherit;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+}
+.feedback-modal__textarea::placeholder { color: rgba(255,255,255,0.3); }
+.feedback-modal__textarea:focus { border-color: rgba(255,255,255,0.25); }
+.feedback-modal__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .music-btn {

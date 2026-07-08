@@ -1168,6 +1168,31 @@ function init() {
     }
   });
 
+  // 피드백 버튼
+  const feedbackBtn = document.getElementById("feedbackBtn");
+  const feedbackModal = document.getElementById("feedbackModal");
+  const feedbackClose = document.getElementById("feedbackModalClose");
+  const feedbackSend = document.getElementById("feedbackSendBtn");
+  const feedbackTextarea = document.getElementById("feedbackTextarea");
+
+  feedbackBtn?.addEventListener("click", () => {
+    feedbackModal?.classList.remove("hidden");
+    feedbackTextarea?.focus();
+  });
+  feedbackClose?.addEventListener("click", () => feedbackModal?.classList.add("hidden"));
+  feedbackModal?.addEventListener("click", (e) => {
+    if (e.target === feedbackModal) feedbackModal.classList.add("hidden");
+  });
+  feedbackSend?.addEventListener("click", () => {
+    const text = feedbackTextarea?.value?.trim();
+    if (!text) return;
+    const subject = encodeURIComponent("DayOS 피드백");
+    const body = encodeURIComponent(text);
+    window.open(`mailto:naraee.prk@gmail.com?subject=${subject}&body=${body}`, "_blank");
+    feedbackTextarea.value = "";
+    feedbackModal?.classList.add("hidden");
+  });
+
   // 기록 버튼
   els.addNoteBtn?.addEventListener("click", openGoalModal);
   els.checkinCancelBtn?.addEventListener("click", closeCheckinInput);

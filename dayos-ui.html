@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=13" />
+    <link rel="stylesheet" href="./ui.css?v=14" />
   </head>
   <body>
 <div class="dayos-app">
@@ -14,8 +14,24 @@
           <button class="music-btn" id="musicBtn" aria-label="음악 재생" aria-pressed="false">♪</button>
         </div>
         <div class="session-badge" id="sessionBadge" role="status" aria-live="polite">대기</div>
-        <div class="header-right-placeholder"></div>
+        <div class="brand-right">
+          <button class="feedback-btn" id="feedbackBtn" aria-label="피드백 보내기">✎</button>
+        </div>
       </header>
+
+      <!-- 피드백 모달 -->
+      <div class="feedback-modal hidden" id="feedbackModal">
+        <div class="feedback-modal__box">
+          <div class="feedback-modal__header">
+            <p class="feedback-modal__title">피드백 보내기</p>
+            <button class="feedback-modal__close" id="feedbackModalClose">×</button>
+          </div>
+          <textarea class="feedback-modal__textarea" id="feedbackTextarea" placeholder="버그, 개선 아이디어, 뭐든 편하게 적어줘요 :)" rows="4"></textarea>
+          <div class="feedback-modal__actions">
+            <button class="button button--primary" id="feedbackSendBtn">보내기</button>
+          </div>
+        </div>
+      </div>
       <main class="screen-stack">
 
         <!-- 0. 로그인 화면 -->
