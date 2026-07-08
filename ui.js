@@ -391,6 +391,8 @@ function showScreen(screen) {
   els.focusScreen.classList.toggle("is-active", screen === "focus");
   els.summaryScreen.classList.toggle("is-active", screen === "summary");
   els.historyScreen.classList.toggle("is-active", screen === "history");
+  const feedbackBtn = document.getElementById("feedbackBtn");
+  if (feedbackBtn) feedbackBtn.style.display = screen === "welcome" ? "" : "none";
   const endBtn = document.getElementById("endButtonFixed");
   if (endBtn) endBtn.classList.toggle("visible", screen === "focus");
 }
