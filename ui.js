@@ -1049,7 +1049,10 @@ function init() {
   els.pauseButton?.addEventListener("click", () => {
     if (isPaused) resumeSession(); else pauseSession();
   });
-  document.getElementById("endButtonFixed")?.addEventListener("click", endSession);
+  document.getElementById("endButtonFixed")?.addEventListener("click", () => {
+    renderHistoryScreen();
+    showScreen("history");
+  });
   els.endButton?.addEventListener("click", endSession);
   els.viewRecordButton?.addEventListener("click", () => {
     if (startedAtMs) lastSessionMs = Date.now() - startedAtMs;
@@ -1082,7 +1085,8 @@ function init() {
   });
 
   els.historyBackButton?.addEventListener("click", () => {
-    showScreen("welcome");
+    if (startedAtMs) showScreen("focus");
+    else showScreen("welcome");
   });
 
   // 음악 버튼
