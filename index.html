@@ -19,19 +19,6 @@
         </div>
       </header>
 
-      <!-- 피드백 모달 -->
-      <div class="feedback-modal hidden" id="feedbackModal">
-        <div class="feedback-modal__box">
-          <div class="feedback-modal__header">
-            <p class="feedback-modal__title">피드백 보내기</p>
-            <button class="feedback-modal__close" id="feedbackModalClose">×</button>
-          </div>
-          <textarea class="feedback-modal__textarea" id="feedbackTextarea" placeholder="버그, 개선 아이디어, 뭐든 편하게 적어줘요 :)" rows="4"></textarea>
-          <div class="feedback-modal__actions">
-            <button class="button button--primary" id="feedbackSendBtn">보내기</button>
-          </div>
-        </div>
-      </div>
       <main class="screen-stack">
 
         <!-- 0. 로그인 화면 -->
@@ -121,6 +108,20 @@
             </div>
             <div class="goal-modal__actions">
               <button class="button button--primary" id="goalSaveBtn">저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 피드백 모달 -->
+        <div class="feedback-modal hidden" id="feedbackModal">
+          <div class="feedback-modal__box">
+            <div class="feedback-modal__header">
+              <p class="feedback-modal__title">피드백 보내기</p>
+              <button class="feedback-modal__close" id="feedbackModalClose">×</button>
+            </div>
+            <textarea class="feedback-modal__textarea" id="feedbackTextarea" placeholder="버그, 개선 아이디어, 뭐든 편하게 적어줘요 :)" rows="4"></textarea>
+            <div class="feedback-modal__actions">
+              <button class="button button--primary" id="feedbackSendBtn">보내기</button>
             </div>
           </div>
         </div>
