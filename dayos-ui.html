@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=17" />
+    <link rel="stylesheet" href="./ui.css?v=18" />
   </head>
   <body>
 <div class="dayos-app">
@@ -15,7 +15,12 @@
         </div>
         <div class="session-badge" id="sessionBadge" role="status" aria-live="polite">대기</div>
         <div class="brand-right">
-          <button class="feedback-btn" id="feedbackBtn" aria-label="피드백 보내기">✉</button>
+          <button class="feedback-btn" id="feedbackBtn" aria-label="피드백 보내기">
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0.5" y="0.5" width="13" height="10" rx="1.5" stroke="currentColor" stroke-width="1"/>
+              <path d="M1 1.5L7 6.5L13 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
       </header>
 
