@@ -569,6 +569,17 @@ async function updateRecord(id, fields) {
   }
 }
 
+async function deleteRecord(id) {
+  if (currentUser && id) {
+    try {
+      await db.collection("users").doc(currentUser.uid)
+        .collection("history").doc(id).delete();
+    } catch (e) {
+      console.error("Firestore 삭제 실패:", e);
+    }
+  }
+}
+
 function getWeekRange() {
   const now = new Date();
   const day = now.getDay();
@@ -861,6 +872,42 @@ function toggleDayDetail(row, records, date) {
 function renderDetailContent(container, records) {
   const valid = records.filter(r => r.durationMs >= 60000);
   container.innerHTML = "";
+
+  // ── 0. 세션 합치기 (2개 이상일 때만) ──
+  if (valid.length > 1) {
+    const mergeBtn = document.createElement("button");
+    mergeBtn.className = "hd-edit-btn";
+    mergeBtn.style.cssText = "margin-bottom:10px;font-size:11px;opacity:0.6;";
+    mergeBtn.textContent = `세션 합치기 (${valid.length}개 → 1개)`;
+    mergeBtn.addEventListener("click", async () => {
+      const earliest = Math.min(...valid.map(r => r.startMs));
+      const latest = Math.max(...valid.map(r => r.endMs));
+      const mergedCheckIns = valid.flatMap(r => r.checkIns || []);
+      const retro = [...valid].reverse().find(r => r.retro)?.retro || "";
+      const base = valid.find(r => r.startMs === earliest);
+      // 첫 레코드에 합산 내용 저장
+      await updateRecord(base._id, {
+        startMs: earliest,
+        endMs: latest,
+        durationMs: latest - earliest,
+        checkIns: mergedCheckIns,
+        retro
+      });
+      // 나머지 레코드 삭제
+      for (const r of valid) {
+        if (r._id !== base._id) await deleteRecord(r._id);
+      }
+      // 로컬 records 배열도 업데이트
+      base.startMs = earliest;
+      base.endMs = latest;
+      base.durationMs = latest - earliest;
+      base.checkIns = mergedCheckIns;
+      base.retro = retro;
+      const merged = [base];
+      renderDetailContent(container, merged);
+    });
+    container.appendChild(mergeBtn);
+  }
 
   // ── 1. 전체 회고 (하루에 하나) ──
   // 마지막 세션의 retro 사용, 없으면 빈 값
