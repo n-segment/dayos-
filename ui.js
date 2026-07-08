@@ -196,7 +196,34 @@ function checkinLabel(nthHour) {
   return `${nthHour}시간`;
 }
 
+function renderGoalChecklist() {
+  const el = $("goalChecklist");
+  if (!el) return;
+  const validGoals = todayGoals.filter(g => g.task.trim());
+  if (!validGoals.length) { el.classList.add("hidden"); return; }
+
+  el.classList.remove("hidden");
+  el.innerHTML = `<div class="goal-checklist__header">오늘의 목표</div>`;
+  validGoals.forEach((g, i) => {
+    const item = document.createElement("div");
+    item.className = "goal-checklist__item" + (g.done ? " done" : "");
+    item.dataset.idx = i;
+    item.innerHTML = `
+      <div class="goal-checklist__check">${g.done ? "✓" : ""}</div>
+      <span class="goal-checklist__text">${g.task}</span>
+      ${g.hours ? `<span class="goal-checklist__hours">${g.hours}h</span>` : ""}
+    `;
+    item.addEventListener("click", () => {
+      validGoals[i].done = !validGoals[i].done;
+      todayGoals.find(t => t === validGoals[i]).done = validGoals[i].done;
+      renderGoalChecklist();
+    });
+    el.appendChild(item);
+  });
+}
+
 function openCheckinInput() {
+  renderGoalChecklist();
   els.checkinInputWrap.classList.remove("hidden");
   els.checkinTextarea.focus();
 }

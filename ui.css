@@ -1466,6 +1466,72 @@ html, body {
 
 .checkin-skip-btn:hover { color: var(--color-smoke); }
 
+/* ── 목표 체크리스트 (focus 화면) ── */
+.goal-checklist {
+  margin-bottom: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  animation: checkin-pop 0.3s ease;
+}
+
+.goal-checklist.hidden { display: none; }
+
+.goal-checklist__header {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.goal-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.goal-checklist__item:last-child { border-bottom: none; }
+.goal-checklist__item:hover { background: rgba(255,255,255,0.04); }
+
+.goal-checklist__item.done .goal-checklist__text {
+  text-decoration: line-through;
+  color: rgba(255,255,255,0.25);
+}
+
+.goal-checklist__check {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.goal-checklist__item.done .goal-checklist__check {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.goal-checklist__text {
+  font-size: 13px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.7);
+  flex: 1;
+}
+
+.goal-checklist__hours {
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+}
+
 /* ── 타임라인 ── */
 .timeline-wrap {
   margin-bottom: var(--spacing-40);
