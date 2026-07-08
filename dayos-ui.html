@@ -54,28 +54,6 @@
           </div>
         </section>
 
-        <!-- 1.5. 목표 설정 화면 -->
-        <section class="screen screen--goal" id="goalScreen" aria-label="오늘의 목표">
-          <div class="goal-panel">
-            <p class="date-chip"><span class="date-chip__dot" aria-hidden="true"></span><span id="goalTodayText"></span></p>
-            <p class="goal-panel__heading">오늘 뭐 할 거야?</p>
-            <div class="goal-start-row">
-              <label class="goal-field-label">시작 시간</label>
-              <input class="goal-start-input" id="goalStartTime" type="text" placeholder="오전 9:00" />
-            </div>
-            <div class="goal-tasks" id="goalTasks"></div>
-            <button class="goal-add-btn" id="goalAddBtn">+ 추가</button>
-            <div class="goal-total-row" id="goalTotalRow">
-              <span class="goal-total-label">예상 총 시간</span>
-              <span class="goal-total-val" id="goalTotalVal">—</span>
-            </div>
-            <div class="goal-actions">
-              <button class="button button--ghost" id="goalSkipBtn">건너뛰기</button>
-              <button class="button button--primary" id="goalStartBtn">시작하기 →</button>
-            </div>
-          </div>
-        </section>
-
         <!-- 2. 작업시간 기록 화면 -->
         <section class="screen screen--focus" id="focusScreen" aria-label="작업 기록 중">
           <button class="end-btn-fixed" id="endButtonFixed">마무리 →</button>
@@ -103,6 +81,29 @@
             </div>
           </div>
         </section>
+
+        <!-- 목표 모달 -->
+        <div class="goal-modal hidden" id="goalModal">
+          <div class="goal-modal__box">
+            <div class="goal-modal__header">
+              <p class="goal-modal__title">오늘의 목표</p>
+              <button class="goal-modal__close" id="goalModalClose">×</button>
+            </div>
+            <div class="goal-start-row">
+              <label class="goal-field-label">시작 시간</label>
+              <input class="goal-start-input" id="goalStartTime" type="text" placeholder="오전 9:00" />
+            </div>
+            <div class="goal-tasks" id="goalTasks"></div>
+            <button class="goal-add-btn" id="goalAddBtn">+ 추가</button>
+            <div class="goal-total-row">
+              <span class="goal-total-label">예상 총 시간</span>
+              <span class="goal-total-val" id="goalTotalVal">—</span>
+            </div>
+            <div class="goal-modal__actions">
+              <button class="button button--primary" id="goalSaveBtn">저장</button>
+            </div>
+          </div>
+        </div>
 
         <!-- 회고 모달 -->
         <div class="retro-modal hidden" id="retroModal">

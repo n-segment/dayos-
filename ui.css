@@ -1096,20 +1096,65 @@ html, body {
   padding-bottom: 40px;
 }
 
-/* ── 목표 설정 화면 ── */
-.screen--goal {
-  background-image: url('./bg2.jpg');
-  background-size: cover;
-  background-position: center;
-}
-.screen--goal::before {
-  content: '';
-  position: absolute;
+/* ── 목표 모달 ── */
+.goal-modal {
+  position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  z-index: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
 }
-.screen--goal > * { position: relative; z-index: 1; }
+.goal-modal.hidden { display: none; }
+
+.goal-modal__box {
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.goal-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.goal-modal__title {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+}
+
+.goal-modal__close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.35);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.goal-modal__close:hover { color: rgba(255,255,255,0.7); }
+
+.goal-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
 
 .goal-panel {
   width: min(520px, 100%);

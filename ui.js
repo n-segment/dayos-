@@ -18,7 +18,7 @@ const els = {
   loginScreen: $("loginScreen"),
   googleLoginBtn: $("googleLoginBtn"),
   welcomeScreen: $("welcomeScreen"),
-  goalScreen: $("goalScreen"),
+  goalModal: $("goalModal"),
   focusScreen: $("focusScreen"),
   summaryScreen: $("summaryScreen"),
   startButton: $("startButton"),
@@ -388,7 +388,6 @@ function restoreState() {
 function showScreen(screen) {
   els.loginScreen.classList.toggle("is-active", screen === "login");
   els.welcomeScreen.classList.toggle("is-active", screen === "welcome");
-  els.goalScreen?.classList.toggle("is-active", screen === "goal");
   els.focusScreen.classList.toggle("is-active", screen === "focus");
   els.summaryScreen.classList.toggle("is-active", screen === "summary");
   els.historyScreen.classList.toggle("is-active", screen === "history");
@@ -455,15 +454,17 @@ function addGoalTask() {
   if (inputs.length) inputs[inputs.length - 1].focus();
 }
 
-function openGoalScreen() {
-  todayGoals = [{ task: "", hours: 1 }];
+function openGoalModal() {
+  if (!todayGoals.length) todayGoals = [{ task: "", hours: 1 }];
   renderGoalTasks();
   updateGoalTotal();
-  const dateEl = $("goalTodayText");
-  if (dateEl) dateEl.textContent = formatDate();
   const timeEl = $("goalStartTime");
-  if (timeEl) timeEl.value = formatClock();
-  showScreen("goal");
+  if (timeEl && !timeEl.value) timeEl.value = formatClock();
+  if (els.goalModal) els.goalModal.classList.remove("hidden");
+}
+
+function closeGoalModal() {
+  if (els.goalModal) els.goalModal.classList.add("hidden");
 }
 
 // ── Google 로그인 ──
@@ -1020,10 +1021,10 @@ function init() {
   // Google 로그인 버튼
   els.googleLoginBtn?.addEventListener("click", signInWithGoogle);
 
-  els.startButton?.addEventListener("click", openGoalScreen);
+  els.startButton?.addEventListener("click", startSession);
   $("goalAddBtn")?.addEventListener("click", addGoalTask);
-  $("goalSkipBtn")?.addEventListener("click", startSession);
-  $("goalStartBtn")?.addEventListener("click", startSession);
+  $("goalModalClose")?.addEventListener("click", closeGoalModal);
+  $("goalSaveBtn")?.addEventListener("click", closeGoalModal);
   els.pauseButton?.addEventListener("click", () => {
     if (isPaused) resumeSession(); else pauseSession();
   });
@@ -1093,7 +1094,7 @@ function init() {
   });
 
   // 기록 버튼
-  els.addNoteBtn?.addEventListener("click", openCheckinInput);
+  els.addNoteBtn?.addEventListener("click", openGoalModal);
   els.checkinCancelBtn?.addEventListener("click", closeCheckinInput);
   els.checkinSaveBtn?.addEventListener("click", saveCheckin);
   els.checkinTextarea?.addEventListener("keydown", (e) => {
