@@ -523,7 +523,7 @@ html, body {
 .retro-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,8 +533,10 @@ html, body {
 .retro-modal.hidden { display: none; }
 
 .retro-modal__box {
-  background: #1a1a1a;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(20,20,20,0.07);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 16px;
   padding: 32px;
   width: 100%;
