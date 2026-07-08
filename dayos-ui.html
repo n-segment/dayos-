@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DayOS</title>
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="stylesheet" href="./ui.css" />
+  </head>
+  <body>
+<div class="dayos-app">
+      <header class="app-header">
+        <div class="brand-left">
+          <div class="brand-mark">
+            <img class="brand-mark__logo" src="./logo.png" alt="" aria-hidden="true" style="width:16px;height:16px;object-fit:contain;border-radius:3px;flex-shrink:0;" />
+            <span class="brand-mark__text">DayOS</span>
+          </div>
+          <button class="music-btn" id="musicBtn" title="음악 재생/정지">♪</button>
+        </div>
+        <div class="session-badge" id="sessionBadge">대기</div>
+        <div class="header-right-placeholder"></div>
+      </header>
+      <main class="screen-stack">
+
+        <!-- 1. 시작 화면 -->
+        <section class="screen screen--welcome is-active" id="welcomeScreen">
+          <video class="welcome-bg-video" autoplay muted loop playsinline>
+            <source src="./bg.MOV" type="video/mp4">
+          </video>
+          <div class="welcome-panel">
+            <p class="date-chip">
+              <span class="date-chip__dot" aria-hidden="true"></span>
+              <span id="todayText"></span>
+            </p>
+            <p class="welcome-panel__eyebrow" id="welcomeEyebrow"></p>
+            <p class="welcome-now-time" id="welcomeNowTime"></p>
+            <h1 class="welcome-panel__title" id="welcomeTitle"></h1>
+            <p class="welcome-panel__description" id="welcomeDesc"></p>
+            <div class="welcome-actions">
+              <button class="button button--start" id="startButton">시작하기 →</button>
+              <button class="btn-history-link" id="historyLinkButton">기록 보기</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. 작업시간 기록 화면 -->
+        <section class="screen screen--focus" id="focusScreen">
+          <button class="end-btn-fixed" id="endButtonFixed">마무리 →</button>
+          <div class="focus-panel">
+            <p class="date-chip"><span class="date-chip__dot" aria-hidden="true"></span><span id="focusTodayText"></span></p>
+            <p class="focus-panel__meta" id="startedMetaText"></p>
+            <p class="focus-panel__time" id="elapsedTimeText">0시간 00분</p>
+            <!-- 시간별 체크인 -->
+            <div class="checkin-zone" id="checkinZone">
+              <div class="checkin-next" id="checkinNext"></div>
+              <ul class="checkin-log" id="checkinLog"></ul>
+              <div class="checkin-input-wrap hidden" id="checkinInputWrap">
+                <p class="checkin-input-label" id="checkinInputLabel">이번 시간에 뭐 했어?</p>
+                <textarea class="checkin-textarea" id="checkinTextarea" placeholder="짧게 적어도 돼요"></textarea>
+                <div class="checkin-input-actions">
+                  <button class="checkin-save-btn" id="checkinSaveBtn">저장</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="focus-panel__actions">
+              <button class="button button--ghost" id="viewRecordButton">기록하기</button>
+              <button class="button button--primary" id="endButton">작업 끝내기</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 작업시간 기록 보기 화면 -->
+        <section class="screen screen--summary" id="summaryScreen">
+          <div class="summary-panel">
+            <p class="summary-panel__eyebrow">오늘 작업시간 확인</p>
+            <p class="summary-panel__date" id="summaryDateText"></p>
+
+            <div class="summary-panel__big-time" id="summaryFocusText">0시간 00분</div>
+
+            <div class="summary-panel__retro">
+              <label class="summary-retro__label" for="summaryRetro">오늘 회고</label>
+              <textarea
+                id="summaryRetro"
+                class="summary-retro__input"
+                placeholder="자유롭게 적어주세요."
+              ></textarea>
+            </div>
+
+            <!-- 시간별 작업 로그 타임라인 -->
+            <div class="timeline-wrap" id="timelineWrap"></div>
+
+
+<div class="summary-panel__actions">
+              <button class="button button--ghost" id="summaryBackButton">이전으로</button>
+              <button class="button button--primary" id="summarySaveButton">〜(￣▽￣〜) oO(끝)</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. 전체 기록 화면 -->
+        <section class="screen screen--history" id="historyScreen">
+          <div class="history-panel">
+            <div class="history-header">
+              <button class="btn-back" id="historyBackButton">← 돌아가기</button>
+              <p class="history-eyebrow">HISTORY</p>
+            </div>
+            <div class="history-week-total" id="historyWeekTotal"></div>
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </section>
+
+      </main>
+
+      <footer class="app-footer">DayOS</footer>
+    </div>
+
+    <iframe id="musicFrame" style="position:fixed;width:200px;height:113px;opacity:0.001;pointer-events:none;bottom:0;left:0;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    <script src="./ui.js"></script>
+  </body>
+</html>
