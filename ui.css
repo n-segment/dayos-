@@ -52,6 +52,15 @@
   --spacing-40: 40px;
   --spacing-48: 48px;
   --spacing-64: 64px;
+
+  /* ── Modal tokens ── */
+  --modal-overlay-bg: rgba(0,0,0,0.08);
+  --modal-box-bg: rgba(20,20,20,0.2);
+  --modal-box-blur: blur(32px);
+  --modal-box-border: rgba(255,255,255,0.1);
+  --modal-box-radius: 16px;
+  --modal-box-padding: 28px;
+  --modal-box-max-width: 480px;
 }
 
 /* ── Aurora background ── */
@@ -184,7 +193,7 @@ html, body {
 .feedback-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.08);
+  background: var(--modal-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,14 +202,14 @@ html, body {
 }
 .feedback-modal.hidden { display: none; }
 .feedback-modal__box {
-  background: rgba(20,20,20,0.2);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 28px;
+  background: var(--modal-box-bg);
+  backdrop-filter: var(--modal-box-blur);
+  -webkit-backdrop-filter: var(--modal-box-blur);
+  border: 1px solid var(--modal-box-border);
+  border-radius: var(--modal-box-radius);
+  padding: var(--modal-box-padding);
   width: 100%;
-  max-width: 480px;
+  max-width: var(--modal-box-max-width);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -369,6 +378,11 @@ html, body {
 
 .screen--welcome {
   background: #000;
+  transition: filter 0.3s ease;
+}
+.screen--welcome.modal-blur {
+  filter: blur(20px);
+  transform: scale(1.04);
 }
 .screen--welcome::before {
   content: '';
@@ -607,7 +621,7 @@ html, body {
 .retro-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.08);
+  background: var(--modal-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -617,14 +631,14 @@ html, body {
 .retro-modal.hidden { display: none; }
 
 .retro-modal__box {
-  background: rgba(20,20,20,0.2);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
+  background: var(--modal-box-bg);
+  backdrop-filter: var(--modal-box-blur);
+  -webkit-backdrop-filter: var(--modal-box-blur);
+  border: 1px solid var(--modal-box-border);
+  border-radius: var(--modal-box-radius);
   padding: 32px;
   width: 100%;
-  max-width: 480px;
+  max-width: var(--modal-box-max-width);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1303,7 +1317,7 @@ html, body {
 .goal-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.08);
+  background: var(--modal-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1313,14 +1327,14 @@ html, body {
 .goal-modal.hidden { display: none; }
 
 .goal-modal__box {
-  background: rgba(20,20,20,0.2);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 28px;
+  background: var(--modal-box-bg);
+  backdrop-filter: var(--modal-box-blur);
+  -webkit-backdrop-filter: var(--modal-box-blur);
+  border: 1px solid var(--modal-box-border);
+  border-radius: var(--modal-box-radius);
+  padding: var(--modal-box-padding);
   width: 100%;
-  max-width: 480px;
+  max-width: var(--modal-box-max-width);
   display: flex;
   flex-direction: column;
   max-height: 80vh;

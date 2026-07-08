@@ -1177,13 +1177,21 @@ function init() {
   const feedbackSend = document.getElementById("feedbackSendBtn");
   const feedbackTextarea = document.getElementById("feedbackTextarea");
 
-  feedbackBtn?.addEventListener("click", () => {
+  const welcomeScreen = document.getElementById("welcomeScreen");
+  const openFeedback = () => {
     feedbackModal?.classList.remove("hidden");
+    welcomeScreen?.classList.add("modal-blur");
     feedbackTextarea?.focus();
-  });
-  feedbackClose?.addEventListener("click", () => feedbackModal?.classList.add("hidden"));
+  };
+  const closeFeedback = () => {
+    feedbackModal?.classList.add("hidden");
+    welcomeScreen?.classList.remove("modal-blur");
+  };
+
+  feedbackBtn?.addEventListener("click", openFeedback);
+  feedbackClose?.addEventListener("click", closeFeedback);
   feedbackModal?.addEventListener("click", (e) => {
-    if (e.target === feedbackModal) feedbackModal.classList.add("hidden");
+    if (e.target === feedbackModal) closeFeedback();
   });
   feedbackSend?.addEventListener("click", async () => {
     const text = feedbackTextarea?.value?.trim();
@@ -1202,7 +1210,7 @@ function init() {
       feedbackTextarea.value = "";
       feedbackSend.textContent = "보냈어요 ✓";
       setTimeout(() => {
-        feedbackModal?.classList.add("hidden");
+        closeFeedback();
         feedbackSend.textContent = "보내기";
         feedbackSend.disabled = false;
       }, 1200);
