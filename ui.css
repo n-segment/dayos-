@@ -1100,7 +1100,7 @@ html, body {
 .goal-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1194,11 +1194,11 @@ html, body {
 
 .goal-memo-row {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 0;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   margin-bottom: 20px;
-  align-items: flex-start;
 }
 
 .goal-memo-input {
