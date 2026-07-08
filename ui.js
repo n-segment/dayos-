@@ -904,7 +904,7 @@ function renderDetailContent(container, records) {
       base.checkIns = mergedCheckIns;
       base.retro = retro;
       const merged = [base];
-      renderDetailContent(container, merged);
+      await renderHistoryScreen();
     });
     container.appendChild(mergeBtn);
   }
