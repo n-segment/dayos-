@@ -477,9 +477,9 @@ function addGoalTask() {
 function openGoalModal() {
   if (!todayGoals.length) todayGoals = [{ task: "", hours: 1 }];
   renderGoalTasks();
-  updateGoalTotal();
   const timeEl = $("goalStartTime");
   if (timeEl && !timeEl.value) timeEl.value = formatClock();
+  updateGoalTotal();
   if (els.goalModal) els.goalModal.classList.remove("hidden");
 }
 
