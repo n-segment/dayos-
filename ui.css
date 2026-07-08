@@ -972,7 +972,7 @@ html, body {
 
 /* ── 캘린더 그리드 ── */
 .cal-month-label {
-  margin: 0 0 12px;
+  margin: 28px 0 12px;
   font-size: 22px;
   font-weight: 300;
   color: var(--color-paper-white);
