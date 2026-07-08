@@ -835,35 +835,48 @@ function toggleDayDetail(row, records, date) {
   const detail = document.createElement("div");
   detail.className = "history-detail";
 
-  records.forEach(r => {
-    if (r.durationMs < 60000) return;
+  const valid = records.filter(r => r.durationMs >= 60000);
+  let html = "";
 
-    const startTime = formatClock(new Date(r.startMs));
-    const endTime = formatClock(new Date(r.endMs));
-    const h = Math.floor(r.durationMs/3600000), m = Math.floor((r.durationMs%3600000)/60000);
+  // 1. 회고 (끝날 때 적은 것) — 맨 위
+  const retros = records.map(r => r.retro).filter(Boolean);
+  if (retros.length > 0) {
+    html += retros.map(t => `<div class="hd-retro-banner">${t}</div>`).join("");
+  }
 
-    let html = `<div class="hd-session">`;
+  // 2. 세션 중 기록 (check-ins)
+  const allCheckins = records.flatMap(r =>
+    (r.checkIns || []).filter(c => c.text && c.text !== "(기록 없음)")
+  );
+  if (allCheckins.length > 0) {
+    html += `<ul class="hd-checkins">`;
+    allCheckins.forEach(c => {
+      html += `<li class="hd-checkin"><span class="hd-checkin-label">${c.label}</span><span class="hd-checkin-text">${c.text}</span></li>`;
+    });
+    html += `</ul>`;
+  }
 
-    if (r.retro) {
-      html += `<div class="hd-retro">${r.retro}</div>`;
+  // 3. 세션 타임라인 요약
+  if (valid.length > 0) {
+    const earliest = Math.min(...valid.map(r => r.startMs));
+    const latest = Math.max(...valid.map(r => r.endMs));
+    const spanMs = latest - earliest;
+    html += `<div class="hd-summary">
+      <span>${formatClock(new Date(earliest))} – ${formatClock(new Date(latest))}</span>
+      <span>${valid.length}세션</span>
+    </div>`;
+    if (spanMs > 0) {
+      html += `<div class="hd-bar">`;
+      valid.forEach(r => {
+        const left = ((r.startMs - earliest) / spanMs * 100).toFixed(1);
+        const width = Math.max((r.durationMs / spanMs * 100), 1).toFixed(1);
+        html += `<div class="hd-bar-seg" style="left:${left}%;width:${width}%"></div>`;
+      });
+      html += `</div>`;
     }
+  }
 
-    if (r.checkIns && r.checkIns.length > 0) {
-      const validCheckins = r.checkIns.filter(c => c.text && c.text !== "(기록 없음)");
-      if (validCheckins.length > 0) {
-        html += `<ul class="hd-checkins">`;
-        validCheckins.forEach(c => {
-          html += `<li class="hd-checkin"><span class="hd-checkin-label">${c.label}</span><span class="hd-checkin-text">${c.text}</span></li>`;
-        });
-        html += `</ul>`;
-      }
-    }
-
-    html += `<div class="hd-session-meta">${startTime} → ${endTime} · ${h>0?h+"시간 "+m+"분":m+"분"}</div>`;
-    html += `</div>`;
-    detail.innerHTML += html;
-  });
-
+  detail.innerHTML = html;
   row.after(detail);
 }
 

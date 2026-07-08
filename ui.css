@@ -1221,7 +1221,7 @@ html, body {
 
 /* ── 날짜 상세 ── */
 .history-detail {
-  padding: 12px 0 16px 40px;
+  padding: 10px 0 14px 40px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   animation: checkin-pop 0.2s ease;
 }
@@ -1232,6 +1232,43 @@ html, body {
   font-size: 12px;
   color: var(--color-ash);
   margin-bottom: 8px;
+}
+
+/* 회고 배너 (끝날 때 적은 것) */
+.hd-retro-banner {
+  font-size: 13px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.75);
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.05);
+  border-left: 2px solid rgba(255,255,255,0.25);
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+/* 세션 요약 바 */
+.hd-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin: 8px 0 5px;
+}
+.hd-bar {
+  position: relative;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  margin-bottom: 8px;
+}
+.hd-bar-seg {
+  position: absolute;
+  height: 100%;
+  background: rgba(255,255,255,0.45);
+  border-radius: 2px;
+  min-width: 2px;
 }
 
 .hd-retro {
