@@ -329,6 +329,10 @@ html, body {
 .dayos-app:has(.screen--login.is-active) .app-header {
   display: none;
 }
+
+.dayos-app:not(:has(.screen--welcome.is-active)) .feedback-btn {
+  display: none;
+}
 .screen--login::before {
   content: '';
   position: absolute;
