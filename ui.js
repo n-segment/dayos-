@@ -983,20 +983,34 @@ function renderDetailContent(container, records) {
         const d = new Date(ms);
         return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
       };
+      // 텍스트 파싱 함수: "1:50", "01:50", "1시50분" 등 허용
+      const parseTimeText = str => {
+        str = str.trim().replace(/\s/g, "");
+        // HH:MM or H:MM
+        let m = str.match(/^(\d{1,2}):(\d{2})$/);
+        if (m) return { h: parseInt(m[1]), min: parseInt(m[2]) };
+        // 1시50분 or 1시
+        m = str.match(/^(\d{1,2})시(\d{2})?분?$/);
+        if (m) return { h: parseInt(m[1]), min: m[2] ? parseInt(m[2]) : 0 };
+        return null;
+      };
       const row = document.createElement("div");
       row.className = "hd-time-edit-row";
       row.innerHTML = `
-        <input class="hd-time-input" id="hd-st" type="time" value="${toHHMM(earliest)}">
+        <input class="hd-time-input" id="hd-st" type="text" placeholder="${toHHMM(earliest)}" value="${toHHMM(earliest)}" style="width:60px;text-align:center;">
         <span style="color:rgba(255,255,255,0.4);font-size:12px">–</span>
-        <input class="hd-time-input" id="hd-et" type="time" value="${toHHMM(latest)}">
+        <input class="hd-time-input" id="hd-et" type="text" placeholder="${toHHMM(latest)}" value="${toHHMM(latest)}" style="width:60px;text-align:center;">
         <button class="hd-save-btn" id="hd-ts">저장</button>
         <button class="hd-edit-btn" id="hd-tc">취소</button>
       `;
       summaryEl.appendChild(row);
       row.querySelector("#hd-tc").addEventListener("click", () => row.remove());
       row.querySelector("#hd-ts").addEventListener("click", async () => {
-        const [sh, sm] = row.querySelector("#hd-st").value.split(":").map(Number);
-        const [eh, em] = row.querySelector("#hd-et").value.split(":").map(Number);
+        const stParsed = parseTimeText(row.querySelector("#hd-st").value);
+        const etParsed = parseTimeText(row.querySelector("#hd-et").value);
+        if (!stParsed || !etParsed) return;
+        const [sh, sm] = [stParsed.h, stParsed.min];
+        const [eh, em] = [etParsed.h, etParsed.min];
         const base = new Date(earliest);
         const newStart = new Date(base); newStart.setHours(sh, sm, 0, 0);
         const newEnd = new Date(base); newEnd.setHours(eh, em, 0, 0);
