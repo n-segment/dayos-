@@ -441,9 +441,29 @@ function updateGoalTotal() {
   const el = $("goalTotalVal");
   if (!el) return;
   if (total <= 0) { el.textContent = "—"; return; }
+
   const h = Math.floor(total);
   const m = Math.round((total - h) * 60);
-  el.textContent = h > 0 && m > 0 ? `${h}시간 ${m}분` : h > 0 ? `${h}시간` : `${m}분`;
+  const durationStr = h > 0 && m > 0 ? `${h}시간 ${m}분` : h > 0 ? `${h}시간` : `${m}분`;
+
+  // 시작 시간 파싱해서 종료 시간 계산
+  const startInput = ($("goalStartTime")?.value || "").trim();
+  let endStr = "";
+  const match = startInput.match(/([오전오후]+)\s*(\d+):(\d+)/);
+  if (match) {
+    let hour = parseInt(match[2]);
+    const min = parseInt(match[3]);
+    if (match[1] === "오후" && hour !== 12) hour += 12;
+    if (match[1] === "오전" && hour === 12) hour = 0;
+    const totalMin = hour * 60 + min + Math.round(total * 60);
+    const endH24 = Math.floor(totalMin / 60) % 24;
+    const endM = totalMin % 60;
+    const ampm = endH24 < 12 ? "오전" : "오후";
+    const endH12 = endH24 % 12 === 0 ? 12 : endH24 % 12;
+    endStr = ` · ${ampm} ${endH12}:${String(endM).padStart(2, "0")} 끝`;
+  }
+
+  el.textContent = durationStr + endStr;
 }
 
 function addGoalTask() {
@@ -1023,6 +1043,7 @@ function init() {
 
   els.startButton?.addEventListener("click", startSession);
   $("goalAddBtn")?.addEventListener("click", addGoalTask);
+  $("goalStartTime")?.addEventListener("input", updateGoalTotal);
   $("goalModalClose")?.addEventListener("click", closeGoalModal);
   $("goalSaveBtn")?.addEventListener("click", closeGoalModal);
   els.pauseButton?.addEventListener("click", () => {
