@@ -1510,6 +1510,8 @@ function init() {
   if (isDawn && bgVideo) {
     bgVideo.src = "./dawn-drive.mp4";
     bgVideo.style.display = "block";
+    bgVideo.style.zIndex = "1";
+    document.body.classList.add("dawn-video");
     bgVideo.play().catch(() => {});
   }
 
