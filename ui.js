@@ -957,18 +957,17 @@ function renderDetailContent(container, records, dateStr) {
   const retroRecord = lastWithRetro || records[records.length - 1];
   const retroWrap = document.createElement("div");
   retroWrap.className = "hd-retro-wrap";
-  if (retroRecord?.retro) {
-    const text = document.createElement("div");
-    text.className = "hd-retro-banner";
-    text.textContent = retroRecord.retro;
-    retroWrap.appendChild(text);
-  }
   if (retroRecord?._id) {
     const btn = document.createElement("button");
     btn.className = "hd-edit-btn";
     btn.textContent = retroRecord.retro ? "회고 수정" : "+ 전체 회고 추가";
-    btn.addEventListener("click", () => {
+
+    const openEdit = () => {
       if (retroWrap.querySelector(".hd-inline-edit")) return;
+      // 기존 배너 숨기기
+      const banner = retroWrap.querySelector(".hd-retro-banner");
+      if (banner) banner.style.display = "none";
+      btn.style.display = "none";
       const ta = document.createElement("textarea");
       ta.className = "hd-inline-edit";
       ta.value = retroRecord.retro || "";
@@ -984,12 +983,30 @@ function renderDetailContent(container, records, dateStr) {
       const cancelBtn = document.createElement("button");
       cancelBtn.className = "hd-edit-btn";
       cancelBtn.textContent = "취소";
-      cancelBtn.addEventListener("click", () => { ta.remove(); saveBtn.remove(); cancelBtn.remove(); });
-      retroWrap.appendChild(ta);
-      retroWrap.appendChild(saveBtn);
-      retroWrap.appendChild(cancelBtn);
+      cancelBtn.addEventListener("click", () => {
+        ta.remove(); saveBtn.remove(); cancelBtn.remove();
+        if (banner) banner.style.display = "";
+        btn.style.display = "";
+      });
+      retroWrap.insertBefore(ta, btn);
+      retroWrap.insertBefore(saveBtn, btn);
+      retroWrap.insertBefore(cancelBtn, btn);
       ta.focus();
-    });
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    };
+
+    // 기존 회고가 있으면 배너 클릭으로도 편집 가능
+    if (retroRecord.retro) {
+      const text = document.createElement("div");
+      text.className = "hd-retro-banner";
+      text.textContent = retroRecord.retro;
+      text.style.cursor = "pointer";
+      text.title = "클릭해서 수정";
+      text.addEventListener("click", openEdit);
+      retroWrap.appendChild(text);
+    }
+
+    btn.addEventListener("click", openEdit);
     retroWrap.appendChild(btn);
   }
 
