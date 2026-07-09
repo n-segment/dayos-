@@ -1570,16 +1570,17 @@ function init() {
     feedbackSend.textContent = "보내는 중...";
 
     try {
-      // 로그인된 경우 유저 컬렉션 아래에, 아닌 경우 root feedback에 저장
-      const ref = currentUser
-        ? db.collection("users").doc(currentUser.uid).collection("feedback")
-        : db.collection("feedback");
-      await ref.add({
-        text,
-        from: currentUser?.email || "anonymous",
-        uid: currentUser?.uid || null,
-        createdAt: Date.now(),
-      });
+      if (currentUser) {
+        // 유저 도큐먼트에 feedback 배열로 추가 (기존 rules 안에서 동작)
+        await db.collection("users").doc(currentUser.uid).set({
+          feedback: firebase.firestore.FieldValue.arrayUnion({
+            text,
+            createdAt: Date.now(),
+          })
+        }, { merge: true });
+      } else {
+        await db.collection("feedback").add({ text, createdAt: Date.now() });
+      }
       feedbackTextarea.value = "";
       feedbackSend.textContent = "보냈어요 ✓";
       setTimeout(() => {
