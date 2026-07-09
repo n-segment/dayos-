@@ -1570,25 +1570,15 @@ function init() {
     feedbackSend.textContent = "보내는 중...";
 
     try {
-      if (currentUser) {
-        // history 컬렉션에 feedback 타입으로 저장 (권한 확실)
-        await db.collection("users").doc(currentUser.uid)
-          .collection("history").add({
-            type: "feedback",
-            text,
-            from: currentUser.email,
-            createdAt: Date.now(),
-            date: toDateStr(Date.now()),
-            durationMs: 0,
-            startMs: Date.now(),
-            endMs: Date.now(),
-          });
-      } else {
-        alert("피드백을 보내려면 로그인이 필요해요.");
-        feedbackSend.disabled = false;
-        feedbackSend.textContent = "보내기";
-        return;
-      }
+      const res = await fetch("https://formspree.io/f/mpqgglnl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          from: currentUser?.email || "anonymous",
+        }),
+      });
+      if (!res.ok) throw new Error("formspree error");
       feedbackTextarea.value = "";
       feedbackSend.textContent = "보냈어요 ✓";
       setTimeout(() => {
