@@ -952,26 +952,21 @@ function renderDetailContent(container, records, dateStr) {
   // ── 시간 근접 세션 그룹핑 (2시간 이상 간격이면 별도 블록) ──
   const groups = groupByProximity(valid);
 
-  // ── 전체 회고 (하루에 하나, 맨 아래) ──
-  const lastWithRetro = [...records].reverse().find(r => r.retro);
-  const retroRecord = lastWithRetro || records[records.length - 1];
-  const retroWrap = document.createElement("div");
-  retroWrap.className = "hd-retro-wrap";
-  if (retroRecord?._id) {
+  // 그룹별 회고 렌더 헬퍼
+  function buildRetroWrap(retroRecord, wrap) {
     const btn = document.createElement("button");
     btn.className = "hd-edit-btn";
-    btn.textContent = retroRecord.retro ? "회고 수정" : "+ 전체 회고 추가";
+    btn.textContent = retroRecord.retro ? "회고 수정" : "+ 회고 추가";
 
     const openEdit = () => {
-      if (retroWrap.querySelector(".hd-inline-edit")) return;
-      // 기존 배너 숨기기
-      const banner = retroWrap.querySelector(".hd-retro-banner");
+      if (wrap.querySelector(".hd-inline-edit")) return;
+      const banner = wrap.querySelector(".hd-retro-banner");
       if (banner) banner.style.display = "none";
       btn.style.display = "none";
       const ta = document.createElement("textarea");
       ta.className = "hd-inline-edit";
       ta.value = retroRecord.retro || "";
-      ta.placeholder = "오늘 작업 회고를 적어주세요";
+      ta.placeholder = "이 세션 회고를 적어주세요";
       const saveBtn = document.createElement("button");
       saveBtn.className = "hd-save-btn";
       saveBtn.textContent = "저장";
@@ -988,14 +983,13 @@ function renderDetailContent(container, records, dateStr) {
         if (banner) banner.style.display = "";
         btn.style.display = "";
       });
-      retroWrap.insertBefore(ta, btn);
-      retroWrap.insertBefore(saveBtn, btn);
-      retroWrap.insertBefore(cancelBtn, btn);
+      wrap.insertBefore(ta, btn);
+      wrap.insertBefore(saveBtn, btn);
+      wrap.insertBefore(cancelBtn, btn);
       ta.focus();
       ta.setSelectionRange(ta.value.length, ta.value.length);
     };
 
-    // 기존 회고가 있으면 배너 클릭으로도 편집 가능
     if (retroRecord.retro) {
       const text = document.createElement("div");
       text.className = "hd-retro-banner";
@@ -1003,11 +997,10 @@ function renderDetailContent(container, records, dateStr) {
       text.style.cursor = "pointer";
       text.title = "클릭해서 수정";
       text.addEventListener("click", openEdit);
-      retroWrap.appendChild(text);
+      wrap.appendChild(text);
     }
-
     btn.addEventListener("click", openEdit);
-    retroWrap.appendChild(btn);
+    wrap.appendChild(btn);
   }
 
   // ── 그룹별 블록 렌더링 ──
@@ -1193,10 +1186,20 @@ function renderDetailContent(container, records, dateStr) {
       groupEl.appendChild(ul);
     }
 
+    // 이 그룹의 회고 (그룹 내 마지막 레코드 사용)
+    const groupRetroRecord = [...group].reverse().find(r => r.retro) || group[group.length - 1];
+    if (groupRetroRecord?._id) {
+      const rWrap = document.createElement("div");
+      rWrap.className = "hd-retro-wrap";
+      rWrap.style.marginTop = "8px";
+      buildRetroWrap(groupRetroRecord, rWrap);
+      groupEl.appendChild(rWrap);
+    }
+
     container.appendChild(groupEl);
   });
 
-  // ── 기록 추가 버튼 + 전체 회고 (맨 아래) ──
+  // ── 기록 추가 버튼 (맨 아래) ──
   const targetRecord = records[records.length - 1];
   const addWrap = document.createElement("div");
   addWrap.style.cssText = "margin:6px 0 2px;";
@@ -1242,7 +1245,6 @@ function renderDetailContent(container, records, dateStr) {
   });
   addWrap.appendChild(addBtn);
   container.appendChild(addWrap);
-  container.appendChild(retroWrap);
 }
 
 function updateFocusScreen() {
