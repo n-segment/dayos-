@@ -395,6 +395,8 @@ function showScreen(screen) {
   if (feedbackBtn) feedbackBtn.style.display = screen === "welcome" ? "" : "none";
   const endBtn = document.getElementById("endButtonFixed");
   if (endBtn) endBtn.classList.toggle("visible", screen === "focus");
+  const homeBtn = document.getElementById("homeBtn");
+  if (homeBtn) homeBtn.classList.toggle("visible", screen === "focus");
 }
 
 // ── 목표 설정 ──
