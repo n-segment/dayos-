@@ -611,7 +611,7 @@ async function renderHistoryScreen() {
   });
 
   els.historyList.innerHTML = `<p style="opacity:0.4;text-align:center;padding:24px;">불러오는 중...</p>`;
-  const history = await getHistory();
+  const history = (await getHistory()).filter(r => r.type !== "feedback");
 
   if (historyTab === "week") renderWeekView(history);
   else renderMonthView(history);
@@ -1571,15 +1571,23 @@ function init() {
 
     try {
       if (currentUser) {
-        // 유저 도큐먼트에 feedback 배열로 추가 (기존 rules 안에서 동작)
-        await db.collection("users").doc(currentUser.uid).set({
-          feedback: firebase.firestore.FieldValue.arrayUnion({
+        // history 컬렉션에 feedback 타입으로 저장 (권한 확실)
+        await db.collection("users").doc(currentUser.uid)
+          .collection("history").add({
+            type: "feedback",
             text,
+            from: currentUser.email,
             createdAt: Date.now(),
-          })
-        }, { merge: true });
+            date: toDateStr(Date.now()),
+            durationMs: 0,
+            startMs: Date.now(),
+            endMs: Date.now(),
+          });
       } else {
-        await db.collection("feedback").add({ text, createdAt: Date.now() });
+        alert("피드백을 보내려면 로그인이 필요해요.");
+        feedbackSend.disabled = false;
+        feedbackSend.textContent = "보내기";
+        return;
       }
       feedbackTextarea.value = "";
       feedbackSend.textContent = "보냈어요 ✓";
