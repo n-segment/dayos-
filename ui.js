@@ -1570,7 +1570,11 @@ function init() {
     feedbackSend.textContent = "보내는 중...";
 
     try {
-      await db.collection("feedback").add({
+      // 로그인된 경우 유저 컬렉션 아래에, 아닌 경우 root feedback에 저장
+      const ref = currentUser
+        ? db.collection("users").doc(currentUser.uid).collection("feedback")
+        : db.collection("feedback");
+      await ref.add({
         text,
         from: currentUser?.email || "anonymous",
         uid: currentUser?.uid || null,
@@ -1584,6 +1588,7 @@ function init() {
         feedbackSend.disabled = false;
       }, 1200);
     } catch (e) {
+      console.error("피드백 저장 실패:", e);
       feedbackSend.textContent = "실패 :(";
       feedbackSend.disabled = false;
       setTimeout(() => { feedbackSend.textContent = "보내기"; }, 2000);
