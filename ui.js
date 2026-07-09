@@ -1463,6 +1463,7 @@ function init() {
     showScreen("history");
   });
   els.endButton?.addEventListener("click", endSession);
+  document.getElementById("homeBtn")?.addEventListener("click", () => showScreen("welcome"));
   els.viewRecordButton?.addEventListener("click", () => {
     if (startedAtMs) lastSessionMs = Date.now() - startedAtMs;
     openSummaryScreen();
