@@ -869,6 +869,23 @@ function toggleDayDetail(row, records, date) {
   row.after(detail);
 }
 
+// 세션을 시간 근접도로 그룹핑 (gap > 2시간이면 다른 그룹)
+function groupByProximity(sessions, gapMs = 2 * 60 * 60 * 1000) {
+  if (!sessions.length) return [];
+  const sorted = [...sessions].sort((a, b) => a.startMs - b.startMs);
+  const groups = [[sorted[0]]];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (curr.startMs - prev.endMs <= gapMs) {
+      groups[groups.length - 1].push(curr);
+    } else {
+      groups.push([curr]);
+    }
+  }
+  return groups;
+}
+
 function renderDetailContent(container, records, dateStr) {
   const valid = records.filter(r => r.durationMs >= 60000);
   container.innerHTML = "";
@@ -932,44 +949,10 @@ function renderDetailContent(container, records, dateStr) {
     return;
   }
 
-  // ── 0. 세션 합치기 (2개 이상일 때만) ──
-  if (valid.length > 1) {
-    const mergeBtn = document.createElement("button");
-    mergeBtn.className = "hd-edit-btn";
-    mergeBtn.style.cssText = "margin-bottom:10px;font-size:11px;opacity:0.6;";
-    mergeBtn.textContent = `세션 합치기 (${valid.length}개 → 1개)`;
-    mergeBtn.addEventListener("click", async () => {
-      const earliest = Math.min(...valid.map(r => r.startMs));
-      const latest = Math.max(...valid.map(r => r.endMs));
-      const mergedCheckIns = valid.flatMap(r => r.checkIns || []);
-      const retro = [...valid].reverse().find(r => r.retro)?.retro || "";
-      const base = valid.find(r => r.startMs === earliest);
-      // 첫 레코드에 합산 내용 저장
-      await updateRecord(base._id, {
-        startMs: earliest,
-        endMs: latest,
-        durationMs: latest - earliest,
-        checkIns: mergedCheckIns,
-        retro
-      });
-      // 나머지 레코드 삭제
-      for (const r of valid) {
-        if (r._id !== base._id) await deleteRecord(r._id);
-      }
-      // 로컬 records 배열도 업데이트
-      base.startMs = earliest;
-      base.endMs = latest;
-      base.durationMs = latest - earliest;
-      base.checkIns = mergedCheckIns;
-      base.retro = retro;
-      const merged = [base];
-      await renderHistoryScreen();
-    });
-    container.appendChild(mergeBtn);
-  }
+  // ── 시간 근접 세션 그룹핑 (2시간 이상 간격이면 별도 블록) ──
+  const groups = groupByProximity(valid);
 
-  // ── 1. 전체 회고 (하루에 하나) ──
-  // 마지막 세션의 retro 사용, 없으면 빈 값
+  // ── 전체 회고 (하루에 하나, 맨 아래) ──
   const lastWithRetro = [...records].reverse().find(r => r.retro);
   const retroRecord = lastWithRetro || records[records.length - 1];
   const retroWrap = document.createElement("div");
@@ -1009,82 +992,195 @@ function renderDetailContent(container, records, dateStr) {
     });
     retroWrap.appendChild(btn);
   }
-  // ── 2. 시간별 기록 (check-ins) — 수정 + 삭제 ──
-  const targetRecord = records[records.length - 1]; // 기록 추가할 레코드 (마지막)
-  const allCheckins = records.flatMap(r =>
-    (r.checkIns || [])
-      .map((c, idx) => ({ ...c, _idx: idx, _record: r }))
-      .filter(c => c.text && c.text !== "(기록 없음)")
-  );
 
-  const ul = document.createElement("ul");
-  ul.className = "hd-checkins";
+  // ── 그룹별 블록 렌더링 ──
+  const toHHMM = ms => {
+    const d = new Date(ms);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+  const parseTimeText = str => {
+    str = str.trim().replace(/\s/g, "");
+    let m = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (m) return { h: parseInt(m[1]), min: parseInt(m[2]) };
+    m = str.match(/^(\d{1,2})시(\d{2})?분?$/);
+    if (m) return { h: parseInt(m[1]), min: m[2] ? parseInt(m[2]) : 0 };
+    return null;
+  };
 
-  allCheckins.forEach(c => {
-    const li = document.createElement("li");
-    li.className = "hd-checkin";
-    const labelEl = document.createElement("span");
-    labelEl.className = "hd-checkin-label";
-    labelEl.textContent = c.label;
-    const textEl = document.createElement("span");
-    textEl.className = "hd-checkin-text";
-    textEl.textContent = c.text;
-    li.appendChild(labelEl);
-    li.appendChild(textEl);
+  groups.forEach((group, gi) => {
+    const groupEl = document.createElement("div");
+    groupEl.className = "hd-session-group";
+    if (gi > 0) groupEl.style.cssText = "margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);";
 
-    if (c._record?._id) {
-      // 수정 버튼
-      const editBtn = document.createElement("button");
-      editBtn.className = "hd-edit-btn";
-      editBtn.style.marginLeft = "6px";
-      editBtn.textContent = "수정";
-      editBtn.addEventListener("click", () => {
-        if (li.querySelector(".hd-checkin-inline-input")) return;
-        const input = document.createElement("input");
-        input.type = "text";
-        input.className = "hd-checkin-inline-input";
-        input.value = c.text;
-        const saveBtn = document.createElement("button");
-        saveBtn.className = "hd-save-btn";
-        saveBtn.textContent = "저장";
-        saveBtn.addEventListener("click", async () => {
-          c._record.checkIns[c._idx].text = input.value.trim();
-          await updateRecord(c._record._id, { checkIns: c._record.checkIns });
-          records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
-          renderDetailContent(container, records);
+    const earliest = Math.min(...group.map(r => r.startMs));
+    const latest = Math.max(...group.map(r => r.endMs));
+    const spanMs = latest - earliest;
+
+    // 세션 합치기 버튼 (그룹 내 2개 이상일 때만)
+    if (group.length > 1) {
+      const mergeBtn = document.createElement("button");
+      mergeBtn.className = "hd-edit-btn";
+      mergeBtn.style.cssText = "margin-bottom:8px;font-size:11px;opacity:0.6;";
+      mergeBtn.textContent = `세션 합치기 (${group.length}개 → 1개)`;
+      mergeBtn.addEventListener("click", async () => {
+        const mergedCheckIns = group.flatMap(r => r.checkIns || []);
+        const retro = [...group].reverse().find(r => r.retro)?.retro || "";
+        const base = group.find(r => r.startMs === earliest);
+        await updateRecord(base._id, {
+          startMs: earliest, endMs: latest,
+          durationMs: latest - earliest,
+          checkIns: mergedCheckIns, retro
         });
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "hd-edit-btn";
-        cancelBtn.textContent = "취소";
-        cancelBtn.addEventListener("click", () => { input.remove(); saveBtn.remove(); cancelBtn.remove(); textEl.style.display = ""; });
-        textEl.style.display = "none";
-        li.appendChild(input);
-        li.appendChild(saveBtn);
-        li.appendChild(cancelBtn);
-        input.focus();
+        for (const r of group) {
+          if (r._id !== base._id) await deleteRecord(r._id);
+        }
+        await renderHistoryScreen();
       });
+      groupEl.appendChild(mergeBtn);
+    }
 
-      // 삭제 버튼
-      const delBtn = document.createElement("button");
-      delBtn.className = "hd-edit-btn";
-      delBtn.style.cssText = "margin-left:4px;color:rgba(255,100,100,0.6);border-color:rgba(255,100,100,0.25);";
-      delBtn.textContent = "삭제";
-      delBtn.addEventListener("click", async () => {
-        c._record.checkIns.splice(c._idx, 1);
-        await updateRecord(c._record._id, { checkIns: c._record.checkIns });
-        records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
+    // 시간 범위 + 세션수 + 시간수정
+    const summaryEl = document.createElement("div");
+    summaryEl.className = "hd-summary";
+    const timeSpan = document.createElement("span");
+    timeSpan.textContent = `${formatClock(new Date(earliest))} – ${formatClock(new Date(latest))}`;
+    const countSpan = document.createElement("span");
+    countSpan.textContent = `${group.length}세션`;
+    const editTimeBtn = document.createElement("button");
+    editTimeBtn.className = "hd-edit-btn";
+    editTimeBtn.textContent = "시간 수정";
+    editTimeBtn.addEventListener("click", () => {
+      if (summaryEl.querySelector(".hd-time-edit-row")) return;
+      const row = document.createElement("div");
+      row.className = "hd-time-edit-row";
+      row.innerHTML = `
+        <input class="hd-time-input" id="hd-st-${gi}" type="text" value="${toHHMM(earliest)}" style="width:60px;text-align:center;">
+        <span style="color:rgba(255,255,255,0.4);font-size:12px">–</span>
+        <input class="hd-time-input" id="hd-et-${gi}" type="text" value="${toHHMM(latest)}" style="width:60px;text-align:center;">
+        <button class="hd-save-btn" id="hd-ts-${gi}">저장</button>
+        <button class="hd-edit-btn" id="hd-tc-${gi}">취소</button>
+      `;
+      summaryEl.appendChild(row);
+      row.querySelector(`#hd-tc-${gi}`).addEventListener("click", () => row.remove());
+      row.querySelector(`#hd-ts-${gi}`).addEventListener("click", async () => {
+        const stP = parseTimeText(row.querySelector(`#hd-st-${gi}`).value);
+        const etP = parseTimeText(row.querySelector(`#hd-et-${gi}`).value);
+        if (!stP || !etP) return;
+        const base = new Date(earliest);
+        const newStart = new Date(base); newStart.setHours(stP.h, stP.min, 0, 0);
+        const newEnd = new Date(base); newEnd.setHours(etP.h, etP.min, 0, 0);
+        if (newEnd <= newStart) return;
+        const firstR = group.find(r => r.startMs === earliest);
+        const lastR = group.reduce((a, b) => b.endMs > a.endMs ? b : a);
+        if (firstR?._id) {
+          firstR.startMs = newStart.getTime();
+          firstR.durationMs = firstR.endMs - firstR.startMs;
+          await updateRecord(firstR._id, { startMs: firstR.startMs, durationMs: firstR.durationMs });
+        }
+        if (lastR?._id && lastR._id !== firstR?._id) {
+          lastR.endMs = newEnd.getTime();
+          lastR.durationMs = lastR.endMs - lastR.startMs;
+          await updateRecord(lastR._id, { endMs: lastR.endMs, durationMs: lastR.durationMs });
+        } else if (firstR?._id) {
+          firstR.endMs = newEnd.getTime();
+          firstR.durationMs = newEnd - newStart;
+          await updateRecord(firstR._id, { endMs: firstR.endMs, durationMs: firstR.durationMs });
+        }
         renderDetailContent(container, records);
       });
+    });
+    summaryEl.appendChild(timeSpan);
+    summaryEl.appendChild(countSpan);
+    summaryEl.appendChild(editTimeBtn);
+    groupEl.appendChild(summaryEl);
 
-      li.appendChild(editBtn);
-      li.appendChild(delBtn);
+    // 진행 바
+    if (spanMs > 0) {
+      const barEl = document.createElement("div");
+      barEl.className = "hd-bar";
+      group.forEach(r => {
+        const seg = document.createElement("div");
+        seg.className = "hd-bar-seg";
+        seg.style.left = ((r.startMs - earliest) / spanMs * 100).toFixed(1) + "%";
+        seg.style.width = Math.max((r.durationMs / spanMs * 100), 1).toFixed(1) + "%";
+        barEl.appendChild(seg);
+      });
+      groupEl.appendChild(barEl);
     }
-    ul.appendChild(li);
+
+    // 이 그룹의 체크인 목록
+    const groupCheckins = group.flatMap(r =>
+      (r.checkIns || [])
+        .map((c, idx) => ({ ...c, _idx: idx, _record: r }))
+        .filter(c => c.text && c.text !== "(기록 없음)")
+    );
+    if (groupCheckins.length > 0) {
+      const ul = document.createElement("ul");
+      ul.className = "hd-checkins";
+      groupCheckins.forEach(c => {
+        const li = document.createElement("li");
+        li.className = "hd-checkin";
+        const labelEl = document.createElement("span");
+        labelEl.className = "hd-checkin-label";
+        labelEl.textContent = c.label;
+        const textEl = document.createElement("span");
+        textEl.className = "hd-checkin-text";
+        textEl.textContent = c.text;
+        li.appendChild(labelEl);
+        li.appendChild(textEl);
+        if (c._record?._id) {
+          const editBtn = document.createElement("button");
+          editBtn.className = "hd-edit-btn";
+          editBtn.style.marginLeft = "6px";
+          editBtn.textContent = "수정";
+          editBtn.addEventListener("click", () => {
+            if (li.querySelector(".hd-checkin-inline-input")) return;
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "hd-checkin-inline-input";
+            input.value = c.text;
+            const saveBtn = document.createElement("button");
+            saveBtn.className = "hd-save-btn";
+            saveBtn.textContent = "저장";
+            saveBtn.addEventListener("click", async () => {
+              c._record.checkIns[c._idx].text = input.value.trim();
+              await updateRecord(c._record._id, { checkIns: c._record.checkIns });
+              records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
+              renderDetailContent(container, records);
+            });
+            const cancelBtn = document.createElement("button");
+            cancelBtn.className = "hd-edit-btn";
+            cancelBtn.textContent = "취소";
+            cancelBtn.addEventListener("click", () => { input.remove(); saveBtn.remove(); cancelBtn.remove(); textEl.style.display = ""; });
+            textEl.style.display = "none";
+            li.appendChild(input);
+            li.appendChild(saveBtn);
+            li.appendChild(cancelBtn);
+            input.focus();
+          });
+          const delBtn = document.createElement("button");
+          delBtn.className = "hd-edit-btn";
+          delBtn.style.cssText = "margin-left:4px;color:rgba(255,100,100,0.6);border-color:rgba(255,100,100,0.25);";
+          delBtn.textContent = "삭제";
+          delBtn.addEventListener("click", async () => {
+            c._record.checkIns.splice(c._idx, 1);
+            await updateRecord(c._record._id, { checkIns: c._record.checkIns });
+            records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
+            renderDetailContent(container, records);
+          });
+          li.appendChild(editBtn);
+          li.appendChild(delBtn);
+        }
+        ul.appendChild(li);
+      });
+      groupEl.appendChild(ul);
+    }
+
+    container.appendChild(groupEl);
   });
 
-  container.appendChild(ul);
-
-  // + 기록 추가 폼 (시간 아래, 회고 위)
+  // ── 기록 추가 버튼 + 전체 회고 (맨 아래) ──
+  const targetRecord = records[records.length - 1];
   const addWrap = document.createElement("div");
   addWrap.style.cssText = "margin:6px 0 2px;";
   const addBtn = document.createElement("button");
@@ -1128,100 +1224,6 @@ function renderDetailContent(container, records, dateStr) {
     ta.focus();
   });
   addWrap.appendChild(addBtn);
-
-  // ── 3. 시간 범위 + 수정 ──
-  if (valid.length > 0) {
-    const earliest = Math.min(...valid.map(r => r.startMs));
-    const latest = Math.max(...valid.map(r => r.endMs));
-    const spanMs = latest - earliest;
-
-    const summaryEl = document.createElement("div");
-    summaryEl.className = "hd-summary";
-    const timeSpan = document.createElement("span");
-    timeSpan.textContent = `${formatClock(new Date(earliest))} – ${formatClock(new Date(latest))}`;
-    const countSpan = document.createElement("span");
-    countSpan.textContent = `${valid.length}세션`;
-    const editTimeBtn = document.createElement("button");
-    editTimeBtn.className = "hd-edit-btn";
-    editTimeBtn.textContent = "시간 수정";
-    editTimeBtn.addEventListener("click", () => {
-      if (summaryEl.querySelector(".hd-time-edit-row")) return;
-      const toHHMM = ms => {
-        const d = new Date(ms);
-        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      };
-      // 텍스트 파싱 함수: "1:50", "01:50", "1시50분" 등 허용
-      const parseTimeText = str => {
-        str = str.trim().replace(/\s/g, "");
-        // HH:MM or H:MM
-        let m = str.match(/^(\d{1,2}):(\d{2})$/);
-        if (m) return { h: parseInt(m[1]), min: parseInt(m[2]) };
-        // 1시50분 or 1시
-        m = str.match(/^(\d{1,2})시(\d{2})?분?$/);
-        if (m) return { h: parseInt(m[1]), min: m[2] ? parseInt(m[2]) : 0 };
-        return null;
-      };
-      const row = document.createElement("div");
-      row.className = "hd-time-edit-row";
-      row.innerHTML = `
-        <input class="hd-time-input" id="hd-st" type="text" placeholder="${toHHMM(earliest)}" value="${toHHMM(earliest)}" style="width:60px;text-align:center;">
-        <span style="color:rgba(255,255,255,0.4);font-size:12px">–</span>
-        <input class="hd-time-input" id="hd-et" type="text" placeholder="${toHHMM(latest)}" value="${toHHMM(latest)}" style="width:60px;text-align:center;">
-        <button class="hd-save-btn" id="hd-ts">저장</button>
-        <button class="hd-edit-btn" id="hd-tc">취소</button>
-      `;
-      summaryEl.appendChild(row);
-      row.querySelector("#hd-tc").addEventListener("click", () => row.remove());
-      row.querySelector("#hd-ts").addEventListener("click", async () => {
-        const stParsed = parseTimeText(row.querySelector("#hd-st").value);
-        const etParsed = parseTimeText(row.querySelector("#hd-et").value);
-        if (!stParsed || !etParsed) return;
-        const [sh, sm] = [stParsed.h, stParsed.min];
-        const [eh, em] = [etParsed.h, etParsed.min];
-        const base = new Date(earliest);
-        const newStart = new Date(base); newStart.setHours(sh, sm, 0, 0);
-        const newEnd = new Date(base); newEnd.setHours(eh, em, 0, 0);
-        if (newEnd <= newStart) return;
-        // 첫 세션 시작 시간 수정, 마지막 세션 종료 시간 수정
-        const firstR = valid.find(r => r.startMs === earliest);
-        const lastR = valid.reduce((a, b) => b.endMs > a.endMs ? b : a);
-        if (firstR?._id) {
-          firstR.startMs = newStart.getTime();
-          firstR.durationMs = firstR.endMs - firstR.startMs;
-          await updateRecord(firstR._id, { startMs: firstR.startMs, durationMs: firstR.durationMs });
-        }
-        if (lastR?._id && lastR._id !== firstR?._id) {
-          lastR.endMs = newEnd.getTime();
-          lastR.durationMs = lastR.endMs - lastR.startMs;
-          await updateRecord(lastR._id, { endMs: lastR.endMs, durationMs: lastR.durationMs });
-        } else if (firstR?._id) {
-          firstR.endMs = newEnd.getTime();
-          firstR.durationMs = newEnd - newStart;
-          await updateRecord(firstR._id, { endMs: firstR.endMs, durationMs: firstR.durationMs });
-        }
-        renderDetailContent(container, records);
-      });
-    });
-    summaryEl.appendChild(timeSpan);
-    summaryEl.appendChild(countSpan);
-    summaryEl.appendChild(editTimeBtn);
-    container.appendChild(summaryEl);
-
-    if (spanMs > 0) {
-      const barEl = document.createElement("div");
-      barEl.className = "hd-bar";
-      valid.forEach(r => {
-        const seg = document.createElement("div");
-        seg.className = "hd-bar-seg";
-        seg.style.left = ((r.startMs - earliest) / spanMs * 100).toFixed(1) + "%";
-        seg.style.width = Math.max((r.durationMs / spanMs * 100), 1).toFixed(1) + "%";
-        barEl.appendChild(seg);
-      });
-      container.appendChild(barEl);
-    }
-  }
-
-  // ── 4. 기록 추가 버튼 + 전체 회고 (맨 아래) ──
   container.appendChild(addWrap);
   container.appendChild(retroWrap);
 }
