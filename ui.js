@@ -1086,7 +1086,7 @@ function renderDetailContent(container, records, dateStr) {
           firstR.durationMs = newEnd - newStart;
           await updateRecord(firstR._id, { endMs: firstR.endMs, durationMs: firstR.durationMs });
         }
-        renderDetailContent(container, records);
+        await renderHistoryScreen();
       });
     });
     summaryEl.appendChild(timeSpan);
