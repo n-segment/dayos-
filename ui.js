@@ -1099,9 +1099,19 @@ function renderDetailContent(container, records, dateStr) {
         await renderHistoryScreen();
       });
     });
+    const delSessionBtn = document.createElement("button");
+    delSessionBtn.className = "hd-edit-btn";
+    delSessionBtn.style.cssText = "color:rgba(255,100,100,0.6);border-color:rgba(255,100,100,0.25);";
+    delSessionBtn.textContent = "삭제";
+    delSessionBtn.addEventListener("click", async () => {
+      if (!confirm("이 세션을 삭제할까요?")) return;
+      for (const r of group) await deleteRecord(r._id);
+      await renderHistoryScreen();
+    });
     summaryEl.appendChild(timeSpan);
     summaryEl.appendChild(countSpan);
     summaryEl.appendChild(editTimeBtn);
+    summaryEl.appendChild(delSessionBtn);
     groupEl.appendChild(summaryEl);
 
     // 진행 바
