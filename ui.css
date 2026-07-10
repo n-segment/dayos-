@@ -1697,6 +1697,41 @@ body.dawn-video .screen--welcome::before {
   flex-direction: column;
 }
 
+/* 태스크 타이머 목록 */
+.task-log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.task-log-dot {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+.task-log-item--active .task-log-dot {
+  color: #7eb8f7;
+  animation: blink-task 1.2s ease-in-out infinite;
+}
+@keyframes blink-task { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.task-log-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.75);
+}
+.task-log-item--active .task-log-name { color: #fff; }
+.task-log-dur {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.task-log-item--active .task-log-dur { color: rgba(255,255,255,0.65); }
+
 .checkin-log__item {
   display: grid;
   grid-template-columns: 44px 56px 1fr auto;

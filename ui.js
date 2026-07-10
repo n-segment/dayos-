@@ -233,14 +233,28 @@ function closeCheckinInput() {
   els.checkinTextarea.value = "";
 }
 
+function fmtDur(ms) {
+  if (!ms || ms < 0) return "0분";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h > 0) return `${h}시간 ${m}분`;
+  return `${m}분`;
+}
+
 function saveCheckin() {
   const text = els.checkinTextarea.value.trim();
   if (!text) return;
-  checkIns.push({
-    timeMs: Date.now(),
-    label: formatClock(new Date()),
-    text,
-  });
+  const now = Date.now();
+  // 이전 태스크 시간 확정
+  if (checkIns.length > 0) {
+    const last = checkIns[checkIns.length - 1];
+    if (!last.endMs) {
+      last.endMs = now;
+      last.durationMs = now - last.timeMs;
+    }
+  }
+  // 새 태스크 시작
+  checkIns.push({ timeMs: now, label: formatClock(new Date()), text, endMs: null, durationMs: null });
   closeCheckinInput();
   renderCheckinLog();
 }
@@ -261,13 +275,17 @@ function renderCheckinLog() {
   if (!els.checkinLog) return;
   els.checkinLog.innerHTML = "";
   checkIns.forEach((c, idx) => {
+    if (!c.text) return;
+    const isActive = idx === checkIns.length - 1 && !c.endMs;
     const li = document.createElement("li");
-    li.className = "checkin-log__item" + (c.text === null ? " checkin-log__item--skip" : "");
+    li.className = "task-log-item" + (isActive ? " task-log-item--active" : "");
+    const durHtml = isActive
+      ? `<span class="task-log-dur" id="current-task-time">${fmtDur(Date.now() - c.timeMs)}</span>`
+      : `<span class="task-log-dur">${fmtDur(c.durationMs)}</span>`;
     li.innerHTML = `
-      <span class="checkin-log__time">${formatClock(new Date(c.timeMs))}</span>
-      <span class="checkin-log__label">${c.label}</span>
-      <span class="checkin-log__text">${c.text !== null ? c.text : "—"}</span>
-      <button class="checkin-log__edit" onclick="editCheckin(${idx})">수정</button>
+      <span class="task-log-dot">${isActive ? "●" : "✓"}</span>
+      <span class="task-log-name">${c.text}</span>
+      ${durHtml}
     `;
     els.checkinLog.appendChild(li);
   });
@@ -513,6 +531,14 @@ function toDateStr(ms) {
 async function saveSessionToHistory() {
   const retro = els.summaryRetro ? els.summaryRetro.value.trim() : "";
   const sessionStart = endedAtMs ? endedAtMs - lastSessionMs : Date.now() - lastSessionMs;
+  // 마지막 태스크 시간 확정
+  if (checkIns.length > 0) {
+    const last = checkIns[checkIns.length - 1];
+    if (!last.endMs) {
+      last.endMs = endedAtMs || Date.now();
+      last.durationMs = last.endMs - last.timeMs;
+    }
+  }
   const record = {
     date: toDateStr(endedAtMs || Date.now()),
     startMs: sessionStart,
@@ -1275,6 +1301,12 @@ function updateFocusScreen() {
   renderLiveSegments();
   renderTrackerSummary();
   maybeTriggerBounce();
+  // 현재 태스크 라이브 타이머
+  const liveTaskEl = document.getElementById("current-task-time");
+  if (liveTaskEl && checkIns.length > 0) {
+    const last = checkIns[checkIns.length - 1];
+    if (!last.endMs) liveTaskEl.textContent = fmtDur(nowMs - last.timeMs);
+  }
 }
 
 function pauseSession() {
@@ -1629,7 +1661,7 @@ function init() {
   });
 
   // 기록 버튼
-  els.addNoteBtn?.addEventListener("click", openGoalModal);
+  els.addNoteBtn?.addEventListener("click", openCheckinInput);
   els.checkinCancelBtn?.addEventListener("click", closeCheckinInput);
   els.checkinSaveBtn?.addEventListener("click", saveCheckin);
   els.checkinTextarea?.addEventListener("keydown", (e) => {
