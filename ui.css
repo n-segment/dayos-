@@ -1386,6 +1386,51 @@ body.dawn-video .screen--welcome::before {
   min-width: 0;
 }
 
+.hd-checkin-dur {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.hd-checkin-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* 태그별 시간 합계 */
+.hd-tag-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.hd-tag-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hd-tag-breakdown-time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+}
+
 /* ── 마무리 고정 버튼 ── */
 .end-btn-fixed {
   position: fixed;
@@ -1856,6 +1901,31 @@ body.dawn-video .screen--welcome::before {
 
 .checkin-textarea:focus { border-color: var(--color-smoke); }
 .checkin-textarea::placeholder { color: rgba(255,255,255,0.35); }
+
+.checkin-dur-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+.checkin-dur-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+}
+.checkin-dur-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.8);
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 2px;
+  outline: none;
+}
+.checkin-dur-input::placeholder { color: rgba(255,255,255,0.25); font-size:11px; }
+.checkin-dur-input:focus { border-bottom-color: rgba(255,255,255,0.45); }
 
 .checkin-input-actions {
   display: flex;

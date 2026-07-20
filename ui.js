@@ -133,6 +133,23 @@ function maybeTriggerBounce() {
   }
 }
 
+// ── 태그 시스템 ──
+const TAGS_KEY = 'dayos_user_tags';
+let userTags = [];
+const TAG_COLORS = ['#7eb8f7','#f7a87e','#a8f7a8','#f77eb8','#f7e07e','#b87ef7','#7ef7ee'];
+
+function loadTags() {
+  try { userTags = JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'); } catch { userTags = []; }
+}
+function saveTags() { localStorage.setItem(TAGS_KEY, JSON.stringify(userTags)); }
+function addUserTag(name) {
+  name = name.trim();
+  if (!name || userTags.find(t => t.name === name)) return null;
+  const tag = { id: Date.now().toString(), name, color: TAG_COLORS[userTags.length % TAG_COLORS.length] };
+  userTags.push(tag); saveTags(); return tag;
+}
+function getTag(id) { return userTags.find(t => t.id === id); }
+
 // ── 시간별 체크인 ──
 let checkIns = [];
 let nextCheckInMs = null;
@@ -241,20 +258,51 @@ function fmtDur(ms) {
   return `${m}분`;
 }
 
+function parseDurInput(str) {
+  // "1시간 30분", "1:30", "90분", "90", "1h30m" 등 파싱 → ms 반환, 실패 시 null
+  if (!str) return null;
+  str = str.trim();
+  // X시간 Y분
+  let m = str.match(/^(\d+)\s*시간\s*(\d+)?\s*분?$/);
+  if (m) return (parseInt(m[1]) * 60 + parseInt(m[2] || 0)) * 60000;
+  // X분
+  m = str.match(/^(\d+)\s*분$/);
+  if (m) return parseInt(m[1]) * 60000;
+  // X:XX (시:분)
+  m = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) return (parseInt(m[1]) * 60 + parseInt(m[2])) * 60000;
+  // 숫자만 → 분으로 처리
+  m = str.match(/^(\d+)$/);
+  if (m) return parseInt(m[1]) * 60000;
+  return null;
+}
+
 function saveCheckin() {
   const text = els.checkinTextarea.value.trim();
   if (!text) return;
   const now = Date.now();
-  // 이전 태스크 시간 확정
+  const durStr = document.getElementById("checkinDurInput")?.value?.trim() || "";
+  const manualDurMs = parseDurInput(durStr);
+
+  // 이전 라이브 태스크 시간 확정
   if (checkIns.length > 0) {
     const last = checkIns[checkIns.length - 1];
-    if (!last.endMs) {
+    if (last.isLive && !last.endMs) {
       last.endMs = now;
       last.durationMs = now - last.timeMs;
+      last.isLive = false;
     }
   }
-  // 새 태스크 시작
-  checkIns.push({ timeMs: now, label: formatClock(new Date()), text, endMs: null, durationMs: null });
+
+  if (manualDurMs !== null) {
+    // 소급 입력: 시간 확정해서 저장
+    checkIns.push({ timeMs: now - manualDurMs, label: formatClock(new Date(now - manualDurMs)), text, endMs: now, durationMs: manualDurMs, isLive: false });
+  } else {
+    // 라이브 타이머 시작
+    checkIns.push({ timeMs: now, label: formatClock(new Date()), text, endMs: null, durationMs: null, isLive: true });
+  }
+
+  if (document.getElementById("checkinDurInput")) document.getElementById("checkinDurInput").value = "";
   closeCheckinInput();
   renderCheckinLog();
 }
@@ -276,7 +324,7 @@ function renderCheckinLog() {
   els.checkinLog.innerHTML = "";
   checkIns.forEach((c, idx) => {
     if (!c.text) return;
-    const isActive = idx === checkIns.length - 1 && !c.endMs;
+    const isActive = c.isLive && !c.endMs;
     const li = document.createElement("li");
     li.className = "task-log-item" + (isActive ? " task-log-item--active" : "");
     const durHtml = isActive
@@ -531,12 +579,13 @@ function toDateStr(ms) {
 async function saveSessionToHistory() {
   const retro = els.summaryRetro ? els.summaryRetro.value.trim() : "";
   const sessionStart = endedAtMs ? endedAtMs - lastSessionMs : Date.now() - lastSessionMs;
-  // 마지막 태스크 시간 확정
+  // 마지막 라이브 태스크 시간 확정
   if (checkIns.length > 0) {
     const last = checkIns[checkIns.length - 1];
-    if (!last.endMs) {
+    if (last.isLive && !last.endMs) {
       last.endMs = endedAtMs || Date.now();
       last.durationMs = last.endMs - last.timeMs;
+      last.isLive = false;
     }
   }
   const record = {
@@ -1029,6 +1078,31 @@ function renderDetailContent(container, records, dateStr) {
     wrap.appendChild(btn);
   }
 
+  // ── 태그별 시간 합계 ──
+  if (userTags.length > 0) {
+    const allCheckins = records.flatMap(r => r.checkIns || []).filter(c => c.tags && c.tags.length && c.durationMs);
+    const tagTotals = {};
+    allCheckins.forEach(c => {
+      c.tags.forEach(tid => {
+        tagTotals[tid] = (tagTotals[tid] || 0) + c.durationMs;
+      });
+    });
+    const tagged = Object.entries(tagTotals).filter(([, ms]) => ms > 0);
+    if (tagged.length > 0) {
+      const breakdownEl = document.createElement("div");
+      breakdownEl.className = "hd-tag-breakdown";
+      tagged.forEach(([tid, ms]) => {
+        const tag = getTag(tid);
+        if (!tag) return;
+        const item = document.createElement("span");
+        item.className = "hd-tag-breakdown-item";
+        item.innerHTML = `<span class="tag-chip" style="background:${tag.color}22;color:${tag.color};border:1px solid ${tag.color}55;">${tag.name}</span><span class="hd-tag-breakdown-time">${fmtDur(ms)}</span>`;
+        breakdownEl.appendChild(item);
+      });
+      container.appendChild(breakdownEl);
+    }
+  }
+
   // ── 그룹별 블록 렌더링 ──
   const toHHMM = ms => {
     const d = new Date(ms);
@@ -1174,6 +1248,28 @@ function renderDetailContent(container, records, dateStr) {
         textEl.textContent = c.text;
         li.appendChild(labelEl);
         li.appendChild(textEl);
+        // 소요시간
+        if (c.durationMs) {
+          const durEl = document.createElement("span");
+          durEl.className = "hd-checkin-dur";
+          durEl.textContent = fmtDur(c.durationMs);
+          li.appendChild(durEl);
+        }
+        // 태그 칩
+        if (c.tags && c.tags.length > 0) {
+          const tagWrap = document.createElement("span");
+          tagWrap.className = "hd-checkin-tags";
+          c.tags.forEach(tid => {
+            const t = getTag(tid);
+            if (!t) return;
+            const chip = document.createElement("span");
+            chip.className = "tag-chip";
+            chip.style.cssText = `background:${t.color}22;color:${t.color};border:1px solid ${t.color}55;`;
+            chip.textContent = t.name;
+            tagWrap.appendChild(chip);
+          });
+          li.appendChild(tagWrap);
+        }
         if (c._record?._id) {
           const editBtn = document.createElement("button");
           editBtn.className = "hd-edit-btn";
@@ -1238,22 +1334,74 @@ function renderDetailContent(container, records, dateStr) {
   // ── 기록 추가 버튼 (맨 아래) ──
   const targetRecord = records[records.length - 1];
   const addWrap = document.createElement("div");
-  addWrap.style.cssText = "margin:6px 0 2px;";
+  addWrap.style.cssText = "margin:10px 0 2px;";
   const addBtn = document.createElement("button");
   addBtn.className = "hd-edit-btn";
+  addBtn.style.cssText = "font-size:12px;padding:6px 14px;";
   addBtn.textContent = "+ 기록 추가";
   addBtn.addEventListener("click", () => {
     if (addWrap.querySelector(".hd-add-form")) return;
     addBtn.style.display = "none";
     const form = document.createElement("div");
     form.className = "hd-add-form";
+
+    // 내용
     const ta = document.createElement("textarea");
     ta.className = "checkin-textarea";
     ta.placeholder = "어떤 작업을 했나요?";
     ta.style.cssText = "width:100%;margin-top:6px;";
+    form.appendChild(ta);
+
+    // 소요시간
+    const durRow = document.createElement("div");
+    durRow.className = "checkin-dur-row";
+    durRow.innerHTML = `<span class="checkin-dur-label">소요 시간</span>`;
+    const durInput = document.createElement("input");
+    durInput.className = "checkin-dur-input";
+    durInput.placeholder = "예: 1시간 30분, 45분";
+    durRow.appendChild(durInput);
+    form.appendChild(durRow);
+
+    // 태그 선택
+    const tagSection = document.createElement("div");
+    tagSection.style.cssText = "margin-top:10px;";
+    let selectedTagIds = [];
+
+    function renderTagPicker() {
+      tagSection.innerHTML = "";
+      const tagRow = document.createElement("div");
+      tagRow.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;";
+      userTags.forEach(tag => {
+        const chip = document.createElement("span");
+        const sel = selectedTagIds.includes(tag.id);
+        chip.style.cssText = `display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${tag.color};color:${sel ? '#fff' : tag.color};background:${sel ? tag.color + 'cc' : 'transparent'};transition:all 0.15s;`;
+        chip.textContent = tag.name;
+        chip.addEventListener("click", () => {
+          selectedTagIds = sel ? selectedTagIds.filter(id => id !== tag.id) : [...selectedTagIds, tag.id];
+          renderTagPicker();
+        });
+        tagRow.appendChild(chip);
+      });
+      // 새 태그 추가
+      const newTagBtn = document.createElement("button");
+      newTagBtn.style.cssText = "font-size:11px;color:rgba(255,255,255,0.35);background:none;border:1px dashed rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;cursor:pointer;";
+      newTagBtn.textContent = "+ 태그";
+      newTagBtn.addEventListener("click", () => {
+        const name = prompt("태그 이름");
+        if (!name) return;
+        addUserTag(name);
+        renderTagPicker();
+      });
+      tagRow.appendChild(newTagBtn);
+      tagSection.appendChild(tagRow);
+    }
+    renderTagPicker();
+    form.appendChild(tagSection);
+
+    // 저장/취소
     const actions = document.createElement("div");
     actions.className = "checkin-input-actions";
-    actions.style.marginTop = "6px";
+    actions.style.marginTop = "8px";
     const saveBtn = document.createElement("button");
     saveBtn.className = "checkin-save-btn";
     saveBtn.textContent = "저장";
@@ -1262,7 +1410,15 @@ function renderDetailContent(container, records, dateStr) {
       if (!text) return;
       const rec = targetRecord;
       if (!rec._id) return;
-      const newEntry = { label: formatClock(new Date()), text, timeMs: Date.now() };
+      const durMs = parseDurInput(durInput.value) || null;
+      const now = Date.now();
+      const newEntry = {
+        label: formatClock(new Date()),
+        text,
+        timeMs: now,
+        durationMs: durMs,
+        tags: [...selectedTagIds],
+      };
       rec.checkIns = rec.checkIns || [];
       rec.checkIns.push(newEntry);
       await updateRecord(rec._id, { checkIns: rec.checkIns });
@@ -1274,7 +1430,6 @@ function renderDetailContent(container, records, dateStr) {
     cancelBtn.addEventListener("click", () => { form.remove(); addBtn.style.display = ""; });
     actions.appendChild(saveBtn);
     actions.appendChild(cancelBtn);
-    form.appendChild(ta);
     form.appendChild(actions);
     addWrap.appendChild(form);
     ta.focus();
@@ -1304,8 +1459,8 @@ function updateFocusScreen() {
   // 현재 태스크 라이브 타이머
   const liveTaskEl = document.getElementById("current-task-time");
   if (liveTaskEl && checkIns.length > 0) {
-    const last = checkIns[checkIns.length - 1];
-    if (!last.endMs) liveTaskEl.textContent = fmtDur(nowMs - last.timeMs);
+    const liveTask = checkIns.find(c => c.isLive && !c.endMs);
+    if (liveTask) liveTaskEl.textContent = fmtDur(nowMs - liveTask.timeMs);
   }
 }
 
@@ -1480,6 +1635,7 @@ function openSummaryScreen() {
 }
 
 function init() {
+  loadTags();
   // Firebase 인증 상태 감지
   auth.onAuthStateChanged((user) => {
     currentUser = user;
@@ -1660,13 +1816,10 @@ function init() {
     }
   });
 
-  // 기록 버튼
-  els.addNoteBtn?.addEventListener("click", openCheckinInput);
-  els.checkinCancelBtn?.addEventListener("click", closeCheckinInput);
-  els.checkinSaveBtn?.addEventListener("click", saveCheckin);
-  els.checkinTextarea?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveCheckin(); }
-    if (e.key === "Escape") closeCheckinInput();
+  // 기록 보기 버튼 (포커스 화면 → 기록 페이지)
+  els.addNoteBtn?.addEventListener("click", () => {
+    renderHistoryScreen();
+    showScreen("history");
   });
 }
 
