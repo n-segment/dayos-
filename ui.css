@@ -362,12 +362,14 @@ html, body {
   background: none;
   border: none;
   font-size: 14px;
-  color: rgba(0,0,0,0.35);
+  color: rgba(0,0,0,0.5);
   cursor: pointer;
   line-height: 1;
   padding: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
-.sticky-memo-delete:hover { color: rgba(0,0,0,0.7); }
+.sticky-memo:hover .sticky-memo-delete { opacity: 1; }
 
 .brand-mark {
   display: inline-flex;
