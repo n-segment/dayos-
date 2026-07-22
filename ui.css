@@ -882,7 +882,7 @@ body.dawn-video .screen--welcome::before {
   cursor: pointer;
   font-family: var(--font-base);
   font-weight: 400;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.06em;
   border-radius: var(--radius-pill);
   transition: opacity 120ms ease;
@@ -900,7 +900,7 @@ body.dawn-video .screen--welcome::before {
 
 .button--ghost {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.35);
+  border: 1px solid rgba(255,255,255,0.25);
   color: rgba(255,255,255,0.7);
   padding: 12px 22px;
 }
