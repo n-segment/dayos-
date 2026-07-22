@@ -997,13 +997,7 @@ body.dawn-video .screen--welcome::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 52px 32px 20px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: linear-gradient(to bottom, rgba(8,8,12,0.95) 70%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding: 32px 32px 20px;
 }
 .hs-header-left {
   display: flex;
@@ -1200,7 +1194,7 @@ body.dawn-video .screen--welcome::before {
 
 /* 기록 추가 */
 .hs-add-btn {
-  border: 1px dashed rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 14px;
   padding: 14px;
   text-align: center;
@@ -1239,21 +1233,21 @@ body.dawn-video .screen--welcome::before {
 .hs-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0,0,0,0.55);
   z-index: 100;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .hs-modal {
-  background: #1a1a22;
+  background: rgba(22,22,30,0.95);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px 20px 0 0;
-  padding: 24px 24px 40px;
-  width: 100%;
-  max-width: 680px;
+  border-radius: 20px;
+  padding: 24px 24px 28px;
+  width: calc(100% - 48px);
+  max-width: 480px;
 }
 .hs-modal-header {
   display: flex;
