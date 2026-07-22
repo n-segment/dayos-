@@ -1166,9 +1166,12 @@ body.dawn-video .screen--welcome::before {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 16px;
 }
+.hs-record-item:first-child { border-radius: 14px 14px 0 0; }
+.hs-record-item:last-child { border-radius: 0 0 14px 14px; border-bottom: none; }
+.hs-record-item:only-child { border-radius: 14px; }
 .hs-record-item {
   display: flex;
   align-items: center;
