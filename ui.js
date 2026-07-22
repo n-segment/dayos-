@@ -765,16 +765,25 @@ function renderDayContent(container, records, dateStr) {
   container.appendChild(tlSection);
 
   const tlWrap = tlSection.querySelector("#hsTlWrap");
-  allCheckIns.filter(c => c.timeMs && c.durationMs > 0).forEach(c => {
+  allCheckIns.filter(c => c.timeMs).forEach(c => {
     const left = Math.max(0, ((c.timeMs - dayStart) / 86400000 * 100)).toFixed(2);
-    const width = Math.max((c.durationMs / 86400000 * 100), 0.5).toFixed(2);
-    const seg = document.createElement("div");
-    seg.className = "hs-tl-seg";
-    seg.style.left = left + "%";
-    seg.style.width = width + "%";
     const t = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
-    if (t) seg.style.background = t.color;
-    tlWrap.appendChild(seg);
+    const color = t ? t.color : "rgba(255,255,255,0.5)";
+    if (c.durationMs > 0) {
+      const width = Math.max((c.durationMs / 86400000 * 100), 0.5).toFixed(2);
+      const seg = document.createElement("div");
+      seg.className = "hs-tl-seg";
+      seg.style.left = left + "%";
+      seg.style.width = width + "%";
+      seg.style.background = color;
+      tlWrap.appendChild(seg);
+    } else {
+      const marker = document.createElement("div");
+      marker.className = "hs-tl-marker";
+      marker.style.left = left + "%";
+      marker.style.background = color;
+      tlWrap.appendChild(marker);
+    }
   });
 
   // ── 2. 스탯 카드 (checkIn 합산) ──
@@ -826,17 +835,31 @@ function renderDayContent(container, records, dateStr) {
             ${timeRange ? `<div class="hs-record-time">${timeRange}</div>` : ""}
           </div>
           <div class="hs-record-dur">${c.durationMs ? fmtDur(c.durationMs) : ""}</div>
-          <div class="hs-record-actions">
-            <button class="hs-record-action-btn hs-edit-btn" data-action="edit">수정</button>
-            <button class="hs-record-action-btn hs-del-btn" data-action="del">삭제</button>
+          <div class="hs-dots-wrap">
+            <button class="hs-dots-btn">⋮</button>
+            <div class="hs-dots-menu">
+              <button class="hs-dots-item" data-action="edit">수정</button>
+              <button class="hs-dots-item hs-dots-del" data-action="del">삭제</button>
+            </div>
           </div>
         `;
+        const dotsBtn = item.querySelector(".hs-dots-btn");
+        const dotsMenu = item.querySelector(".hs-dots-menu");
+        dotsBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          const isOpen = dotsMenu.classList.contains("open");
+          document.querySelectorAll(".hs-dots-menu.open").forEach(m => m.classList.remove("open"));
+          if (!isOpen) dotsMenu.classList.add("open");
+        });
+        document.addEventListener("click", () => dotsMenu.classList.remove("open"), { once: false });
         item.querySelector("[data-action=edit]").addEventListener("click", e => {
           e.stopPropagation();
+          dotsMenu.classList.remove("open");
           showEditRecordModal(c, records, dateStr, container);
         });
         item.querySelector("[data-action=del]").addEventListener("click", async e => {
           e.stopPropagation();
+          dotsMenu.classList.remove("open");
           if (!confirm("삭제할까요?")) return;
           c._record.checkIns.splice(c._idx, 1);
           await updateRecord(c._record._id, { checkIns: c._record.checkIns });
@@ -854,7 +877,7 @@ function renderDayContent(container, records, dateStr) {
   // ── 4. 기록 추가 ──
   const addBtn = document.createElement("div");
   addBtn.className = "hs-add-btn";
-  addBtn.innerHTML = "+ 기록 추가";
+  addBtn.innerHTML = "+";
   addBtn.addEventListener("click", () => showAddRecordModal(records, dateStr, container));
   container.appendChild(addBtn);
 
