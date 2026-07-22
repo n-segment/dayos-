@@ -671,445 +671,210 @@ function getWeekRange() {
 
 let historyTab = "week";
 
-async function renderHistoryScreen() {
-  if (!els.historyWeekTotal || !els.historyList) return;
+// ─── 히스토리 화면 (신규 디자인) ──────────────────────────────────
+let _histDate = null;
 
-  els.historyWeekTotal.innerHTML = `
-    <div class="history-tabs">
-      <button class="history-tab ${historyTab === 'week' ? 'is-active' : ''}" data-tab="week">이번 주</button>
-      <button class="history-tab ${historyTab === 'month' ? 'is-active' : ''}" data-tab="month">이번 달</button>
-    </div>
-  `;
-  els.historyWeekTotal.querySelectorAll(".history-tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      historyTab = btn.dataset.tab;
-      renderHistoryScreen();
-    });
-  });
-
-  els.historyList.innerHTML = `<p style="opacity:0.4;text-align:center;padding:24px;">불러오는 중...</p>`;
-  const history = (await getHistory()).filter(r => r.type !== "feedback");
-
-  if (historyTab === "week") renderWeekView(history);
-  else renderMonthView(history);
-}
-
-function renderWeekView(history) {
-  const { mon, sun } = getWeekRange();
-  const DAYS = ["월","화","수","목","금","토","일"];
-
-  const weekRecords = history.filter(r => {
-    const d = new Date(r.startMs);
-    return d >= mon && d <= sun;
-  });
-  const byDate = {};
-  weekRecords.forEach(r => {
-    if (!byDate[r.date]) byDate[r.date] = [];
-    byDate[r.date].push(r);
-  });
-  const weekTotalMs = weekRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
-  const wh = Math.floor(weekTotalMs / 3600000);
-  const wm = Math.floor((weekTotalMs % 3600000) / 60000);
-
-  const totalEl = document.createElement("p");
-  totalEl.className = "history-period-total";
-  totalEl.textContent = weekTotalMs > 0 ? `총 ${wh > 0 ? wh + "시간 " : ""}${wm}분` : "기록 없음";
-  els.historyList.innerHTML = "";
-  els.historyList.appendChild(totalEl);
-
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(mon);
-    d.setDate(mon.getDate() + i);
-    const dateStr = toDateStr(d.getTime());
-    const dayRecords = byDate[dateStr] || [];
-    const dayTotalMs = dayRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
-    const isToday = dateStr === toDateStr(Date.now());
-    const hasData = dayRecords.length > 0;
-
-    const row = document.createElement("div");
-    row.className = "history-day-row" + (isToday ? " history-day-row--today" : "") + (!hasData ? " history-day-row--empty" : "");
-
-    const dayH = Math.floor(dayTotalMs / 3600000);
-    const dayM = Math.floor((dayTotalMs % 3600000) / 60000);
-    const timeStr = hasData ? (dayH > 0 ? `${dayH}시간 ${dayM}분` : `${dayM}분`) : "—";
-
-    row.innerHTML = `
-      <span class="history-day-name">${DAYS[i]}</span>
-      <span class="history-day-date">${d.getMonth()+1}/${d.getDate()}</span>
-      <span class="history-day-time">${timeStr}</span>
-      <span class="history-day-arrow">›</span>
-    `;
-    row.style.cursor = "pointer";
-    row.addEventListener("click", () => toggleDayDetail(row, dayRecords, dateStr));
-    els.historyList.appendChild(row);
-  }
-
-  const olderRecords = history.filter(r => new Date(r.startMs) < mon);
-  if (olderRecords.length > 0) {
-    const sep = document.createElement("p");
-    sep.className = "history-section-label";
-    sep.textContent = "이전 기록";
-    els.historyList.appendChild(sep);
-
-    const olderByDate = {};
-    olderRecords.forEach(r => {
-      if (!olderByDate[r.date]) olderByDate[r.date] = [];
-      olderByDate[r.date].push(r);
-    });
-
-    Object.entries(olderByDate).sort((a,b) => b[0].localeCompare(a[0])).forEach(([date, recs]) => {
-      const d = new Date(date);
-      const totalMs = recs.reduce((s,r) => s + (r.durationMs||0), 0);
-      const h = Math.floor(totalMs/3600000), m = Math.floor((totalMs%3600000)/60000);
-      const row = document.createElement("div");
-      row.className = "history-day-row";
-      row.style.cursor = "pointer";
-      row.innerHTML = `
-        <span class="history-day-name">${WEEKDAYS[d.getDay()]}</span>
-        <span class="history-day-date">${d.getMonth()+1}/${d.getDate()}</span>
-        <span class="history-day-time">${h > 0 ? h+"시간 "+m+"분" : m+"분"}</span>
-        <span class="history-day-arrow">›</span>
-      `;
-      row.addEventListener("click", () => toggleDayDetail(row, recs, date));
-      els.historyList.appendChild(row);
-    });
-  }
-}
-
-function renderMonthView(history) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
-  const monthStart = new Date(year, month, 1);
-  const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-  const daysInMonth = monthEnd.getDate();
-
-  const monthRecords = history.filter(r => {
-    const d = new Date(r.startMs);
-    return d >= monthStart && d <= monthEnd;
-  });
-
-  const byDate = {};
-  monthRecords.forEach(r => {
-    if (!byDate[r.date]) byDate[r.date] = [];
-    byDate[r.date].push(r);
-  });
-
-  const monthTotalMs = monthRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
-  const mh = Math.floor(monthTotalMs / 3600000);
-  const mm = Math.floor((monthTotalMs % 3600000) / 60000);
-
-  els.historyList.innerHTML = "";
-
-  // 월 총합
-  const totalEl = document.createElement("p");
-  totalEl.className = "history-period-total";
-  totalEl.textContent = monthTotalMs > 0 ? `총 ${mh > 0 ? mh + "시간 " : ""}${mm}분` : "기록 없음";
-  els.historyList.appendChild(totalEl);
-
-  // 월 표시
-  const monthLabel = document.createElement("p");
-  monthLabel.className = "cal-month-label";
-  monthLabel.textContent = `${month + 1}월`;
-  els.historyList.appendChild(monthLabel);
-
-  // 캘린더 그리드
-  const cal = document.createElement("div");
-  cal.className = "cal-grid";
-
-  // 요일 헤더 (일 월 화 수 목 금 토)
-  const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
-  DAY_HEADERS.forEach(d => {
-    const h = document.createElement("div");
-    h.className = "cal-header";
-    h.textContent = d;
-    cal.appendChild(h);
-  });
-
-  // 첫째 날 앞 빈칸
-  const firstDow = monthStart.getDay(); // 0=일
-  for (let i = 0; i < firstDow; i++) {
-    cal.appendChild(document.createElement("div"));
-  }
-
-  // 날짜 셀
+async function renderHistoryScreen(dateStr) {
   const todayStr = toDateStr(Date.now());
-  for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(year, month, day);
-    const dateStr = toDateStr(d.getTime());
-    const recs = byDate[dateStr] || [];
-    const totalMs = recs.reduce((s, r) => s + (r.durationMs || 0), 0);
-    const hasData = totalMs > 0;
-    const isToday = dateStr === todayStr;
-    const isFuture = d > now && !isToday;
+  _histDate = dateStr || todayStr;
 
-    const cell = document.createElement("div");
-    cell.className = "cal-cell" +
-      (isToday ? " cal-cell--today" : "") +
-      (isFuture ? " cal-cell--future" : "") +
-      (hasData ? " cal-cell--has-data" : "");
+  const panel = document.querySelector("#historyScreen .history-panel");
+  panel.innerHTML = "";
 
-    const dayNum = document.createElement("span");
-    dayNum.className = "cal-cell__day";
-    dayNum.textContent = day;
-    cell.appendChild(dayNum);
+  const header = document.createElement("div");
+  header.className = "hs-header";
+  panel.appendChild(header);
 
-    if (hasData) {
-      const h = Math.floor(totalMs / 3600000);
-      const m = Math.floor((totalMs % 3600000) / 60000);
-      const timeEl = document.createElement("span");
-      timeEl.className = "cal-cell__time";
-      timeEl.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
-      cell.appendChild(timeEl);
+  const content = document.createElement("div");
+  content.className = "hs-content";
+  panel.appendChild(content);
 
-      // 강도 표시 (최대 4시간 기준)
-      const intensity = Math.min(totalMs / (4 * 3600000), 1);
-      cell.style.setProperty("--cal-intensity", intensity);
-      cell.style.cursor = "pointer";
-      cell.addEventListener("click", () => showCalDayDetail(recs, dateStr, d));
-    }
-
-    cal.appendChild(cell);
+  function setHeaderDate(ds) {
+    const d = new Date(ds + "T00:00:00");
+    const DAYS = ["일","월","화","수","목","금","토"];
+    header.innerHTML = `
+      <div class="hs-header-left">
+        <button class="hs-back-btn" id="hsBack">‹</button>
+        <span class="hs-title">기록</span>
+        <span class="hs-date-label">${d.getMonth()+1}월 ${d.getDate()}일, ${DAYS[d.getDay()]}요일</span>
+      </div>
+      <div class="hs-nav-group">
+        <button class="hs-nav-btn" id="hsPrev">이전날</button>
+        <button class="hs-nav-btn ${ds === todayStr ? "hs-nav-btn--active" : ""}" id="hsToday">오늘</button>
+        <button class="hs-nav-btn" id="hsNext">다음날</button>
+      </div>
+    `;
+    document.getElementById("hsBack").addEventListener("click", () => showScreen(sessionActive ? "focus" : "welcome"));
+    document.getElementById("hsPrev").addEventListener("click", () => {
+      const nd = new Date(_histDate + "T00:00:00"); nd.setDate(nd.getDate() - 1);
+      _histDate = toDateStr(nd.getTime()); setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
+    });
+    document.getElementById("hsToday").addEventListener("click", () => {
+      _histDate = todayStr; setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
+    });
+    document.getElementById("hsNext").addEventListener("click", () => {
+      const nd = new Date(_histDate + "T00:00:00"); nd.setDate(nd.getDate() + 1);
+      _histDate = toDateStr(nd.getTime()); setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
+    });
   }
 
-  els.historyList.appendChild(cal);
-
-  // 날짜 클릭 시 상세 패널
-  const detailPanel = document.createElement("div");
-  detailPanel.className = "cal-detail-panel";
-  detailPanel.id = "calDetailPanel";
-  els.historyList.appendChild(detailPanel);
+  setHeaderDate(_histDate);
+  await loadHistoryDay(_histDate, content);
 }
 
-function showCalDayDetail(records, dateStr, d) {
-  const panel = document.getElementById("calDetailPanel");
-  if (!panel) return;
-
-  // 같은 날 다시 클릭하면 닫기
-  if (panel.dataset.date === dateStr && panel.style.display !== "none" && panel.innerHTML !== "") {
-    panel.innerHTML = "";
-    panel.dataset.date = "";
-    document.querySelectorAll(".cal-cell--selected").forEach(c => c.classList.remove("cal-cell--selected"));
-    return;
+async function loadHistoryDay(dateStr, container) {
+  container.innerHTML = `<div class="hs-loading">불러오는 중...</div>`;
+  let records = [];
+  if (currentUser) {
+    try {
+      const snap = await db.collection("users").doc(currentUser.uid)
+        .collection("history").where("date","==",dateStr).get();
+      records = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    } catch(e) {}
   }
+  renderDayContent(container, records, dateStr);
+}
 
-  document.querySelectorAll(".cal-cell--selected").forEach(c => c.classList.remove("cal-cell--selected"));
-  document.querySelectorAll(".cal-cell--has-data").forEach(c => {
-    const day = parseInt(c.querySelector(".cal-cell__day")?.textContent);
-    if (day === d.getDate()) c.classList.add("cal-cell--selected");
+function renderDayContent(container, records, dateStr) {
+  container.innerHTML = "";
+  const todayStr = toDateStr(Date.now());
+  const validRecords = records.filter(r => r.durationMs >= 60000);
+  const allCheckIns = records.flatMap(r =>
+    (r.checkIns || []).map((c, i) => ({ ...c, _idx: i, _record: r }))
+  ).filter(c => c.text && c.text !== "(기록 없음)");
+
+  // ── 1. 타임라인 ──
+  const isToday = dateStr === todayStr;
+  const nowMs = Date.now();
+  const dayStart = new Date(dateStr + "T00:00:00").getTime();
+  const nowPct = isToday ? ((nowMs - dayStart) / 86400000 * 100).toFixed(2) : null;
+  const nowH = new Date().getHours();
+  const nowM = String(new Date().getMinutes()).padStart(2,"0");
+
+  const tlSection = document.createElement("div");
+  tlSection.className = "hs-tl-section";
+  tlSection.innerHTML = `
+    <div class="hs-tl-header">
+      <span class="hs-section-label">오늘의 타임라인</span>
+      ${isToday ? `<span class="hs-tl-now-label">${nowH}:${nowM} 진행 중</span>` : ""}
+    </div>
+    <div class="hs-tl-wrap" id="hsTlWrap">
+      ${isToday ? `<div class="hs-tl-now-marker" style="left:${nowPct}%"></div>` : ""}
+    </div>
+    <div class="hs-tl-axis"><span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>24시</span></div>
+  `;
+  container.appendChild(tlSection);
+
+  const tlWrap = tlSection.querySelector("#hsTlWrap");
+  validRecords.forEach(r => {
+    const left = ((r.startMs - dayStart) / 86400000 * 100).toFixed(2);
+    const width = Math.max((r.durationMs / 86400000 * 100), 0.5).toFixed(2);
+    const seg = document.createElement("div");
+    seg.className = "hs-tl-seg";
+    seg.style.left = left + "%";
+    seg.style.width = width + "%";
+    const firstTagged = (r.checkIns || []).find(c => c.tags && c.tags.length);
+    if (firstTagged) { const t = getTag(firstTagged.tags[0]); if (t) seg.style.background = t.color; }
+    tlWrap.appendChild(seg);
   });
 
-  panel.dataset.date = dateStr;
+  // ── 2. 스탯 카드 ──
+  const totalMs = validRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
+  const tagTotals = {};
+  allCheckIns.forEach(c => {
+    if (c.tags && c.durationMs) c.tags.forEach(tid => { tagTotals[tid] = (tagTotals[tid] || 0) + c.durationMs; });
+  });
 
-  const totalMs = records.reduce((s, r) => s + (r.durationMs || 0), 0);
-  const th = Math.floor(totalMs / 3600000);
-  const tm = Math.floor((totalMs % 3600000) / 60000);
-  const timeStr = th > 0 ? `${th}시간 ${tm}분` : `${tm}분`;
+  const statsRow = document.createElement("div");
+  statsRow.className = "hs-stats-row";
+  const totalCard = document.createElement("div");
+  totalCard.className = "hs-stat-card";
+  totalCard.innerHTML = `<div class="hs-stat-label">총 기록 시간</div><div class="hs-stat-value">${fmtDur(totalMs) || "0분"}</div>`;
+  statsRow.appendChild(totalCard);
+  Object.entries(tagTotals).forEach(([tid, ms]) => {
+    const tag = getTag(tid); if (!tag) return;
+    const card = document.createElement("div");
+    card.className = "hs-stat-card";
+    card.innerHTML = `<div class="hs-stat-label"><span class="hs-stat-dot" style="background:${tag.color}"></span>${tag.name}</div><div class="hs-stat-value">${fmtDur(ms)}</div>`;
+    statsRow.appendChild(card);
+  });
+  container.appendChild(statsRow);
 
-  panel.innerHTML = `
-    <div class="cal-detail__header">
-      <span class="cal-detail__date">${d.getMonth()+1}월 ${d.getDate()}일 ${WEEKDAYS[d.getDay()]}요일</span>
-      <span class="cal-detail__total">${timeStr}</span>
-    </div>
-    <div class="cal-detail__sessions">
-      ${records.filter(r => r.durationMs >= 60000).map(r => {
-        const sh = Math.floor(r.durationMs / 3600000);
-        const sm = Math.floor((r.durationMs % 3600000) / 60000);
-        const start = new Date(r.startMs);
-        const ampm = start.getHours() < 12 ? "오전" : "오후";
-        const h12 = start.getHours() % 12 || 12;
-        const minStr = String(start.getMinutes()).padStart(2, "0");
-        return `<div class="cal-detail__session">
-          <span class="cal-detail__session-time">${ampm} ${h12}:${minStr}</span>
-          <span class="cal-detail__session-dur">${sh > 0 ? sh+"시간 "+sm+"분" : sm+"분"}</span>
-        </div>`;
-      }).join("")}
-    </div>
-  `;
-}
+  // ── 3. 기록 리스트 ──
+  if (allCheckIns.length > 0) {
+    const morning = allCheckIns.filter(c => c.timeMs && new Date(c.timeMs).getHours() < 12);
+    const afternoon = allCheckIns.filter(c => !c.timeMs || new Date(c.timeMs).getHours() >= 12);
 
-function toggleDayDetail(row, records, date) {
-  const existing = row.nextElementSibling;
-  if (existing && existing.classList.contains("history-detail")) {
-    existing.remove();
-    row.querySelector(".history-day-arrow")?.classList.remove("is-open");
-    return;
-  }
-  row.querySelector(".history-day-arrow")?.classList.add("is-open");
-
-  const detail = document.createElement("div");
-  detail.className = "history-detail";
-  renderDetailContent(detail, records, date);
-  row.after(detail);
-}
-
-// 세션을 시간 근접도로 그룹핑 (gap > 2시간이면 다른 그룹)
-function groupByProximity(sessions, gapMs = 2 * 60 * 60 * 1000) {
-  if (!sessions.length) return [];
-  const sorted = [...sessions].sort((a, b) => a.startMs - b.startMs);
-  const groups = [[sorted[0]]];
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    if (curr.startMs - prev.endMs <= gapMs) {
-      groups[groups.length - 1].push(curr);
-    } else {
-      groups.push([curr]);
-    }
-  }
-  return groups;
-}
-
-function renderDetailContent(container, records, dateStr) {
-  const valid = records.filter(r => r.durationMs >= 60000);
-  container.innerHTML = "";
-
-  // ── 기록 없는 날: 빈 세션 만들고 기록 추가 ──
-  if (records.length === 0) {
-    const emptyWrap = document.createElement("div");
-    emptyWrap.style.cssText = "padding:4px 0 8px;";
-    const addBtn = document.createElement("button");
-    addBtn.className = "hd-edit-btn";
-    addBtn.textContent = "+ 기록 추가";
-    addBtn.addEventListener("click", () => {
-      if (emptyWrap.querySelector(".hd-add-form")) return;
-      addBtn.style.display = "none";
-      const form = document.createElement("div");
-      form.className = "hd-add-form";
-      const ta = document.createElement("textarea");
-      ta.className = "checkin-textarea";
-      ta.placeholder = "어떤 작업을 했나요?";
-      ta.style.cssText = "width:100%;margin-top:6px;";
-      const actions = document.createElement("div");
-      actions.className = "checkin-input-actions";
-      actions.style.marginTop = "6px";
-      const saveBtn = document.createElement("button");
-      saveBtn.className = "checkin-save-btn";
-      saveBtn.textContent = "저장";
-      saveBtn.addEventListener("click", async () => {
-        const text = ta.value.trim();
-        if (!text) return;
-        const targetDate = dateStr || toDateStr(Date.now());
-        const now = Date.now();
-        const newRecord = {
-          date: targetDate,
-          startMs: now,
-          endMs: now,
-          durationMs: 0,
-          checkIns: [{ label: formatClock(new Date()), text, timeMs: now }],
-          retro: ""
-        };
-        if (currentUser) {
-          const ref = await db.collection("users").doc(currentUser.uid)
-            .collection("history").add(newRecord);
-          newRecord._id = ref.id;
-        }
-        records.push(newRecord);
-        renderDetailContent(container, records, dateStr);
+    const renderGroup = (label, items) => {
+      if (!items.length) return;
+      const groupLabel = document.createElement("div");
+      groupLabel.className = "hs-group-label";
+      groupLabel.textContent = label;
+      container.appendChild(groupLabel);
+      const card = document.createElement("div");
+      card.className = "hs-record-card";
+      items.forEach(c => {
+        const tagColor = c.tags && c.tags[0] ? (getTag(c.tags[0])?.color || "rgba(255,255,255,0.15)") : "rgba(255,255,255,0.12)";
+        const startTime = c.timeMs ? formatClock(new Date(c.timeMs)) : "";
+        const endTime = c.endMs ? formatClock(new Date(c.endMs)) : "";
+        const timeRange = (startTime && endTime) ? `${startTime} → ${endTime}` : startTime;
+        const item = document.createElement("div");
+        item.className = "hs-record-item";
+        item.innerHTML = `
+          <div class="hs-record-bar" style="background:${tagColor}"></div>
+          <div class="hs-record-body">
+            <div class="hs-record-name">${c.text}</div>
+            ${timeRange ? `<div class="hs-record-time">${timeRange}</div>` : ""}
+          </div>
+          <div class="hs-record-dur">${c.durationMs ? fmtDur(c.durationMs) : ""}</div>
+        `;
+        card.appendChild(item);
       });
-      const cancelBtn = document.createElement("button");
-      cancelBtn.className = "checkin-cancel-btn";
-      cancelBtn.textContent = "취소";
-      cancelBtn.addEventListener("click", () => { form.remove(); addBtn.style.display = ""; });
-      actions.appendChild(saveBtn);
-      actions.appendChild(cancelBtn);
-      form.appendChild(ta);
-      form.appendChild(actions);
-      emptyWrap.appendChild(form);
-      ta.focus();
-    });
-    emptyWrap.appendChild(addBtn);
-    container.appendChild(emptyWrap);
-    return;
-  }
-
-  // ── 시간 근접 세션 그룹핑 (2시간 이상 간격이면 별도 블록) ──
-  const groups = groupByProximity(valid);
-
-  // 그룹별 회고 렌더 헬퍼
-  function buildRetroWrap(retroRecord, wrap) {
-    const btn = document.createElement("button");
-    btn.className = "hd-edit-btn";
-    btn.textContent = retroRecord.retro ? "회고 수정" : "+ 회고 추가";
-
-    const openEdit = () => {
-      if (wrap.querySelector(".hd-inline-edit")) return;
-      const banner = wrap.querySelector(".hd-retro-banner");
-      if (banner) banner.style.display = "none";
-      btn.style.display = "none";
-      const ta = document.createElement("textarea");
-      ta.className = "hd-inline-edit";
-      ta.value = retroRecord.retro || "";
-      ta.placeholder = "이 세션 회고를 적어주세요";
-      const saveBtn = document.createElement("button");
-      saveBtn.className = "hd-save-btn";
-      saveBtn.textContent = "저장";
-      saveBtn.addEventListener("click", async () => {
-        retroRecord.retro = ta.value.trim();
-        await updateRecord(retroRecord._id, { retro: retroRecord.retro });
-        renderDetailContent(container, records);
-      });
-      const cancelBtn = document.createElement("button");
-      cancelBtn.className = "hd-edit-btn";
-      cancelBtn.textContent = "취소";
-      cancelBtn.addEventListener("click", () => {
-        ta.remove(); saveBtn.remove(); cancelBtn.remove();
-        if (banner) banner.style.display = "";
-        btn.style.display = "";
-      });
-      wrap.insertBefore(ta, btn);
-      wrap.insertBefore(saveBtn, btn);
-      wrap.insertBefore(cancelBtn, btn);
-      ta.focus();
-      ta.setSelectionRange(ta.value.length, ta.value.length);
+      container.appendChild(card);
     };
 
-    if (retroRecord.retro) {
-      const text = document.createElement("div");
-      text.className = "hd-retro-banner";
-      text.textContent = retroRecord.retro;
-      text.style.cursor = "pointer";
-      text.title = "클릭해서 수정";
-      text.addEventListener("click", openEdit);
-      wrap.appendChild(text);
-    }
-    btn.addEventListener("click", openEdit);
-    wrap.appendChild(btn);
+    renderGroup("오전", morning);
+    renderGroup("오후", afternoon);
   }
 
-  // ── 태그별 시간 합계 ──
-  if (userTags.length > 0) {
-    const allCheckins = records.flatMap(r => r.checkIns || []).filter(c => c.tags && c.tags.length && c.durationMs);
-    const tagTotals = {};
-    allCheckins.forEach(c => {
-      c.tags.forEach(tid => {
-        tagTotals[tid] = (tagTotals[tid] || 0) + c.durationMs;
-      });
-    });
-    const tagged = Object.entries(tagTotals).filter(([, ms]) => ms > 0);
-    if (tagged.length > 0) {
-      const breakdownEl = document.createElement("div");
-      breakdownEl.className = "hd-tag-breakdown";
-      tagged.forEach(([tid, ms]) => {
-        const tag = getTag(tid);
-        if (!tag) return;
-        const item = document.createElement("span");
-        item.className = "hd-tag-breakdown-item";
-        item.innerHTML = `<span class="tag-chip" style="background:${tag.color}22;color:${tag.color};border:1px solid ${tag.color}55;">${tag.name}</span><span class="hd-tag-breakdown-time">${fmtDur(ms)}</span>`;
-        breakdownEl.appendChild(item);
-      });
-      container.appendChild(breakdownEl);
-    }
-  }
+  // ── 4. 기록 추가 ──
+  const addBtn = document.createElement("div");
+  addBtn.className = "hs-add-btn";
+  addBtn.innerHTML = "+ 기록 추가";
+  addBtn.addEventListener("click", () => showAddRecordModal(records, dateStr, container));
+  container.appendChild(addBtn);
 
-  // ── 그룹별 블록 렌더링 ──
-  const toHHMM = ms => {
-    const d = new Date(ms);
-    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  };
-  const parseTimeText = str => {
-    str = str.trim().replace(/\s/g, "");
+  // ── 5. 회고 ──
+  const retroRecord = [...records].reverse().find(r => r.retro) || records[records.length - 1];
+  const retroSection = document.createElement("div");
+  retroSection.className = "hs-retro-section";
+  const retroLabel = document.createElement("div");
+  retroLabel.className = "hs-section-label";
+  retroLabel.textContent = "오늘 회고";
+  retroSection.appendChild(retroLabel);
+  const retroTa = document.createElement("textarea");
+  retroTa.className = "hs-retro-ta";
+  retroTa.placeholder = "오늘 하루를 돌아보세요...";
+  retroTa.value = retroRecord?.retro || "";
+  let retroTimer;
+  retroTa.addEventListener("input", () => {
+    clearTimeout(retroTimer);
+    retroTimer = setTimeout(async () => {
+      if (retroRecord?._id) { retroRecord.retro = retroTa.value; await updateRecord(retroRecord._id, { retro: retroTa.value }); }
+    }, 800);
+  });
+  retroSection.appendChild(retroTa);
+  container.appendChild(retroSection);
+}
+
+function showAddRecordModal(records, dateStr, container) {
+  document.getElementById("hsAddModal")?.remove();
+  let selectedTagIds = [];
+  const dayStart = new Date(dateStr + "T00:00:00").getTime();
+
+  const parseHM = str => {
+    if (!str) return null;
+    str = str.trim();
     let m = str.match(/^(\d{1,2}):(\d{2})$/);
     if (m) return { h: parseInt(m[1]), min: parseInt(m[2]) };
     m = str.match(/^(\d{1,2})시(\d{2})?분?$/);
@@ -1117,326 +882,108 @@ function renderDetailContent(container, records, dateStr) {
     return null;
   };
 
-  groups.forEach((group, gi) => {
-    const groupEl = document.createElement("div");
-    groupEl.className = "hd-session-group";
-    if (gi > 0) groupEl.style.cssText = "margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);";
+  const overlay = document.createElement("div");
+  overlay.className = "hs-modal-overlay";
+  overlay.id = "hsAddModal";
+  overlay.innerHTML = `
+    <div class="hs-modal">
+      <div class="hs-modal-header">
+        <span class="hs-modal-title">기록 추가</span>
+        <button class="hs-modal-close" id="hsModalClose">×</button>
+      </div>
+      <div class="hs-modal-field">
+        <label class="hs-modal-label">활동명</label>
+        <input class="hs-modal-input" id="hsModalText" placeholder="무엇을 했나요?" />
+      </div>
+      <div class="hs-modal-field">
+        <label class="hs-modal-label">카테고리</label>
+        <div class="hs-modal-tags" id="hsModalTags"></div>
+      </div>
+      <div class="hs-modal-time-row">
+        <div class="hs-modal-field">
+          <label class="hs-modal-label">시작 시간</label>
+          <input class="hs-modal-input" id="hsModalStart" placeholder="14:00" />
+        </div>
+        <div class="hs-modal-field">
+          <label class="hs-modal-label">종료 시간</label>
+          <input class="hs-modal-input" id="hsModalEnd" placeholder="16:00" />
+        </div>
+      </div>
+      <div class="hs-modal-field">
+        <label class="hs-modal-label">메모 <span style="opacity:0.4">(선택)</span></label>
+        <textarea class="hs-modal-ta" id="hsModalMemo" placeholder="메모를 남겨보세요..."></textarea>
+      </div>
+      <div class="hs-modal-actions">
+        <button class="hs-modal-btn-cancel" id="hsModalCancel">취소</button>
+        <button class="hs-modal-btn-save" id="hsModalSave">저장하기</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 
-    const earliest = Math.min(...group.map(r => r.startMs));
-    const latest = Math.max(...group.map(r => r.endMs));
-    const spanMs = latest - earliest;
-
-    // 세션 합치기 버튼 (그룹 내 2개 이상일 때만)
-    if (group.length > 1) {
-      const mergeBtn = document.createElement("button");
-      mergeBtn.className = "hd-edit-btn";
-      mergeBtn.style.cssText = "margin-bottom:8px;font-size:11px;opacity:0.6;";
-      mergeBtn.textContent = `세션 합치기 (${group.length}개 → 1개)`;
-      mergeBtn.addEventListener("click", async () => {
-        const mergedCheckIns = group.flatMap(r => r.checkIns || []);
-        const retro = [...group].reverse().find(r => r.retro)?.retro || "";
-        const base = group.find(r => r.startMs === earliest);
-        await updateRecord(base._id, {
-          startMs: earliest, endMs: latest,
-          durationMs: latest - earliest,
-          checkIns: mergedCheckIns, retro
-        });
-        for (const r of group) {
-          if (r._id !== base._id) await deleteRecord(r._id);
-        }
-        await renderHistoryScreen();
+  function renderTags() {
+    const wrap = document.getElementById("hsModalTags");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    userTags.forEach(tag => {
+      const sel = selectedTagIds.includes(tag.id);
+      const chip = document.createElement("span");
+      chip.className = "hs-modal-tag" + (sel ? " selected" : "");
+      chip.style.cssText = `--tc:${tag.color}`;
+      chip.textContent = tag.name;
+      chip.addEventListener("click", () => {
+        selectedTagIds = sel ? selectedTagIds.filter(id => id !== tag.id) : [...selectedTagIds, tag.id];
+        renderTags();
       });
-      groupEl.appendChild(mergeBtn);
-    }
-
-    // 시간 범위 + 세션수 + 시간수정
-    const summaryEl = document.createElement("div");
-    summaryEl.className = "hd-summary";
-    const timeSpan = document.createElement("span");
-    timeSpan.textContent = `${formatClock(new Date(earliest))} – ${formatClock(new Date(latest))}`;
-    const countSpan = document.createElement("span");
-    countSpan.textContent = `${group.length}세션`;
-    const editTimeBtn = document.createElement("button");
-    editTimeBtn.className = "hd-edit-btn";
-    editTimeBtn.textContent = "시간 수정";
-    editTimeBtn.addEventListener("click", () => {
-      if (summaryEl.querySelector(".hd-time-edit-row")) return;
-      const row = document.createElement("div");
-      row.className = "hd-time-edit-row";
-      row.innerHTML = `
-        <input class="hd-time-input" id="hd-st-${gi}" type="text" value="${toHHMM(earliest)}" style="width:60px;text-align:center;">
-        <span style="color:rgba(255,255,255,0.4);font-size:12px">–</span>
-        <input class="hd-time-input" id="hd-et-${gi}" type="text" value="${toHHMM(latest)}" style="width:60px;text-align:center;">
-        <button class="hd-save-btn" id="hd-ts-${gi}">저장</button>
-        <button class="hd-edit-btn" id="hd-tc-${gi}">취소</button>
-      `;
-      summaryEl.appendChild(row);
-      row.querySelector(`#hd-tc-${gi}`).addEventListener("click", () => row.remove());
-      row.querySelector(`#hd-ts-${gi}`).addEventListener("click", async () => {
-        const stP = parseTimeText(row.querySelector(`#hd-st-${gi}`).value);
-        const etP = parseTimeText(row.querySelector(`#hd-et-${gi}`).value);
-        if (!stP || !etP) return;
-        const base = new Date(earliest);
-        const newStart = new Date(base); newStart.setHours(stP.h, stP.min, 0, 0);
-        const newEnd = new Date(base); newEnd.setHours(etP.h, etP.min, 0, 0);
-        if (newEnd <= newStart) return;
-        const firstR = group.find(r => r.startMs === earliest);
-        const lastR = group.reduce((a, b) => b.endMs > a.endMs ? b : a);
-        if (firstR?._id) {
-          firstR.startMs = newStart.getTime();
-          firstR.durationMs = firstR.endMs - firstR.startMs;
-          await updateRecord(firstR._id, { startMs: firstR.startMs, durationMs: firstR.durationMs });
-        }
-        if (lastR?._id && lastR._id !== firstR?._id) {
-          lastR.endMs = newEnd.getTime();
-          lastR.durationMs = lastR.endMs - lastR.startMs;
-          await updateRecord(lastR._id, { endMs: lastR.endMs, durationMs: lastR.durationMs });
-        } else if (firstR?._id) {
-          firstR.endMs = newEnd.getTime();
-          firstR.durationMs = newEnd - newStart;
-          await updateRecord(firstR._id, { endMs: firstR.endMs, durationMs: firstR.durationMs });
-        }
-        await renderHistoryScreen();
-      });
+      wrap.appendChild(chip);
     });
-    const delSessionBtn = document.createElement("button");
-    delSessionBtn.className = "hd-edit-btn";
-    delSessionBtn.style.cssText = "color:rgba(255,100,100,0.6);border-color:rgba(255,100,100,0.25);";
-    delSessionBtn.textContent = "삭제";
-    delSessionBtn.addEventListener("click", async () => {
-      if (!confirm("이 세션을 삭제할까요?")) return;
-      for (const r of group) await deleteRecord(r._id);
-      await renderHistoryScreen();
+    const addTagBtn = document.createElement("span");
+    addTagBtn.className = "hs-modal-tag-add";
+    addTagBtn.textContent = "+ 추가";
+    addTagBtn.addEventListener("click", () => {
+      const name = prompt("태그 이름");
+      if (!name) return;
+      const t = addUserTag(name);
+      if (t) selectedTagIds.push(t.id);
+      renderTags();
     });
-    summaryEl.appendChild(timeSpan);
-    summaryEl.appendChild(countSpan);
-    summaryEl.appendChild(editTimeBtn);
-    summaryEl.appendChild(delSessionBtn);
-    groupEl.appendChild(summaryEl);
+    wrap.appendChild(addTagBtn);
+  }
+  renderTags();
 
-    // 진행 바
-    if (spanMs > 0) {
-      const barEl = document.createElement("div");
-      barEl.className = "hd-bar";
-      group.forEach(r => {
-        const seg = document.createElement("div");
-        seg.className = "hd-bar-seg";
-        seg.style.left = ((r.startMs - earliest) / spanMs * 100).toFixed(1) + "%";
-        seg.style.width = Math.max((r.durationMs / spanMs * 100), 1).toFixed(1) + "%";
-        barEl.appendChild(seg);
-      });
-      groupEl.appendChild(barEl);
+  const close = () => overlay.remove();
+  document.getElementById("hsModalClose").addEventListener("click", close);
+  document.getElementById("hsModalCancel").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  document.getElementById("hsModalSave").addEventListener("click", async () => {
+    const text = document.getElementById("hsModalText").value.trim();
+    if (!text) return;
+    const startP = parseHM(document.getElementById("hsModalStart").value);
+    const endP = parseHM(document.getElementById("hsModalEnd").value);
+    let timeMs = Date.now(), endMs = null, durationMs = null;
+    if (startP) { const d = new Date(dayStart); d.setHours(startP.h, startP.min, 0, 0); timeMs = d.getTime(); }
+    if (endP) { const d = new Date(dayStart); d.setHours(endP.h, endP.min, 0, 0); endMs = d.getTime(); durationMs = endMs - timeMs; }
+    const newEntry = { label: formatClock(new Date(timeMs)), text, timeMs, endMs, durationMs, tags: [...selectedTagIds], isLive: false };
+    let targetRecord = records[records.length - 1];
+    if (!targetRecord && currentUser) {
+      const newRecord = { date: dateStr, startMs: timeMs, endMs: endMs || timeMs, durationMs: durationMs || 0, checkIns: [newEntry], retro: "" };
+      const ref = await db.collection("users").doc(currentUser.uid).collection("history").add(newRecord);
+      newRecord._id = ref.id;
+      records.push(newRecord);
+    } else if (targetRecord) {
+      targetRecord.checkIns = targetRecord.checkIns || [];
+      targetRecord.checkIns.push(newEntry);
+      await updateRecord(targetRecord._id, { checkIns: targetRecord.checkIns });
     }
-
-    // 이 그룹의 체크인 목록
-    const groupCheckins = group.flatMap(r =>
-      (r.checkIns || [])
-        .map((c, idx) => ({ ...c, _idx: idx, _record: r }))
-        .filter(c => c.text && c.text !== "(기록 없음)")
-    );
-    if (groupCheckins.length > 0) {
-      const ul = document.createElement("ul");
-      ul.className = "hd-checkins";
-      groupCheckins.forEach(c => {
-        const li = document.createElement("li");
-        li.className = "hd-checkin";
-        const labelEl = document.createElement("span");
-        labelEl.className = "hd-checkin-label";
-        labelEl.textContent = c.label;
-        const textEl = document.createElement("span");
-        textEl.className = "hd-checkin-text";
-        textEl.textContent = c.text;
-        li.appendChild(labelEl);
-        li.appendChild(textEl);
-        // 소요시간
-        if (c.durationMs) {
-          const durEl = document.createElement("span");
-          durEl.className = "hd-checkin-dur";
-          durEl.textContent = fmtDur(c.durationMs);
-          li.appendChild(durEl);
-        }
-        // 태그 칩
-        if (c.tags && c.tags.length > 0) {
-          const tagWrap = document.createElement("span");
-          tagWrap.className = "hd-checkin-tags";
-          c.tags.forEach(tid => {
-            const t = getTag(tid);
-            if (!t) return;
-            const chip = document.createElement("span");
-            chip.className = "tag-chip";
-            chip.style.cssText = `background:${t.color}22;color:${t.color};border:1px solid ${t.color}55;`;
-            chip.textContent = t.name;
-            tagWrap.appendChild(chip);
-          });
-          li.appendChild(tagWrap);
-        }
-        if (c._record?._id) {
-          const editBtn = document.createElement("button");
-          editBtn.className = "hd-edit-btn";
-          editBtn.style.marginLeft = "6px";
-          editBtn.textContent = "수정";
-          editBtn.addEventListener("click", () => {
-            if (li.querySelector(".hd-checkin-inline-input")) return;
-            const input = document.createElement("input");
-            input.type = "text";
-            input.className = "hd-checkin-inline-input";
-            input.value = c.text;
-            const saveBtn = document.createElement("button");
-            saveBtn.className = "hd-save-btn";
-            saveBtn.textContent = "저장";
-            saveBtn.addEventListener("click", async () => {
-              c._record.checkIns[c._idx].text = input.value.trim();
-              await updateRecord(c._record._id, { checkIns: c._record.checkIns });
-              records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
-              renderDetailContent(container, records);
-            });
-            const cancelBtn = document.createElement("button");
-            cancelBtn.className = "hd-edit-btn";
-            cancelBtn.textContent = "취소";
-            cancelBtn.addEventListener("click", () => { input.remove(); saveBtn.remove(); cancelBtn.remove(); textEl.style.display = ""; });
-            textEl.style.display = "none";
-            li.appendChild(input);
-            li.appendChild(saveBtn);
-            li.appendChild(cancelBtn);
-            input.focus();
-          });
-          const delBtn = document.createElement("button");
-          delBtn.className = "hd-edit-btn";
-          delBtn.style.cssText = "margin-left:4px;color:rgba(255,100,100,0.6);border-color:rgba(255,100,100,0.25);";
-          delBtn.textContent = "삭제";
-          delBtn.addEventListener("click", async () => {
-            c._record.checkIns.splice(c._idx, 1);
-            await updateRecord(c._record._id, { checkIns: c._record.checkIns });
-            records.find(r => r._id === c._record._id).checkIns = c._record.checkIns;
-            renderDetailContent(container, records);
-          });
-          li.appendChild(editBtn);
-          li.appendChild(delBtn);
-        }
-        ul.appendChild(li);
-      });
-      groupEl.appendChild(ul);
-    }
-
-    // 이 그룹의 회고 (그룹 내 마지막 레코드 사용)
-    const groupRetroRecord = [...group].reverse().find(r => r.retro) || group[group.length - 1];
-    if (groupRetroRecord?._id) {
-      const rWrap = document.createElement("div");
-      rWrap.className = "hd-retro-wrap";
-      rWrap.style.marginTop = "8px";
-      buildRetroWrap(groupRetroRecord, rWrap);
-      groupEl.appendChild(rWrap);
-    }
-
-    container.appendChild(groupEl);
+    close();
+    renderDayContent(container, records, dateStr);
   });
 
-  // ── 기록 추가 버튼 (맨 아래) ──
-  const targetRecord = records[records.length - 1];
-  const addWrap = document.createElement("div");
-  addWrap.style.cssText = "margin:10px 0 2px;";
-  const addBtn = document.createElement("button");
-  addBtn.className = "hd-edit-btn";
-  addBtn.style.cssText = "font-size:12px;padding:6px 14px;";
-  addBtn.textContent = "+ 기록 추가";
-  addBtn.addEventListener("click", () => {
-    if (addWrap.querySelector(".hd-add-form")) return;
-    addBtn.style.display = "none";
-    const form = document.createElement("div");
-    form.className = "hd-add-form";
-
-    // 내용
-    const ta = document.createElement("textarea");
-    ta.className = "checkin-textarea";
-    ta.placeholder = "어떤 작업을 했나요?";
-    ta.style.cssText = "width:100%;margin-top:6px;";
-    form.appendChild(ta);
-
-    // 소요시간
-    const durRow = document.createElement("div");
-    durRow.className = "checkin-dur-row";
-    durRow.innerHTML = `<span class="checkin-dur-label">소요 시간</span>`;
-    const durInput = document.createElement("input");
-    durInput.className = "checkin-dur-input";
-    durInput.placeholder = "예: 1시간 30분, 45분";
-    durRow.appendChild(durInput);
-    form.appendChild(durRow);
-
-    // 태그 선택
-    const tagSection = document.createElement("div");
-    tagSection.style.cssText = "margin-top:10px;";
-    let selectedTagIds = [];
-
-    function renderTagPicker() {
-      tagSection.innerHTML = "";
-      const tagRow = document.createElement("div");
-      tagRow.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;";
-      userTags.forEach(tag => {
-        const chip = document.createElement("span");
-        const sel = selectedTagIds.includes(tag.id);
-        chip.style.cssText = `display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${tag.color};color:${sel ? '#fff' : tag.color};background:${sel ? tag.color + 'cc' : 'transparent'};transition:all 0.15s;`;
-        chip.textContent = tag.name;
-        chip.addEventListener("click", () => {
-          selectedTagIds = sel ? selectedTagIds.filter(id => id !== tag.id) : [...selectedTagIds, tag.id];
-          renderTagPicker();
-        });
-        tagRow.appendChild(chip);
-      });
-      // 새 태그 추가
-      const newTagBtn = document.createElement("button");
-      newTagBtn.style.cssText = "font-size:11px;color:rgba(255,255,255,0.35);background:none;border:1px dashed rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;cursor:pointer;";
-      newTagBtn.textContent = "+ 태그";
-      newTagBtn.addEventListener("click", () => {
-        const name = prompt("태그 이름");
-        if (!name) return;
-        addUserTag(name);
-        renderTagPicker();
-      });
-      tagRow.appendChild(newTagBtn);
-      tagSection.appendChild(tagRow);
-    }
-    renderTagPicker();
-    form.appendChild(tagSection);
-
-    // 저장/취소
-    const actions = document.createElement("div");
-    actions.className = "checkin-input-actions";
-    actions.style.marginTop = "8px";
-    const saveBtn = document.createElement("button");
-    saveBtn.className = "checkin-save-btn";
-    saveBtn.textContent = "저장";
-    saveBtn.addEventListener("click", async () => {
-      const text = ta.value.trim();
-      if (!text) return;
-      const rec = targetRecord;
-      if (!rec._id) return;
-      const durMs = parseDurInput(durInput.value) || null;
-      const now = Date.now();
-      const newEntry = {
-        label: formatClock(new Date()),
-        text,
-        timeMs: now,
-        durationMs: durMs,
-        tags: [...selectedTagIds],
-      };
-      rec.checkIns = rec.checkIns || [];
-      rec.checkIns.push(newEntry);
-      await updateRecord(rec._id, { checkIns: rec.checkIns });
-      renderDetailContent(container, records, dateStr);
-    });
-    const cancelBtn = document.createElement("button");
-    cancelBtn.className = "checkin-cancel-btn";
-    cancelBtn.textContent = "취소";
-    cancelBtn.addEventListener("click", () => { form.remove(); addBtn.style.display = ""; });
-    actions.appendChild(saveBtn);
-    actions.appendChild(cancelBtn);
-    form.appendChild(actions);
-    addWrap.appendChild(form);
-    ta.focus();
-  });
-  addWrap.appendChild(addBtn);
-  container.appendChild(addWrap);
+  document.getElementById("hsModalText").focus();
 }
+
+
 
 function updateFocusScreen() {
   if (!startedAtMs) return;
