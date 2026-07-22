@@ -673,6 +673,23 @@ let historyTab = "week";
 
 // ─── 히스토리 화면 (신규 디자인) ──────────────────────────────────
 let _histDate = null;
+let _histView = 'day'; // 'day' | 'week' | 'month'
+
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() - d.getDay()); // back to Sunday
+  return toDateStr(d.getTime());
+}
+
+function getWeekDates(weekStart) {
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + i);
+    dates.push(toDateStr(d.getTime()));
+  }
+  return dates;
+}
 
 async function renderHistoryScreen(dateStr) {
   const todayStr = toDateStr(Date.now());
@@ -689,37 +706,305 @@ async function renderHistoryScreen(dateStr) {
   content.className = "hs-content";
   panel.appendChild(content);
 
-  function setHeaderDate(ds) {
-    const d = new Date(ds + "T00:00:00");
+  function buildHeader() {
+    const d = new Date(_histDate + "T00:00:00");
     const DAYS = ["일","월","화","수","목","금","토"];
+    let dateLabel = "";
+    let todayLabel = "오늘";
+
+    if (_histView === 'day') {
+      dateLabel = `${d.getMonth()+1}월 ${d.getDate()}일, ${DAYS[d.getDay()]}요일`;
+    } else if (_histView === 'week') {
+      const ws = getWeekStart(_histDate);
+      const wsD = new Date(ws + "T00:00:00");
+      const weD = new Date(ws + "T00:00:00"); weD.setDate(weD.getDate() + 6);
+      const sameMonth = wsD.getMonth() === weD.getMonth();
+      dateLabel = sameMonth
+        ? `${wsD.getMonth()+1}월 ${wsD.getDate()}일 - ${weD.getDate()}일`
+        : `${wsD.getMonth()+1}/${wsD.getDate()} - ${weD.getMonth()+1}/${weD.getDate()}`;
+      todayLabel = "이번주";
+    } else {
+      dateLabel = `${d.getFullYear()}년 ${d.getMonth()+1}월`;
+      todayLabel = "이번달";
+    }
+
     header.innerHTML = `
       <div class="hs-header-left">
         <button class="hs-back-btn" id="hsBack">‹</button>
-        <span class="hs-title">기록</span>
-        <span class="hs-date-label">${d.getMonth()+1}월 ${d.getDate()}일, ${DAYS[d.getDay()]}요일</span>
+        <span class="hs-date-label">${dateLabel}</span>
       </div>
-      <div class="hs-nav-group">
-        <button class="hs-nav-btn" id="hsPrev">이전날</button>
-        <button class="hs-nav-btn ${ds === todayStr ? "hs-nav-btn--active" : ""}" id="hsToday">오늘</button>
-        <button class="hs-nav-btn" id="hsNext">다음날</button>
+      <div class="hs-header-right">
+        <div class="hs-view-toggle">
+          <button class="hs-view-btn${_histView==='day'?' active':''}" data-view="day">일</button>
+          <button class="hs-view-btn${_histView==='week'?' active':''}" data-view="week">주</button>
+          <button class="hs-view-btn${_histView==='month'?' active':''}" data-view="month">월</button>
+        </div>
+        <div class="hs-nav-group">
+          <button class="hs-nav-btn" id="hsPrev">‹</button>
+          <button class="hs-nav-btn hs-nav-btn--today" id="hsToday">${todayLabel}</button>
+          <button class="hs-nav-btn" id="hsNext">›</button>
+        </div>
       </div>
     `;
+
     document.getElementById("hsBack").addEventListener("click", () => showScreen(startedAtMs ? "focus" : "welcome"));
-    document.getElementById("hsPrev").addEventListener("click", () => {
-      const nd = new Date(_histDate + "T00:00:00"); nd.setDate(nd.getDate() - 1);
-      _histDate = toDateStr(nd.getTime()); setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
+
+    header.querySelectorAll(".hs-view-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        _histView = btn.dataset.view;
+        buildHeader();
+        loadCurrentView();
+      });
     });
+
+    document.getElementById("hsPrev").addEventListener("click", () => navigateView(-1));
     document.getElementById("hsToday").addEventListener("click", () => {
-      _histDate = todayStr; setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
+      _histDate = todayStr; buildHeader(); loadCurrentView();
     });
-    document.getElementById("hsNext").addEventListener("click", () => {
-      const nd = new Date(_histDate + "T00:00:00"); nd.setDate(nd.getDate() + 1);
-      _histDate = toDateStr(nd.getTime()); setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
-    });
+    document.getElementById("hsNext").addEventListener("click", () => navigateView(1));
   }
 
-  setHeaderDate(_histDate);
-  await loadHistoryDay(_histDate, content);
+  function navigateView(dir) {
+    const d = new Date(_histDate + "T00:00:00");
+    if (_histView === 'day') {
+      d.setDate(d.getDate() + dir);
+    } else if (_histView === 'week') {
+      d.setDate(d.getDate() + (dir * 7));
+    } else {
+      d.setMonth(d.getMonth() + dir);
+      d.setDate(1);
+    }
+    _histDate = toDateStr(d.getTime());
+    buildHeader();
+    loadCurrentView();
+  }
+
+  function loadCurrentView() {
+    if (_histView === 'day') {
+      loadHistoryDay(_histDate, content);
+    } else if (_histView === 'week') {
+      loadHistoryWeek(getWeekStart(_histDate), content);
+    } else {
+      const d = new Date(_histDate + "T00:00:00");
+      loadHistoryMonth(d.getFullYear(), d.getMonth(), content);
+    }
+  }
+
+  buildHeader();
+  loadCurrentView();
+}
+
+// ── 주 뷰 ──────────────────────────────────────────────────────────
+async function loadHistoryWeek(weekStart, container) {
+  container.innerHTML = `<div class="hs-loading">불러오는 중...</div>`;
+  const dates = getWeekDates(weekStart);
+  const recordsByDate = {};
+  dates.forEach(d => { recordsByDate[d] = []; });
+  if (currentUser) {
+    try {
+      const snaps = await Promise.all(dates.map(dt =>
+        db.collection("users").doc(currentUser.uid)
+          .collection("history").where("date","==",dt).get()
+      ));
+      snaps.forEach((snap, i) => {
+        recordsByDate[dates[i]] = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      });
+    } catch(e) {}
+  }
+  renderWeekView(container, recordsByDate, dates);
+}
+
+function renderWeekView(container, recordsByDate, dates) {
+  container.innerHTML = "";
+  const HOUR_H = 56; // px per hour
+  const todayStr = toDateStr(Date.now());
+  const DAYS_KO = ["일","월","화","수","목","금","토"];
+
+  const wrap = document.createElement("div");
+  wrap.className = "hs-week-wrap";
+
+  // ─ 헤더 (요일/날짜) ─
+  const hdr = document.createElement("div");
+  hdr.className = "hs-week-header";
+  hdr.innerHTML = `<div class="hs-week-tc"></div>` + dates.map(dt => {
+    const d = new Date(dt + "T00:00:00");
+    const isToday = dt === todayStr;
+    return `<div class="hs-week-dc">
+      <span class="hs-week-dayname">${DAYS_KO[d.getDay()]}</span>
+      <span class="hs-week-daynum${isToday?' is-today':''}">${d.getDate()}</span>
+    </div>`;
+  }).join("");
+  wrap.appendChild(hdr);
+
+  // ─ 바디 ─
+  const bodyWrap = document.createElement("div");
+  bodyWrap.className = "hs-week-body";
+
+  // 시간 레이블 컬럼
+  const tc = document.createElement("div");
+  tc.className = "hs-week-tc hs-week-time-col";
+  for (let h = 0; h < 24; h++) {
+    const lbl = document.createElement("div");
+    lbl.className = "hs-week-hour-label";
+    lbl.style.height = HOUR_H + "px";
+    lbl.textContent = h ? `${h}시` : "";
+    tc.appendChild(lbl);
+  }
+  bodyWrap.appendChild(tc);
+
+  // 요일별 컬럼
+  dates.forEach(dt => {
+    const dayStart = new Date(dt + "T00:00:00").getTime();
+    const col = document.createElement("div");
+    col.className = "hs-week-day-col";
+    col.style.height = (HOUR_H * 24) + "px";
+
+    // 시간별 그리드선
+    for (let h = 0; h < 24; h++) {
+      const line = document.createElement("div");
+      line.className = "hs-week-hour-line";
+      line.style.top = (h * HOUR_H) + "px";
+      col.appendChild(line);
+    }
+
+    // 이벤트 블록
+    const records = recordsByDate[dt] || [];
+    records.flatMap(r =>
+      (r.checkIns || []).map((c, i) => ({ ...c, _record: r, _idx: i }))
+    ).filter(c => c.text && c.text !== "(기록 없음)" && c.timeMs).forEach(c => {
+      const topPx = ((c.timeMs - dayStart) / 3600000) * HOUR_H;
+      if (topPx < 0 || topPx > HOUR_H * 24) return;
+      const heightPx = c.durationMs ? Math.max((c.durationMs / 3600000) * HOUR_H, 20) : 20;
+      const tag = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
+      const color = tag ? tag.color : "rgba(255,255,255,0.35)";
+      const blk = document.createElement("div");
+      blk.className = "hs-week-event";
+      blk.style.cssText = `top:${topPx.toFixed(1)}px;height:${heightPx.toFixed(1)}px;border-left:3px solid ${color};background:${color}1a;`;
+      blk.innerHTML = `<span class="hs-week-event-title">${c.text}</span>`;
+      col.appendChild(blk);
+    });
+
+    // 현재 시각 선
+    if (dt === todayStr) {
+      const nowTop = ((Date.now() - dayStart) / 3600000) * HOUR_H;
+      const nl = document.createElement("div");
+      nl.className = "hs-week-now-line";
+      nl.style.top = nowTop.toFixed(1) + "px";
+      nl.innerHTML = `<div class="hs-week-now-dot"></div>`;
+      col.appendChild(nl);
+    }
+
+    bodyWrap.appendChild(col);
+  });
+
+  wrap.appendChild(bodyWrap);
+  container.appendChild(wrap);
+
+  // 현재 시각으로 스크롤
+  const scrollTarget = dates.includes(todayStr)
+    ? Math.max(0, new Date().getHours() * HOUR_H - 120)
+    : 8 * HOUR_H;
+  setTimeout(() => { bodyWrap.scrollTop = scrollTarget; }, 50);
+}
+
+// ── 월 뷰 ──────────────────────────────────────────────────────────
+async function loadHistoryMonth(year, month, container) {
+  container.innerHTML = `<div class="hs-loading">불러오는 중...</div>`;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const dates = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    dates.push(`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  }
+  const recordsByDate = {};
+  dates.forEach(d => { recordsByDate[d] = []; });
+  if (currentUser) {
+    try {
+      const snaps = await Promise.all(dates.map(dt =>
+        db.collection("users").doc(currentUser.uid)
+          .collection("history").where("date","==",dt).get()
+      ));
+      snaps.forEach((snap, i) => {
+        recordsByDate[dates[i]] = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      });
+    } catch(e) {}
+  }
+  renderMonthView(container, recordsByDate, year, month);
+}
+
+function renderMonthView(container, recordsByDate, year, month) {
+  container.innerHTML = "";
+  const todayStr = toDateStr(Date.now());
+  const DAYS_KO = ["일","월","화","수","목","금","토"];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+
+  const wrap = document.createElement("div");
+  wrap.className = "hs-month-wrap";
+
+  // 요일 헤더
+  const dayHdr = document.createElement("div");
+  dayHdr.className = "hs-month-day-headers";
+  DAYS_KO.forEach(d => {
+    const el = document.createElement("div");
+    el.className = "hs-month-day-hdr";
+    el.textContent = d;
+    dayHdr.appendChild(el);
+  });
+  wrap.appendChild(dayHdr);
+
+  // 날짜 그리드
+  const grid = document.createElement("div");
+  grid.className = "hs-month-grid";
+
+  // 빈 셀 (월 첫날 전)
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    const cell = document.createElement("div");
+    cell.className = "hs-month-cell hs-month-cell--empty";
+    grid.appendChild(cell);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const records = recordsByDate[dt] || [];
+    const cis = records.flatMap(r => r.checkIns || [])
+      .filter(c => c.text && c.text !== "(기록 없음)");
+
+    const cell = document.createElement("div");
+    cell.className = `hs-month-cell${dt === todayStr ? ' is-today' : ''}`;
+
+    const num = document.createElement("div");
+    num.className = "hs-month-num";
+    num.textContent = d;
+    cell.appendChild(num);
+
+    cis.slice(0, 2).forEach(c => {
+      const tag = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
+      const color = tag ? tag.color : "rgba(255,255,255,0.25)";
+      const pill = document.createElement("div");
+      pill.className = "hs-month-pill";
+      pill.style.cssText = `border-left:2px solid ${color};background:${color}18;`;
+      pill.textContent = c.text;
+      cell.appendChild(pill);
+    });
+
+    if (cis.length > 2) {
+      const more = document.createElement("div");
+      more.className = "hs-month-more";
+      more.textContent = `+${cis.length - 2}`;
+      cell.appendChild(more);
+    }
+
+    cell.addEventListener("click", () => {
+      _histDate = dt;
+      _histView = 'day';
+      renderHistoryScreen(dt);
+    });
+
+    grid.appendChild(cell);
+  }
+
+  wrap.appendChild(grid);
+  container.appendChild(wrap);
 }
 
 async function loadHistoryDay(dateStr, container) {
