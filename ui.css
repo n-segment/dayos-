@@ -274,6 +274,101 @@ html, body {
   border-color: rgba(255,255,255,0.5);
 }
 
+/* 메모 버튼 */
+.memo-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  margin-left: 8px;
+}
+.memo-btn:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.5);
+}
+
+/* 메모 입력 패널 */
+.memo-input-panel {
+  position: absolute;
+  top: 56px;
+  left: 16px;
+  background: rgba(255,255,240,0.95);
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 220px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  z-index: 200;
+  display: none;
+}
+.memo-input-panel.open { display: block; }
+.memo-input-panel textarea {
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #333;
+  resize: none;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.memo-input-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+.memo-input-panel-actions button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.memo-save-btn { background: #333; color: #fff; }
+.memo-cancel-btn { background: rgba(0,0,0,0.08); color: #333; }
+
+/* 홈 화면 스티키 메모 */
+.home-section { position: relative; }
+.sticky-memo {
+  position: absolute;
+  background: rgba(255,255,240,0.93);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 140px;
+  max-width: 200px;
+  box-shadow: 2px 4px 12px rgba(0,0,0,0.25);
+  z-index: 10;
+  font-size: 12px;
+  color: #333;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: move;
+  user-select: none;
+}
+.sticky-memo-delete {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: rgba(0,0,0,0.35);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.sticky-memo-delete:hover { color: rgba(0,0,0,0.7); }
+
 .brand-mark {
   display: inline-flex;
   align-items: center;
@@ -586,7 +681,7 @@ html, body {
 
 .welcome-now-time {
   margin: 0 0 8px;
-  font-size: clamp(72px, 12vw, 94px);
+  font-size: clamp(42px, 7vw, 60px);
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1.0;

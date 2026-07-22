@@ -76,6 +76,85 @@ let lastTrackerSegments = [];
 
 const segmentMemos = {};
 
+// ── 스티키 메모 시스템 ──
+const MEMO_KEY = "dayos_memos_v1";
+let memos = [];
+
+function loadMemos() {
+  try { memos = JSON.parse(localStorage.getItem(MEMO_KEY) || "[]"); } catch { memos = []; }
+}
+function saveMemos() { localStorage.setItem(MEMO_KEY, JSON.stringify(memos)); }
+
+function renderMemos() {
+  const section = document.getElementById("homeSection");
+  if (!section) return;
+  section.querySelectorAll(".sticky-memo").forEach(el => el.remove());
+  memos.forEach((memo, idx) => {
+    const el = document.createElement("div");
+    el.className = "sticky-memo";
+    el.style.left = (memo.x || 40 + idx * 20) + "px";
+    el.style.top = (memo.y || 80 + idx * 20) + "px";
+    el.innerHTML = `<button class="sticky-memo-delete" data-idx="${idx}">×</button>${memo.text}`;
+    // 드래그
+    let dragging = false, ox = 0, oy = 0;
+    el.addEventListener("mousedown", e => {
+      if (e.target.classList.contains("sticky-memo-delete")) return;
+      dragging = true;
+      ox = e.clientX - el.offsetLeft;
+      oy = e.clientY - el.offsetTop;
+      el.style.transition = "none";
+      e.preventDefault();
+    });
+    document.addEventListener("mousemove", e => {
+      if (!dragging) return;
+      el.style.left = (e.clientX - ox) + "px";
+      el.style.top = (e.clientY - oy) + "px";
+    });
+    document.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      memos[idx].x = parseInt(el.style.left);
+      memos[idx].y = parseInt(el.style.top);
+      saveMemos();
+    });
+    el.querySelector(".sticky-memo-delete").addEventListener("click", () => {
+      memos.splice(idx, 1);
+      saveMemos();
+      renderMemos();
+    });
+    section.appendChild(el);
+  });
+}
+
+function initMemoSystem() {
+  loadMemos();
+  renderMemos();
+  const btn = document.getElementById("memoBtn");
+  const panel = document.getElementById("memoInputPanel");
+  const textarea = document.getElementById("memoTextarea");
+  if (!btn || !panel) return;
+  btn.addEventListener("click", () => {
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open")) textarea?.focus();
+  });
+  document.getElementById("memoCancelBtn")?.addEventListener("click", () => {
+    panel.classList.remove("open");
+    if (textarea) textarea.value = "";
+  });
+  document.getElementById("memoSaveBtn")?.addEventListener("click", () => {
+    const text = textarea?.value.trim();
+    if (!text) return;
+    memos.push({ text, x: 40 + (memos.length % 5) * 30, y: 80 + (memos.length % 4) * 40 });
+    saveMemos();
+    renderMemos();
+    panel.classList.remove("open");
+    if (textarea) textarea.value = "";
+  });
+  textarea?.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) document.getElementById("memoSaveBtn")?.click();
+  });
+}
+
 // ── 바운싱 이미지 이스터에그 ──
 let bouncingImgActive = false;
 let lastBounceHour = 0;
@@ -160,11 +239,7 @@ function segKey(seg) {
 }
 
 function getTimeOfDayText() {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12)  return { eyebrow: "MORNING", title: "오전부터 시작하다니", desc: "진짜 대단하다. 이 시간에 이러는 사람 별로 없음." };
-  if (h >= 12 && h < 17) return { eyebrow: "AFTERNOON", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "어제보다 조금만 더. 그거면 충분해." };
-  if (h >= 17 && h < 20) return { eyebrow: "", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "" };
-  return { eyebrow: "", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "" };
+  return { eyebrow: "", title: "", desc: "" };
 }
 
 function updateWelcomeScreen() {
@@ -1735,6 +1810,7 @@ function init() {
     }
 
     updateWelcomeScreen();
+    initMemoSystem();
     // 우측 패널에 기록 자동 로드
     renderHistoryScreen();
   });
