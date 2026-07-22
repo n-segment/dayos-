@@ -369,7 +369,8 @@ html, body {
   display: flex;
   min-height: 100vh;
   padding: 0 16px;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  border-top: 1px solid rgba(0,0,0,0.1);
+  background: #BBBCBF;
 }
 
 /* Left sticky panel */
@@ -381,7 +382,7 @@ html, body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid rgba(0,0,0,0.1);
 }
 .ws-panel {
   flex: 1;
