@@ -130,7 +130,7 @@
 html, body {
   margin: 0;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   font-family: var(--font-base);
   color: var(--color-paper-white);
   background: var(--color-ink-black);
@@ -140,10 +140,12 @@ html, body {
 .dayos-app {
   position: relative;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
   z-index: 1;
 }
+
+/* ── Utility ── */
+.hidden { display: none !important; }
 
 /* ── Header ── */
 .app-header {
@@ -313,37 +315,194 @@ html, body {
   padding: 5px 14px;
 }
 
-/* ── Screen stack ── */
-.screen-stack {
-  width: 100%;
-  height: 100%;
-}
-
-.screen {
-  position: absolute;
+/* ── Login overlay ── */
+.login-overlay {
+  position: fixed;
   inset: 0;
+  z-index: 100;
   display: none;
   place-items: center;
-  padding: 24px 40px;
-}
-
-.screen.is-active { display: grid; }
-
-/* ── 로그인 화면 ── */
-.screen--login {
   background: #000;
-  place-items: center;
 }
-
-.dayos-app:has(.screen--login.is-active) .app-header {
-  display: none;
-}
-.screen--login::before {
+.login-overlay.is-active { display: grid; }
+.login-overlay::before {
   content: '';
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   z-index: 1;
+}
+.dayos-app:has(.login-overlay.is-active) .app-header { display: none; }
+
+/* ── App main ── */
+.app-main {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* ── Home section ── */
+.home-section {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.home-section__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 1;
+}
+.home-section__content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 680px;
+  width: 100%;
+  padding: 0 40px;
+}
+
+/* ── Workspace section ── */
+.workspace-section {
+  display: flex;
+  min-height: 100vh;
+  padding: 0 16px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Left sticky panel */
+.ws-left {
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.ws-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 64px 28px 40px;
+}
+.ws-panel::-webkit-scrollbar { width: 0; }
+
+/* Right history panel */
+.ws-right {
+  flex: 1;
+  min-width: 0;
+  padding: 64px 0 80px 40px;
+}
+
+/* Idle state */
+#wsIdleState {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 24px;
+}
+.ws-start-label {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.5;
+}
+
+/* Active state */
+#wsActiveState {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 8px;
+}
+
+/* Expand button */
+.ws-expand-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.2s, color 0.2s;
+}
+.ws-expand-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.85);
+}
+
+/* Left panel action buttons: smaller / left-aligned */
+.ws-actions {
+  margin-top: 20px !important;
+  justify-content: flex-start !important;
+  flex-wrap: wrap;
+}
+.ws-actions .button {
+  font-size: 12px;
+  padding: 9px 16px;
+}
+
+/* ── Focus overlay ── */
+.focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.focus-collapse-btn {
+  position: absolute;
+  top: 28px;
+  left: 40px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  font-family: inherit;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+.focus-collapse-btn:hover { color: rgba(255,255,255,0.9); }
+.focus-overlay__content {
+  text-align: center;
+  max-width: 540px;
+  width: 100%;
+  padding: 0 40px;
+}
+
+/* ── Summary overlay ── */
+.summary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0,0,0,0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 40px 24px 80px;
+}
+.summary-overlay .summary-panel {
+  max-height: none;
+  padding: 40px 0;
+  width: min(680px, 100%);
+  text-align: center;
 }
 
 .login-panel {
@@ -376,27 +535,7 @@ html, body {
   letter-spacing: -0.02em;
 }
 
-.screen--welcome {
-  background: #000;
-  transition: filter 0.3s ease, background 0.5s ease;
-}
-body.dawn-video .screen--welcome {
-  background: transparent;
-}
-body.dawn-video .screen--welcome::before {
-  background: rgba(0, 0, 0, 0.45);
-}
-.screen--welcome.modal-blur {
-  filter: blur(20px);
-  transform: scale(1.04);
-}
-.screen--welcome::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  z-index: 1;
-}
+/* (screen--welcome removed — replaced by home-section) */
 
 .welcome-bg-video {
   position: absolute;
@@ -407,13 +546,6 @@ body.dawn-video .screen--welcome::before {
   z-index: 0;
 }
 
-.welcome-panel {
-  position: relative;
-  z-index: 1;
-}
-
-.welcome-panel,
-.focus-panel,
 .summary-panel {
   width: min(680px, 100%);
   text-align: center;
@@ -512,6 +644,21 @@ body.dawn-video .screen--welcome::before {
   font-size: 13px;
   font-weight: 400;
   color: rgba(255,255,255,0.45);
+}
+
+/* ── Left panel overrides (ws-panel) ── */
+#wsActiveState .focus-panel__time {
+  font-size: clamp(28px, 3.5vw, 42px);
+  margin: 8px 0 2px;
+  text-align: left;
+}
+#wsActiveState .focus-panel__meta {
+  margin: 0 0 4px;
+  text-align: left;
+}
+#wsActiveState .date-chip {
+  margin: 0 0 16px;
+  font-size: 11px;
 }
 
 /* ── Tracker summary ── */
@@ -983,9 +1130,10 @@ body.dawn-video .screen--welcome::before {
   align-items: unset;
 }
 
+#historyScreen .history-panel,
 .screen--history .history-panel {
   width: min(780px, 100%);
-  margin: 0 auto;
+  margin: 0;
   text-align: left;
   padding: 0 0 80px;
   max-height: none;
