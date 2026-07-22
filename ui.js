@@ -919,95 +919,97 @@ async function loadHistoryWeek(weekStart, container) {
 
 function renderWeekView(container, recordsByDate, dates) {
   container.innerHTML = "";
-  const HOUR_H = 56; // px per hour
   const todayStr = toDateStr(Date.now());
   const DAYS_KO = ["일","월","화","수","목","금","토"];
 
-  const wrap = document.createElement("div");
-  wrap.className = "hs-week-wrap";
+  // ── 1. 주간 타임라인 (날짜별 가로 바) ──
+  const tlSection = document.createElement("div");
+  tlSection.className = "hs-tl-section";
 
-  // ─ 헤더 (요일/날짜) ─
-  const hdr = document.createElement("div");
-  hdr.className = "hs-week-header";
-  hdr.innerHTML = `<div class="hs-week-tc"></div>` + dates.map(dt => {
+  const tlHeader = document.createElement("div");
+  tlHeader.className = "hs-tl-header";
+  tlHeader.innerHTML = `<span class="hs-section-label">이번 주 타임라인</span>`;
+  tlSection.appendChild(tlHeader);
+
+  dates.forEach(dt => {
     const d = new Date(dt + "T00:00:00");
     const isToday = dt === todayStr;
-    return `<div class="hs-week-dc">
-      <span class="hs-week-dayname">${DAYS_KO[d.getDay()]}</span>
-      <span class="hs-week-daynum${isToday?' is-today':''}">${d.getDate()}</span>
-    </div>`;
-  }).join("");
-  wrap.appendChild(hdr);
-
-  // ─ 바디 ─
-  const bodyWrap = document.createElement("div");
-  bodyWrap.className = "hs-week-body";
-
-  // 시간 레이블 컬럼
-  const tc = document.createElement("div");
-  tc.className = "hs-week-tc hs-week-time-col";
-  for (let h = 0; h < 24; h++) {
-    const lbl = document.createElement("div");
-    lbl.className = "hs-week-hour-label";
-    lbl.style.height = HOUR_H + "px";
-    lbl.textContent = h ? `${h}시` : "";
-    tc.appendChild(lbl);
-  }
-  bodyWrap.appendChild(tc);
-
-  // 요일별 컬럼
-  dates.forEach(dt => {
-    const dayStart = new Date(dt + "T00:00:00").getTime();
-    const col = document.createElement("div");
-    col.className = "hs-week-day-col";
-    col.style.height = (HOUR_H * 24) + "px";
-
-    // 시간별 그리드선
-    for (let h = 0; h < 24; h++) {
-      const line = document.createElement("div");
-      line.className = "hs-week-hour-line";
-      line.style.top = (h * HOUR_H) + "px";
-      col.appendChild(line);
-    }
-
-    // 이벤트 블록
+    const dayStart = d.getTime();
     const records = recordsByDate[dt] || [];
-    records.flatMap(r =>
-      (r.checkIns || []).map((c, i) => ({ ...c, _record: r, _idx: i }))
-    ).filter(c => c.text && c.text !== "(기록 없음)" && c.timeMs).forEach(c => {
-      const topPx = ((c.timeMs - dayStart) / 3600000) * HOUR_H;
-      if (topPx < 0 || topPx > HOUR_H * 24) return;
-      const heightPx = c.durationMs ? Math.max((c.durationMs / 3600000) * HOUR_H, 20) : 20;
-      const tag = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
-      const color = tag ? tag.color : "rgba(255,255,255,0.35)";
-      const blk = document.createElement("div");
-      blk.className = "hs-week-event";
-      blk.style.cssText = `top:${topPx.toFixed(1)}px;height:${heightPx.toFixed(1)}px;border-left:3px solid ${color};background:${color}1a;`;
-      blk.innerHTML = `<span class="hs-week-event-title">${c.text}</span>`;
-      col.appendChild(blk);
+    const allCI = records
+      .flatMap(r => (r.checkIns || []))
+      .filter(c => c.text && c.text !== "(기록 없음)" && c.timeMs);
+
+    const dayRow = document.createElement("div");
+    dayRow.className = "hs-week-tl-row" + (isToday ? " is-today" : "");
+
+    const label = document.createElement("div");
+    label.className = "hs-week-tl-label";
+    label.innerHTML = `<span class="hs-week-tl-dayname">${DAYS_KO[d.getDay()]}</span><span class="hs-week-tl-daynum">${d.getDate()}</span>`;
+
+    const bar = document.createElement("div");
+    bar.className = "hs-tl-wrap hs-week-tl-bar";
+
+    allCI.forEach(c => {
+      const left = Math.max(0, ((c.timeMs - dayStart) / 86400000 * 100)).toFixed(2);
+      const t = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
+      const color = t ? t.color : "rgba(255,255,255,0.45)";
+      if (c.durationMs > 0) {
+        const width = Math.max((c.durationMs / 86400000 * 100), 0.5).toFixed(2);
+        const seg = document.createElement("div");
+        seg.className = "hs-tl-seg";
+        seg.style.left = left + "%";
+        seg.style.width = width + "%";
+        seg.style.background = color;
+        bar.appendChild(seg);
+      } else {
+        const marker = document.createElement("div");
+        marker.className = "hs-tl-marker";
+        marker.style.left = left + "%";
+        marker.style.background = color;
+        bar.appendChild(marker);
+      }
     });
 
-    // 현재 시각 선
-    if (dt === todayStr) {
-      const nowTop = ((Date.now() - dayStart) / 3600000) * HOUR_H;
-      const nl = document.createElement("div");
-      nl.className = "hs-week-now-line";
-      nl.style.top = nowTop.toFixed(1) + "px";
-      nl.innerHTML = `<div class="hs-week-now-dot"></div>`;
-      col.appendChild(nl);
+    if (isToday) {
+      const nowPct = ((Date.now() - dayStart) / 86400000 * 100).toFixed(2);
+      const nm = document.createElement("div");
+      nm.className = "hs-tl-now-marker";
+      nm.style.left = nowPct + "%";
+      bar.appendChild(nm);
     }
 
-    bodyWrap.appendChild(col);
+    dayRow.appendChild(label);
+    dayRow.appendChild(bar);
+    tlSection.appendChild(dayRow);
   });
 
-  wrap.appendChild(bodyWrap);
-  container.appendChild(wrap);
+  // 축
+  const axisWrap = document.createElement("div");
+  axisWrap.className = "hs-week-tl-axis-wrap";
+  axisWrap.innerHTML = `<div class="hs-week-tl-axis-spacer"></div><div class="hs-tl-axis"><span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>24시</span></div>`;
+  tlSection.appendChild(axisWrap);
+  container.appendChild(tlSection);
 
-  // 현재 시각으로 스크롤
-  const scrollTarget = dates.includes(todayStr)
-    ? Math.max(0, new Date().getHours() * HOUR_H - 120)
-    : 8 * HOUR_H;
-  setTimeout(() => { bodyWrap.scrollTop = scrollTarget; }, 50);
+  // ── 2. 주간 카테고리 합계 카드 ──
+  const tagTotals = {};
+  dates.forEach(dt => {
+    const records = recordsByDate[dt] || [];
+    records.flatMap(r => (r.checkIns || [])).filter(c => c.durationMs && c.tags).forEach(c => {
+      c.tags.forEach(tid => { tagTotals[tid] = (tagTotals[tid] || 0) + c.durationMs; });
+    });
+  });
+
+  const statsRow = document.createElement("div");
+  statsRow.className = "hs-stats-row";
+  Object.entries(tagTotals).forEach(([tid, ms]) => {
+    const tag = getTag(tid); if (!tag) return;
+    const card = document.createElement("div");
+    card.className = "hs-stat-card";
+    card.innerHTML = `<div class="hs-stat-label"><span class="hs-stat-dot" style="background:${tag.color}"></span>${tag.name}</div><div class="hs-stat-value">${fmtDur(ms)}</div>`;
+    statsRow.appendChild(card);
+  });
+  container.appendChild(statsRow);
 }
 
 // ── 월 뷰 ──────────────────────────────────────────────────────────

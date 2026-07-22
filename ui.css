@@ -2897,124 +2897,60 @@ html, body {
   color: rgba(255,255,255,0.5); font: inherit; font-size: 12px; padding: 4px 14px; cursor: pointer;
 }
 
-/* ── 주 뷰 ── */
-.hs-week-wrap {
+/* ── 주 뷰 (타임라인 스타일) ── */
+.hs-week-tl-row {
   display: flex;
-  flex-direction: column;
-  margin: 0 -32px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
 }
-.hs-week-header {
-  display: flex;
-  position: sticky;
-  top: 0;
-  background: rgba(8,8,12,0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 10;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 0 0 0 0;
-}
-.hs-week-tc {
-  width: 44px;
-  flex-shrink: 0;
-}
-.hs-week-dc {
-  flex: 1;
+.hs-week-tl-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 0 8px;
-  gap: 5px;
+  width: 36px;
+  flex-shrink: 0;
+  gap: 2px;
 }
-.hs-week-dayname {
+.hs-week-tl-dayname {
   font-size: 10px;
   color: rgba(255,255,255,0.3);
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
-.hs-week-daynum {
-  font-size: 18px;
-  color: rgba(255,255,255,0.6);
+.hs-week-tl-daynum {
+  font-size: 14px;
+  color: rgba(255,255,255,0.55);
   font-weight: 300;
   line-height: 1;
 }
-.hs-week-daynum.is-today {
-  background: rgba(255,255,255,0.95);
+.hs-week-tl-row.is-today .hs-week-tl-daynum {
+  background: rgba(255,255,255,0.9);
   color: #0a0a0f;
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 500;
 }
-.hs-week-body {
-  display: flex;
-  overflow-y: auto;
-  max-height: calc(100vh - 220px);
-}
-.hs-week-time-col {
-  width: 44px;
-  flex-shrink: 0;
-}
-.hs-week-hour-label {
-  font-size: 9px;
-  color: rgba(255,255,255,0.18);
-  text-align: right;
-  padding-right: 8px;
-  padding-top: 3px;
-  box-sizing: border-box;
-}
-.hs-week-day-col {
+.hs-week-tl-bar {
   flex: 1;
-  position: relative;
-  border-left: 1px solid rgba(255,255,255,0.04);
+  height: 18px !important;
+  border-radius: 6px;
 }
-.hs-week-hour-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255,255,255,0.04);
+.hs-week-tl-axis-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 2px;
+  margin-bottom: 16px;
 }
-.hs-week-event {
-  position: absolute;
-  left: 2px;
-  right: 2px;
-  border-radius: 5px;
-  padding: 3px 5px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: opacity 0.1s;
-  box-sizing: border-box;
-}
-.hs-week-event:hover { opacity: 0.8; }
-.hs-week-event-title {
-  font-size: 10px;
-  color: rgba(255,255,255,0.85);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-  line-height: 1.3;
-}
-.hs-week-now-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255,100,100,0.8);
-  z-index: 5;
-}
-.hs-week-now-dot {
-  position: absolute;
-  left: -4px;
-  top: -3.5px;
-  width: 7px;
-  height: 7px;
-  background: rgba(255,100,100,0.9);
-  border-radius: 50%;
+.hs-week-tl-axis-spacer {
+  width: 36px;
+  flex-shrink: 0;
 }
 
 /* ── 월 뷰 ── */
