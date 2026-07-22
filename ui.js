@@ -451,8 +451,8 @@ function restoreState() {
   } catch { /* noop */ }
 }
 
-function _showEl(el) { if (el) el.style.display = ""; }
-function _hideEl(el) { if (el) el.style.display = "none"; }
+function _showEl(el) { if (el) { el.classList.remove("hidden"); el.style.display = ""; } }
+function _hideEl(el) { if (el) { el.classList.add("hidden"); el.style.display = "none"; } }
 
 function showScreen(screen) {
   const loginOverlay = document.getElementById("loginScreen");
