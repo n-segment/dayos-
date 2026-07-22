@@ -669,7 +669,7 @@ body.dawn-video .screen--welcome::before {
   line-height: 1.6;
   padding: 8px 0;
   resize: none;
-  min-height: 100px;
+  min-height: 140px;
   outline: none;
 }
 .retro-modal__textarea::placeholder { color: rgba(255,255,255,0.25); }
@@ -1350,7 +1350,7 @@ body.dawn-video .screen--welcome::before {
   line-height: 1.7;
   padding: 14px 16px;
   resize: none;
-  min-height: 100px;
+  min-height: 140px;
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.15s;
@@ -2807,7 +2807,7 @@ body.dawn-video .screen--welcome::before {
 .hs-month-cell {
   background: rgba(255,255,255,0.02);
   padding: 8px 8px 6px;
-  min-height: 100px;
+  min-height: 140px;
   cursor: pointer;
   transition: background 0.12s;
   box-sizing: border-box;
@@ -2819,7 +2819,7 @@ body.dawn-video .screen--welcome::before {
 .hs-month-cell--empty {
   background: transparent;
   cursor: default;
-  min-height: 100px;
+  min-height: 140px;
 }
 .hs-month-cell--empty:hover { background: transparent; }
 .hs-month-cell.is-today {
