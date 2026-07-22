@@ -821,14 +821,20 @@ function renderDayContent(container, records, dateStr) {
       container.appendChild(groupLabel);
       const card = document.createElement("div");
       card.className = "hs-record-card";
-      items.forEach(c => {
+
+      let dragSrc = null;
+
+      items.forEach((c, itemIdx) => {
         const tagColor = c.tags && c.tags[0] ? (getTag(c.tags[0])?.color || "rgba(255,255,255,0.15)") : "rgba(255,255,255,0.12)";
         const startTime = c.timeMs ? formatClock(new Date(c.timeMs)) : "";
         const endTime = c.endMs ? formatClock(new Date(c.endMs)) : "";
         const timeRange = (startTime && endTime) ? `${startTime} → ${endTime}` : startTime;
         const item = document.createElement("div");
         item.className = "hs-record-item";
+        item.draggable = true;
+        item.dataset.itemidx = itemIdx;
         item.innerHTML = `
+          <div class="hs-drag-handle">⠿</div>
           <div class="hs-record-bar" style="background:${tagColor}"></div>
           <div class="hs-record-body">
             <div class="hs-record-name">${c.text}</div>
@@ -843,6 +849,43 @@ function renderDayContent(container, records, dateStr) {
             </div>
           </div>
         `;
+
+        // drag-to-reorder
+        item.addEventListener("dragstart", e => {
+          dragSrc = item;
+          e.dataTransfer.effectAllowed = "move";
+          setTimeout(() => item.classList.add("hs-dragging"), 0);
+        });
+        item.addEventListener("dragend", () => {
+          item.classList.remove("hs-dragging");
+          card.querySelectorAll(".hs-drag-over").forEach(el => el.classList.remove("hs-drag-over"));
+          dragSrc = null;
+        });
+        item.addEventListener("dragover", e => {
+          e.preventDefault();
+          if (item !== dragSrc) {
+            card.querySelectorAll(".hs-drag-over").forEach(el => el.classList.remove("hs-drag-over"));
+            item.classList.add("hs-drag-over");
+          }
+        });
+        item.addEventListener("dragleave", () => item.classList.remove("hs-drag-over"));
+        item.addEventListener("drop", async e => {
+          e.preventDefault();
+          item.classList.remove("hs-drag-over");
+          if (!dragSrc || dragSrc === item) return;
+          const srcIdx = parseInt(dragSrc.dataset.itemidx);
+          const dstIdx = parseInt(item.dataset.itemidx);
+          const srcC = items[srcIdx];
+          const dstC = items[dstIdx];
+          if (srcC._record._id !== dstC._record._id) return;
+          const ci = [...srcC._record.checkIns];
+          const [moved] = ci.splice(srcC._idx, 1);
+          const adjDst = dstC._idx > srcC._idx ? dstC._idx - 1 : dstC._idx;
+          ci.splice(adjDst, 0, moved);
+          await updateRecord(srcC._record._id, { checkIns: ci });
+          renderDayContent(container, records, dateStr);
+        });
+
         const dotsBtn = item.querySelector(".hs-dots-btn");
         const dotsMenu = item.querySelector(".hs-dots-menu");
         dotsBtn.addEventListener("click", e => {

@@ -1175,8 +1175,22 @@ body.dawn-video .screen--welcome::before {
   gap: 14px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: opacity 0.15s, background 0.15s;
+  cursor: default;
 }
 .hs-record-item:last-child { border-bottom: none; }
+.hs-record-item.hs-dragging { opacity: 0.35; }
+.hs-record-item.hs-drag-over { background: rgba(255,255,255,0.06); border-radius: 8px; }
+.hs-drag-handle {
+  color: rgba(255,255,255,0.2);
+  font-size: 14px;
+  cursor: grab;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  user-select: none;
+}
+.hs-record-item:hover .hs-drag-handle { opacity: 1; }
 .hs-record-bar {
   width: 3px;
   height: 36px;
@@ -1409,10 +1423,10 @@ body.dawn-video .screen--welcome::before {
   border-radius: 20px;
   font-size: 12px;
   cursor: pointer;
-  border: 1px dashed rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.2);
   color: rgba(255,255,255,0.3);
 }
-.hs-modal-tag-add:hover { color: rgba(255,255,255,0.6); }
+.hs-modal-tag-add:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.6); }
 
 /* 모달 버튼 */
 .hs-modal-actions {
