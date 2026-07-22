@@ -802,10 +802,6 @@ function renderDayContent(container, records, dateStr) {
 
   const statsRow = document.createElement("div");
   statsRow.className = "hs-stats-row";
-  const totalCard = document.createElement("div");
-  totalCard.className = "hs-stat-card";
-  totalCard.innerHTML = `<div class="hs-stat-label">총 기록 시간</div><div class="hs-stat-value">${fmtDur(totalMs) || "0분"}</div>`;
-  statsRow.appendChild(totalCard);
   Object.entries(tagTotals).forEach(([tid, ms]) => {
     const tag = getTag(tid); if (!tag) return;
     const card = document.createElement("div");
