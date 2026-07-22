@@ -923,7 +923,7 @@ function renderDayContent(container, records, dateStr) {
   // ── 4. 기록 추가 ──
   const addBtn = document.createElement("div");
   addBtn.className = "hs-add-btn";
-  addBtn.innerHTML = "+ 기록 추가";
+  addBtn.innerHTML = "기록 추가";
   addBtn.addEventListener("click", () => showAddRecordModal(records, dateStr, container));
   container.appendChild(addBtn);
 
