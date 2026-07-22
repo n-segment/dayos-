@@ -966,8 +966,8 @@ function renderMonthView(container, recordsByDate, year, month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dt = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const records = recordsByDate[dt] || [];
-    const cis = records.flatMap(r => r.checkIns || [])
-      .filter(c => c.text && c.text !== "(기록 없음)");
+    const totalMs = records.flatMap(r => r.checkIns || [])
+      .reduce((s, c) => s + (c.durationMs || 0), 0);
 
     const cell = document.createElement("div");
     cell.className = `hs-month-cell${dt === todayStr ? ' is-today' : ''}`;
@@ -977,21 +977,13 @@ function renderMonthView(container, recordsByDate, year, month) {
     num.textContent = d;
     cell.appendChild(num);
 
-    cis.slice(0, 2).forEach(c => {
-      const tag = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
-      const color = tag ? tag.color : "rgba(255,255,255,0.25)";
-      const pill = document.createElement("div");
-      pill.className = "hs-month-pill";
-      pill.style.cssText = `border-left:2px solid ${color};background:${color}18;`;
-      pill.textContent = c.text;
-      cell.appendChild(pill);
-    });
-
-    if (cis.length > 2) {
-      const more = document.createElement("div");
-      more.className = "hs-month-more";
-      more.textContent = `+${cis.length - 2}`;
-      cell.appendChild(more);
+    if (totalMs > 0) {
+      const dur = document.createElement("div");
+      dur.className = "hs-month-dur";
+      const h = Math.floor(totalMs / 3600000);
+      const m = Math.floor((totalMs % 3600000) / 60000);
+      dur.textContent = h > 0 ? `${h}h ${m > 0 ? m + 'm' : ''}`.trim() : `${m}m`;
+      cell.appendChild(dur);
     }
 
     cell.addEventListener("click", () => {
