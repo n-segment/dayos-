@@ -1595,6 +1595,19 @@ html, body {
 }
 .hs-retro-ta::placeholder { color: rgba(255,255,255,0.2); }
 .hs-retro-ta:focus { border-color: rgba(255,255,255,0.2); }
+.hs-retro-save-btn {
+  margin-top: 10px;
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.hs-retro-save-btn:hover { background: rgba(255,255,255,0.12); }
+.hs-retro-save-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* 기록 추가 모달 */
 .hs-modal-overlay {

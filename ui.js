@@ -1317,14 +1317,27 @@ function renderDayContent(container, records, dateStr) {
   retroTa.className = "hs-retro-ta";
   retroTa.placeholder = "오늘 하루를 돌아보세요...";
   retroTa.value = retroRecord?.retro || "";
-  let retroTimer;
+  const retroSaveBtn = document.createElement("button");
+  retroSaveBtn.className = "hs-retro-save-btn";
+  retroSaveBtn.textContent = "저장";
+
+  async function saveRetro() {
+    const val = retroTa.value.trim();
+    if (!retroRecord?._id) return;
+    retroRecord.retro = val;
+    await updateRecord(retroRecord._id, { retro: val });
+    retroSaveBtn.textContent = "저장됨 ✓";
+    retroSaveBtn.disabled = true;
+    setTimeout(() => { retroSaveBtn.textContent = "저장"; retroSaveBtn.disabled = false; }, 1800);
+  }
+
   retroTa.addEventListener("input", () => {
-    clearTimeout(retroTimer);
-    retroTimer = setTimeout(async () => {
-      if (retroRecord?._id) { retroRecord.retro = retroTa.value; await updateRecord(retroRecord._id, { retro: retroTa.value }); }
-    }, 800);
+    retroSaveBtn.textContent = "저장";
+    retroSaveBtn.disabled = false;
   });
+  retroSaveBtn.addEventListener("click", saveRetro);
   retroSection.appendChild(retroTa);
+  retroSection.appendChild(retroSaveBtn);
   container.appendChild(retroSection);
 }
 
