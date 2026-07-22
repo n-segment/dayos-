@@ -1191,6 +1191,37 @@ body.dawn-video .screen--welcome::before {
   color: rgba(255,255,255,0.7);
   flex-shrink: 0;
 }
+.hs-record-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.hs-record-item:hover .hs-record-actions { opacity: 1; }
+.hs-record-action-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.35);
+  font: inherit;
+  font-size: 10px;
+  padding: 2px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hs-del-btn { color: rgba(255,80,80,0.5); border-color: rgba(255,80,80,0.2); }
+.hs-new-tag-inp {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  color: var(--color-paper-white);
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  outline: none;
+  width: 80px;
+}
 
 /* 기록 추가 */
 .hs-add-btn {

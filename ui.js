@@ -738,25 +738,24 @@ async function loadHistoryDay(dateStr, container) {
 function renderDayContent(container, records, dateStr) {
   container.innerHTML = "";
   const todayStr = toDateStr(Date.now());
-  const validRecords = records.filter(r => r.durationMs >= 60000);
   const allCheckIns = records.flatMap(r =>
     (r.checkIns || []).map((c, i) => ({ ...c, _idx: i, _record: r }))
   ).filter(c => c.text && c.text !== "(기록 없음)");
 
-  // ── 1. 타임라인 ──
+  // ── 1. 타임라인 (checkIn 기반으로 그림) ──
   const isToday = dateStr === todayStr;
-  const nowMs = Date.now();
   const dayStart = new Date(dateStr + "T00:00:00").getTime();
+  const nowMs = Date.now();
   const nowPct = isToday ? ((nowMs - dayStart) / 86400000 * 100).toFixed(2) : null;
   const nowH = new Date().getHours();
-  const nowM = String(new Date().getMinutes()).padStart(2,"0");
+  const nowMm = String(new Date().getMinutes()).padStart(2,"0");
 
   const tlSection = document.createElement("div");
   tlSection.className = "hs-tl-section";
   tlSection.innerHTML = `
     <div class="hs-tl-header">
       <span class="hs-section-label">오늘의 타임라인</span>
-      ${isToday ? `<span class="hs-tl-now-label">${nowH}:${nowM} 진행 중</span>` : ""}
+      ${isToday ? `<span class="hs-tl-now-label">${nowH}:${nowMm} 진행 중</span>` : ""}
     </div>
     <div class="hs-tl-wrap" id="hsTlWrap">
       ${isToday ? `<div class="hs-tl-now-marker" style="left:${nowPct}%"></div>` : ""}
@@ -766,20 +765,20 @@ function renderDayContent(container, records, dateStr) {
   container.appendChild(tlSection);
 
   const tlWrap = tlSection.querySelector("#hsTlWrap");
-  validRecords.forEach(r => {
-    const left = ((r.startMs - dayStart) / 86400000 * 100).toFixed(2);
-    const width = Math.max((r.durationMs / 86400000 * 100), 0.5).toFixed(2);
+  allCheckIns.filter(c => c.timeMs && c.durationMs > 0).forEach(c => {
+    const left = Math.max(0, ((c.timeMs - dayStart) / 86400000 * 100)).toFixed(2);
+    const width = Math.max((c.durationMs / 86400000 * 100), 0.5).toFixed(2);
     const seg = document.createElement("div");
     seg.className = "hs-tl-seg";
     seg.style.left = left + "%";
     seg.style.width = width + "%";
-    const firstTagged = (r.checkIns || []).find(c => c.tags && c.tags.length);
-    if (firstTagged) { const t = getTag(firstTagged.tags[0]); if (t) seg.style.background = t.color; }
+    const t = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
+    if (t) seg.style.background = t.color;
     tlWrap.appendChild(seg);
   });
 
-  // ── 2. 스탯 카드 ──
-  const totalMs = validRecords.reduce((s, r) => s + (r.durationMs || 0), 0);
+  // ── 2. 스탯 카드 (checkIn 합산) ──
+  const totalMs = allCheckIns.reduce((s, c) => s + (c.durationMs || 0), 0);
   const tagTotals = {};
   allCheckIns.forEach(c => {
     if (c.tags && c.durationMs) c.tags.forEach(tid => { tagTotals[tid] = (tagTotals[tid] || 0) + c.durationMs; });
@@ -827,7 +826,22 @@ function renderDayContent(container, records, dateStr) {
             ${timeRange ? `<div class="hs-record-time">${timeRange}</div>` : ""}
           </div>
           <div class="hs-record-dur">${c.durationMs ? fmtDur(c.durationMs) : ""}</div>
+          <div class="hs-record-actions">
+            <button class="hs-record-action-btn hs-edit-btn" data-action="edit">수정</button>
+            <button class="hs-record-action-btn hs-del-btn" data-action="del">삭제</button>
+          </div>
         `;
+        item.querySelector("[data-action=edit]").addEventListener("click", e => {
+          e.stopPropagation();
+          showEditRecordModal(c, records, dateStr, container);
+        });
+        item.querySelector("[data-action=del]").addEventListener("click", async e => {
+          e.stopPropagation();
+          if (!confirm("삭제할까요?")) return;
+          c._record.checkIns.splice(c._idx, 1);
+          await updateRecord(c._record._id, { checkIns: c._record.checkIns });
+          renderDayContent(container, records, dateStr);
+        });
         card.appendChild(item);
       });
       container.appendChild(card);
@@ -941,11 +955,19 @@ function showAddRecordModal(records, dateStr, container) {
     addTagBtn.className = "hs-modal-tag-add";
     addTagBtn.textContent = "+ 추가";
     addTagBtn.addEventListener("click", () => {
-      const name = prompt("태그 이름");
-      if (!name) return;
-      const t = addUserTag(name);
-      if (t) selectedTagIds.push(t.id);
-      renderTags();
+      if (wrap.querySelector(".hs-new-tag-inp")) return;
+      const inp = document.createElement("input");
+      inp.className = "hs-new-tag-inp";
+      inp.placeholder = "태그 이름";
+      const confirm = () => {
+        const name = inp.value.trim();
+        if (name) { const t = addUserTag(name); if (t) selectedTagIds.push(t.id); }
+        renderTags();
+      };
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") confirm(); if (e.key === "Escape") renderTags(); });
+      inp.addEventListener("blur", confirm);
+      wrap.appendChild(inp);
+      inp.focus();
     });
     wrap.appendChild(addTagBtn);
   }
@@ -983,7 +1005,108 @@ function showAddRecordModal(records, dateStr, container) {
   document.getElementById("hsModalText").focus();
 }
 
+function showEditRecordModal(c, records, dateStr, container) {
+  document.getElementById("hsEditModal")?.remove();
+  let selectedTagIds = [...(c.tags || [])];
+  const dayStart = new Date(dateStr + "T00:00:00").getTime();
+  const parseHM = str => {
+    if (!str) return null; str = str.trim();
+    let m = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (m) return { h: parseInt(m[1]), min: parseInt(m[2]) };
+    m = str.match(/^(\d{1,2})시(\d{2})?분?$/);
+    if (m) return { h: parseInt(m[1]), min: m[2] ? parseInt(m[2]) : 0 };
+    return null;
+  };
+  const toHHMM = ms => ms ? `${String(new Date(ms).getHours()).padStart(2,"0")}:${String(new Date(ms).getMinutes()).padStart(2,"0")}` : "";
 
+  const overlay = document.createElement("div");
+  overlay.className = "hs-modal-overlay";
+  overlay.id = "hsEditModal";
+  overlay.innerHTML = `
+    <div class="hs-modal">
+      <div class="hs-modal-header">
+        <span class="hs-modal-title">기록 수정</span>
+        <button class="hs-modal-close" id="hsEditClose">×</button>
+      </div>
+      <div class="hs-modal-field">
+        <label class="hs-modal-label">활동명</label>
+        <input class="hs-modal-input" id="hsEditText" value="${c.text || ""}" />
+      </div>
+      <div class="hs-modal-field">
+        <label class="hs-modal-label">카테고리</label>
+        <div class="hs-modal-tags" id="hsEditTags"></div>
+      </div>
+      <div class="hs-modal-time-row">
+        <div class="hs-modal-field">
+          <label class="hs-modal-label">시작 시간</label>
+          <input class="hs-modal-input" id="hsEditStart" value="${toHHMM(c.timeMs)}" placeholder="14:00" />
+        </div>
+        <div class="hs-modal-field">
+          <label class="hs-modal-label">종료 시간</label>
+          <input class="hs-modal-input" id="hsEditEnd" value="${toHHMM(c.endMs)}" placeholder="16:00" />
+        </div>
+      </div>
+      <div class="hs-modal-actions">
+        <button class="hs-modal-btn-cancel" id="hsEditCancel">취소</button>
+        <button class="hs-modal-btn-save" id="hsEditSave">저장하기</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  function renderTags() {
+    const wrap = document.getElementById("hsEditTags"); if (!wrap) return;
+    wrap.innerHTML = "";
+    userTags.forEach(tag => {
+      const sel = selectedTagIds.includes(tag.id);
+      const chip = document.createElement("span");
+      chip.className = "hs-modal-tag" + (sel ? " selected" : "");
+      chip.style.cssText = `--tc:${tag.color}`;
+      chip.textContent = tag.name;
+      chip.addEventListener("click", () => {
+        selectedTagIds = sel ? selectedTagIds.filter(id => id !== tag.id) : [...selectedTagIds, tag.id];
+        renderTags();
+      });
+      wrap.appendChild(chip);
+    });
+    const addTagBtn = document.createElement("span");
+    addTagBtn.className = "hs-modal-tag-add";
+    addTagBtn.textContent = "+ 추가";
+    addTagBtn.addEventListener("click", () => {
+      if (wrap.querySelector(".hs-new-tag-inp")) return;
+      const inp = document.createElement("input");
+      inp.className = "hs-new-tag-inp";
+      inp.placeholder = "태그 이름";
+      const confirmTag = () => { const name = inp.value.trim(); if (name) { const t = addUserTag(name); if (t) selectedTagIds.push(t.id); } renderTags(); };
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") confirmTag(); if (e.key === "Escape") renderTags(); });
+      inp.addEventListener("blur", confirmTag);
+      wrap.appendChild(inp); inp.focus();
+    });
+    wrap.appendChild(addTagBtn);
+  }
+  renderTags();
+
+  const close = () => overlay.remove();
+  document.getElementById("hsEditClose").addEventListener("click", close);
+  document.getElementById("hsEditCancel").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  document.getElementById("hsEditSave").addEventListener("click", async () => {
+    const text = document.getElementById("hsEditText").value.trim();
+    if (!text) return;
+    const startP = parseHM(document.getElementById("hsEditStart").value);
+    const endP = parseHM(document.getElementById("hsEditEnd").value);
+    let timeMs = c.timeMs || Date.now(), endMs = c.endMs || null, durationMs = c.durationMs || null;
+    if (startP) { const d = new Date(dayStart); d.setHours(startP.h, startP.min, 0, 0); timeMs = d.getTime(); }
+    if (endP) { const d = new Date(dayStart); d.setHours(endP.h, endP.min, 0, 0); endMs = d.getTime(); durationMs = endMs - timeMs; }
+    c._record.checkIns[c._idx] = { ...c._record.checkIns[c._idx], text, timeMs, endMs, durationMs, tags: [...selectedTagIds] };
+    await updateRecord(c._record._id, { checkIns: c._record.checkIns });
+    close();
+    renderDayContent(container, records, dateStr);
+  });
+
+  document.getElementById("hsEditText").focus();
+}
 
 function updateFocusScreen() {
   if (!startedAtMs) return;
