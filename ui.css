@@ -319,7 +319,7 @@ html, body {
 .login-overlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 9999;
   display: none;
   place-items: center;
   background: #000;

@@ -460,13 +460,13 @@ function showScreen(screen) {
 
   if (screen === "login") {
     loginOverlay?.classList.add("is-active");
-    appMain?.classList.add("hidden");
+    if (appMain) appMain.style.display = "none";
     return;
   }
 
   // Logged in — show app
   loginOverlay?.classList.remove("is-active");
-  appMain?.classList.remove("hidden");
+  if (appMain) appMain.style.display = "";
 
   if (screen === "focus") {
     wsIdleState?.classList.add("hidden");
@@ -1501,7 +1501,7 @@ function updateFocusScreen() {
   }
   // 집중 모드 오버레이 동기화
   const focusOverlay = document.getElementById("focusOverlay");
-  if (focusOverlay && !focusOverlay.classList.contains("hidden")) {
+  if (focusOverlay && focusOverlay.style.display !== "none") {
     const elText = document.getElementById("focusElapsedText");
     if (elText) elText.textContent = liveTimeText;
     const metaEl = document.getElementById("focusMetaText");
@@ -1581,7 +1581,8 @@ function finishSession(retro = "") {
   timerId = null;
   els.sessionBadge.textContent = "대기";
   // Hide focus overlay if open
-  document.getElementById("focusOverlay")?.classList.add("hidden");
+  const _fo = document.getElementById("focusOverlay");
+  if (_fo) _fo.style.display = "none";
   // Show idle state in left panel
   document.getElementById("wsIdleState")?.classList.remove("hidden");
   document.getElementById("wsActiveState")?.classList.add("hidden");
@@ -1715,7 +1716,8 @@ function init() {
 
     // 앱 메인 표시
     document.getElementById("loginScreen")?.classList.remove("is-active");
-    document.getElementById("appMain")?.classList.remove("hidden");
+    const _appMain = document.getElementById("appMain");
+    if (_appMain) _appMain.style.display = "";
 
     if (startedAtMs) {
       document.getElementById("wsIdleState")?.classList.add("hidden");
@@ -1756,7 +1758,7 @@ function init() {
   document.getElementById("wsExpandBtn")?.addEventListener("click", () => {
     const overlay = document.getElementById("focusOverlay");
     if (!overlay) return;
-    overlay.classList.remove("hidden");
+    overlay.style.display = "flex";
     // 즉시 동기화
     const elText = document.getElementById("focusElapsedText");
     if (elText && els.elapsedTimeText) elText.textContent = els.elapsedTimeText.textContent;
@@ -1768,7 +1770,8 @@ function init() {
     if (focusTodayEl) todayEl.textContent = focusTodayEl.textContent;
   });
   document.getElementById("focusCollapseBtn")?.addEventListener("click", () => {
-    document.getElementById("focusOverlay")?.classList.add("hidden");
+    const overlay = document.getElementById("focusOverlay");
+    if (overlay) overlay.style.display = "none";
   });
   document.getElementById("focusPauseBtn")?.addEventListener("click", () => {
     if (isPaused) resumeSession(); else pauseSession();

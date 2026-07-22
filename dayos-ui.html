@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=64" />
+    <link rel="stylesheet" href="./ui.css?v=65" />
   </head>
   <body>
 <div class="dayos-app">
@@ -42,7 +42,7 @@
   </div>
 
   <!-- ─── 앱 메인 (로그인 후 표시) ─── -->
-  <main class="app-main hidden" id="appMain">
+  <main class="app-main" id="appMain" style="display:none">
 
     <!-- Section 1: 홈 (풀 뷰포트) -->
     <section class="home-section" id="homeSection">
@@ -187,7 +187,7 @@
   </main>
 
   <!-- ─── 집중 모드 오버레이 ─── -->
-  <div class="focus-overlay hidden" id="focusOverlay">
+  <div class="focus-overlay" id="focusOverlay" style="display:none">
     <button class="focus-collapse-btn" id="focusCollapseBtn">← 기록으로</button>
     <div class="focus-overlay__content">
       <p class="date-chip">
@@ -210,6 +210,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <iframe id="musicFrame" style="position:fixed;width:200px;height:113px;opacity:0.001;pointer-events:none;bottom:0;left:0;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-<script src="./ui.js?v=64"></script>
+<script src="./ui.js?v=65"></script>
 </body>
 </html>
