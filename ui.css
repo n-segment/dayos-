@@ -1055,7 +1055,7 @@ body.dawn-video .screen--welcome::before {
   font-size: 13px;
 }
 .hs-section-label {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255,255,255,0.35);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1071,7 +1071,7 @@ body.dawn-video .screen--welcome::before {
   margin-bottom: 10px;
 }
 .hs-tl-now-label {
-  font-size: 11px;
+  font-size: 13px;
   color: #7eb8f7;
 }
 .hs-tl-wrap {
@@ -1119,7 +1119,7 @@ body.dawn-video .screen--welcome::before {
 .hs-tl-axis {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 13px;
   color: rgba(255,255,255,0.25);
 }
 
@@ -1142,7 +1142,7 @@ body.dawn-video .screen--welcome::before {
   min-width: 130px;
 }
 .hs-stat-label {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255,255,255,0.4);
   margin-bottom: 6px;
   display: flex;
@@ -1164,7 +1164,7 @@ body.dawn-video .screen--welcome::before {
 
 /* 기록 리스트 */
 .hs-group-label {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255,255,255,0.3);
   margin-bottom: 8px;
   margin-top: 4px;
@@ -1216,7 +1216,7 @@ body.dawn-video .screen--welcome::before {
   margin-bottom: 3px;
 }
 .hs-record-time {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255,255,255,0.3);
 }
 .hs-record-dur {
@@ -1263,7 +1263,7 @@ body.dawn-video .screen--welcome::before {
   border: none;
   color: rgba(255,255,255,0.7);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   padding: 8px 14px;
   text-align: left;
   cursor: pointer;
@@ -1278,7 +1278,7 @@ body.dawn-video .screen--welcome::before {
   border-radius: 20px;
   color: var(--color-paper-white);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   padding: 4px 10px;
   outline: none;
   width: 80px;
@@ -1288,7 +1288,7 @@ body.dawn-video .screen--welcome::before {
 .hs-add-btn {
   border: 1px solid rgba(255,255,255,0.25);
   border-style: solid;
-  border-radius: 14px;
+  border-radius: 999px;
   padding: 14px;
   text-align: center;
   font-size: 14px;
@@ -1365,7 +1365,7 @@ body.dawn-video .screen--welcome::before {
 .hs-modal-field { margin-bottom: 16px; }
 .hs-modal-label {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255,255,255,0.35);
   margin-bottom: 6px;
   letter-spacing: 0.04em;
@@ -1417,7 +1417,7 @@ body.dawn-video .screen--welcome::before {
   display: inline-block;
   padding: 5px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   border: 1px solid var(--tc, rgba(255,255,255,0.2));
   color: var(--tc, rgba(255,255,255,0.4));
@@ -1433,7 +1433,7 @@ body.dawn-video .screen--welcome::before {
   display: inline-block;
   padding: 5px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.2);
   color: rgba(255,255,255,0.3);
