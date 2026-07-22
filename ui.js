@@ -451,6 +451,9 @@ function restoreState() {
   } catch { /* noop */ }
 }
 
+function _showEl(el) { if (el) el.style.display = ""; }
+function _hideEl(el) { if (el) el.style.display = "none"; }
+
 function showScreen(screen) {
   const loginOverlay = document.getElementById("loginScreen");
   const appMain = document.getElementById("appMain");
@@ -460,33 +463,33 @@ function showScreen(screen) {
 
   if (screen === "login") {
     loginOverlay?.classList.add("is-active");
-    if (appMain) appMain.style.display = "none";
+    _hideEl(appMain);
     return;
   }
 
   // Logged in — show app
   loginOverlay?.classList.remove("is-active");
-  if (appMain) appMain.style.display = "";
+  _showEl(appMain);
 
   if (screen === "focus") {
-    wsIdleState?.classList.add("hidden");
-    wsActiveState?.classList.remove("hidden");
-    summaryOverlay?.classList.add("hidden");
+    _hideEl(wsIdleState);
+    _showEl(wsActiveState);
+    _hideEl(summaryOverlay);
     document.getElementById("workspaceSection")
       ?.scrollIntoView({ behavior: "smooth" });
   } else if (screen === "welcome") {
     if (!startedAtMs) {
-      wsIdleState?.classList.remove("hidden");
-      wsActiveState?.classList.add("hidden");
+      _showEl(wsIdleState);
+      _hideEl(wsActiveState);
     }
-    summaryOverlay?.classList.add("hidden");
+    _hideEl(summaryOverlay);
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (screen === "history") {
-    summaryOverlay?.classList.add("hidden");
+    _hideEl(summaryOverlay);
     document.getElementById("workspaceSection")
       ?.scrollIntoView({ behavior: "smooth" });
   } else if (screen === "summary") {
-    summaryOverlay?.classList.remove("hidden");
+    _showEl(summaryOverlay);
   }
 }
 
@@ -1553,8 +1556,8 @@ function startSession() {
   const focusPauseBtn = document.getElementById("focusPauseBtn");
   if (focusPauseBtn) focusPauseBtn.textContent = "일시정지";
   // Show active state in left panel
-  document.getElementById("wsIdleState")?.classList.add("hidden");
-  document.getElementById("wsActiveState")?.classList.remove("hidden");
+  _hideEl(document.getElementById("wsIdleState"));
+  _showEl(document.getElementById("wsActiveState"));
   // Scroll to workspace
   document.getElementById("workspaceSection")
     ?.scrollIntoView({ behavior: "smooth" });
@@ -1584,8 +1587,8 @@ function finishSession(retro = "") {
   const _fo = document.getElementById("focusOverlay");
   if (_fo) _fo.style.display = "none";
   // Show idle state in left panel
-  document.getElementById("wsIdleState")?.classList.remove("hidden");
-  document.getElementById("wsActiveState")?.classList.add("hidden");
+  _showEl(document.getElementById("wsIdleState"));
+  _hideEl(document.getElementById("wsActiveState"));
   openSummaryScreen();
 }
 
@@ -1720,14 +1723,14 @@ function init() {
     if (_appMain) _appMain.style.display = "";
 
     if (startedAtMs) {
-      document.getElementById("wsIdleState")?.classList.add("hidden");
-      document.getElementById("wsActiveState")?.classList.remove("hidden");
+      _hideEl(document.getElementById("wsIdleState"));
+      _showEl(document.getElementById("wsActiveState"));
       els.sessionBadge.textContent = "작업 기록 중";
       updateFocusScreen();
       timerId = setInterval(updateFocusScreen, 1000);
     } else {
-      document.getElementById("wsIdleState")?.classList.remove("hidden");
-      document.getElementById("wsActiveState")?.classList.add("hidden");
+      _showEl(document.getElementById("wsIdleState"));
+      _hideEl(document.getElementById("wsActiveState"));
       els.sessionBadge.textContent = "대기";
     }
 
@@ -1779,8 +1782,7 @@ function init() {
   document.getElementById("focusEndBtn")?.addEventListener("click", endSession);
 
   els.summaryBackButton?.addEventListener("click", () => {
-    // 요약 닫기, 작업 중이면 왼쪽 패널 유지
-    document.getElementById("summaryScreen")?.classList.add("hidden");
+    _hideEl(document.getElementById("summaryScreen"));
     if (startedAtMs) {
       document.getElementById("workspaceSection")
         ?.scrollIntoView({ behavior: "smooth" });
@@ -1788,7 +1790,7 @@ function init() {
   });
   els.summarySaveButton?.addEventListener("click", async () => {
     await saveSessionToHistory();
-    document.getElementById("summaryScreen")?.classList.add("hidden");
+    _hideEl(document.getElementById("summaryScreen"));
     window.scrollTo({ top: 0, behavior: "smooth" });
     renderHistoryScreen();
   });
