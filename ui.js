@@ -1808,8 +1808,12 @@ function init() {
   });
 
   els.historyLinkButton?.addEventListener("click", () => {
-    document.getElementById("workspaceSection")
-      ?.scrollIntoView({ behavior: "smooth" });
+    if (startedAtMs) {
+      document.getElementById("workspaceSection")
+        ?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      startSession();
+    }
   });
 
   // historyBackButton removed from new layout — no-op
