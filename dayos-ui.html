@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=57" />
+    <link rel="stylesheet" href="./ui.css?v=58" />
   </head>
   <body>
 <div class="dayos-app">
@@ -65,14 +65,12 @@
         <!-- 2. 작업시간 기록 화면 -->
         <section class="screen screen--focus" id="focusScreen" aria-label="작업 기록 중">
           <button class="end-btn-fixed" id="homeBtn" style="left:40px;right:auto;">← 홈</button>
-          <button class="end-btn-fixed" id="endButtonFixed">기록 보기 →</button>
           <div class="focus-panel">
             <p class="date-chip"><span class="date-chip__dot" aria-hidden="true"></span><span id="focusTodayText"></span></p>
             <p class="focus-panel__meta" id="startedMetaText"></p>
             <p class="focus-panel__time" id="elapsedTimeText">0시간 00분</p>
             <div class="focus-panel__actions">
               <button class="button button--ghost" id="pauseButton">일시정지</button>
-              <button class="button button--primary" id="addNoteBtn">기록하기</button>
               <button class="button button--primary" id="endButton">작업 끝내기</button>
             </div>
           </div>
@@ -169,6 +167,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <iframe id="musicFrame" style="position:fixed;width:200px;height:113px;opacity:0.001;pointer-events:none;bottom:0;left:0;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    <script src="./ui.js?v=57"></script>
+    <script src="./ui.js?v=58"></script>
   </body>
 </html>

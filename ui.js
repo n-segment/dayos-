@@ -1418,10 +1418,6 @@ function init() {
   els.pauseButton?.addEventListener("click", () => {
     if (isPaused) resumeSession(); else pauseSession();
   });
-  document.getElementById("endButtonFixed")?.addEventListener("click", () => {
-    renderHistoryScreen();
-    showScreen("history");
-  });
   els.endButton?.addEventListener("click", endSession);
   document.getElementById("homeBtn")?.addEventListener("click", () => showScreen("welcome"));
   els.viewRecordButton?.addEventListener("click", () => {
@@ -1555,11 +1551,6 @@ function init() {
     }
   });
 
-  // 기록 보기 버튼 (포커스 화면 → 기록 페이지)
-  els.addNoteBtn?.addEventListener("click", () => {
-    renderHistoryScreen();
-    showScreen("history");
-  });
 }
 
 init();
