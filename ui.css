@@ -401,15 +401,7 @@ html, body {
 .brand-mark__text { letter-spacing: 0.14em; text-transform: none; }
 
 .session-badge {
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-ink-black);
-  background: rgba(255,255,255,0.75);
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 5px 14px;
+  display: none;
 }
 
 /* ── Login overlay ── */
