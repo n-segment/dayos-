@@ -1076,11 +1076,19 @@ body.dawn-video .screen--welcome::before {
 }
 .hs-tl-wrap {
   position: relative;
-  height: 10px;
+  height: 18px;
   background: rgba(255,255,255,0.06);
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 8px;
+}
+.hs-tl-grid-line {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: rgba(255,255,255,0.08);
+  pointer-events: none;
 }
 .hs-tl-marker {
   position: absolute;

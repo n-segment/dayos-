@@ -765,6 +765,13 @@ function renderDayContent(container, records, dateStr) {
   container.appendChild(tlSection);
 
   const tlWrap = tlSection.querySelector("#hsTlWrap");
+  // 시간별 그리드 선 (1~23시)
+  for (let h = 1; h < 24; h++) {
+    const line = document.createElement("div");
+    line.className = "hs-tl-grid-line";
+    line.style.left = (h / 24 * 100).toFixed(3) + "%";
+    tlWrap.appendChild(line);
+  }
   allCheckIns.filter(c => c.timeMs).forEach(c => {
     const left = Math.max(0, ((c.timeMs - dayStart) / 86400000 * 100)).toFixed(2);
     const t = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
@@ -810,15 +817,11 @@ function renderDayContent(container, records, dateStr) {
 
   // ── 3. 기록 리스트 ──
   if (allCheckIns.length > 0) {
-    const morning = allCheckIns.filter(c => c.timeMs && new Date(c.timeMs).getHours() < 12);
-    const afternoon = allCheckIns.filter(c => !c.timeMs || new Date(c.timeMs).getHours() >= 12);
+    const morning = [];
+    const afternoon = allCheckIns;
 
     const renderGroup = (label, items) => {
       if (!items.length) return;
-      const groupLabel = document.createElement("div");
-      groupLabel.className = "hs-group-label";
-      groupLabel.textContent = label;
-      container.appendChild(groupLabel);
       const card = document.createElement("div");
       card.className = "hs-record-card";
 
