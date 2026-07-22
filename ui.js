@@ -704,7 +704,7 @@ async function renderHistoryScreen(dateStr) {
         <button class="hs-nav-btn" id="hsNext">다음날</button>
       </div>
     `;
-    document.getElementById("hsBack").addEventListener("click", () => showScreen(sessionActive ? "focus" : "welcome"));
+    document.getElementById("hsBack").addEventListener("click", () => showScreen(startedAtMs ? "focus" : "welcome"));
     document.getElementById("hsPrev").addEventListener("click", () => {
       const nd = new Date(_histDate + "T00:00:00"); nd.setDate(nd.getDate() - 1);
       _histDate = toDateStr(nd.getTime()); setHeaderDate(_histDate); loadHistoryDay(_histDate, content);
