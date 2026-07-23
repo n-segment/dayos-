@@ -274,6 +274,134 @@ html, body {
   border-color: rgba(255,255,255,0.5);
 }
 
+/* 낙서 버튼 */
+.doodle-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  margin-left: 8px;
+}
+.doodle-btn:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.5);
+}
+.doodle-btn.active {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-color: rgba(255,255,255,0.6);
+}
+
+/* 낙서 캔버스 */
+.doodle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* 낙서 툴바 */
+.doodle-toolbar {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 501;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(20,20,28,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 40px;
+  padding: 8px 14px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+.doodle-toolbar.hidden { display: none; }
+
+.doodle-tool-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.doodle-tool-color:hover { transform: scale(1.15); }
+.doodle-tool-color.active {
+  border-color: rgba(255,255,255,0.8);
+  transform: scale(1.2);
+}
+
+.doodle-tool-size {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: background 0.1s;
+}
+.doodle-tool-size:hover { background: rgba(255,255,255,0.1); }
+.doodle-tool-size.active { background: rgba(255,255,255,0.18); }
+.doodle-size-dot {
+  border-radius: 50%;
+  background: rgba(255,255,255,0.8);
+  display: block;
+  flex-shrink: 0;
+}
+
+.doodle-tool-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: background 0.1s, color 0.1s;
+}
+.doodle-tool-icon:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.doodle-tool-icon.active { background: rgba(255,255,255,0.18); color: #fff; }
+
+.doodle-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255,255,255,0.15);
+  flex-shrink: 0;
+}
+
+.doodle-done-btn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  color: rgba(255,255,255,0.8);
+  font-size: 12px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.doodle-done-btn:hover { background: rgba(255,255,255,0.2); }
+
 /* 메모 버튼 */
 .memo-btn {
   background: none;

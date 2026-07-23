@@ -126,6 +126,162 @@ function renderMemos() {
   });
 }
 
+// ── 낙서 시스템 ──────────────────────────────────────────────────────
+const DOODLE_KEY = "dayos_doodle_v1";
+
+function initDoodleSystem() {
+  const btn = document.getElementById("doodleBtn");
+  const canvas = document.getElementById("doodleCanvas");
+  const toolbar = document.getElementById("doodleToolbar");
+  if (!btn || !canvas || !toolbar) return;
+
+  const ctx = canvas.getContext("2d");
+  let isDrawing = false;
+  let isEraser = false;
+  let penColor = "#ffffff";
+  let penSize = 3;
+  let lastX = 0, lastY = 0;
+
+  function resizeCanvas() {
+    const img = canvas.toDataURL();
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    // 기존 그림 복원
+    if (img !== "data:,") {
+      const image = new Image();
+      image.onload = () => ctx.drawImage(image, 0, 0);
+      image.src = img;
+    }
+  }
+
+  function loadDoodle() {
+    const saved = localStorage.getItem(DOODLE_KEY);
+    if (!saved) return;
+    const image = new Image();
+    image.onload = () => ctx.drawImage(image, 0, 0);
+    image.src = saved;
+  }
+
+  function saveDoodle() {
+    try { localStorage.setItem(DOODLE_KEY, canvas.toDataURL()); } catch(e) {}
+  }
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    const { x, y } = getPos(e);
+    lastX = x; lastY = y;
+    ctx.beginPath();
+    ctx.arc(x, y, (isEraser ? penSize * 4 : penSize) / 2, 0, Math.PI * 2);
+    ctx.fillStyle = isEraser ? "rgba(0,0,0,1)" : penColor;
+    if (isEraser) ctx.globalCompositeOperation = "destination-out";
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const { x, y } = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = penColor;
+    ctx.lineWidth = isEraser ? penSize * 4 : penSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if (isEraser) ctx.globalCompositeOperation = "destination-out";
+    else ctx.globalCompositeOperation = "source-over";
+    ctx.stroke();
+    lastX = x; lastY = y;
+  }
+
+  function endDraw() {
+    if (!isDrawing) return;
+    isDrawing = false;
+    ctx.globalCompositeOperation = "source-over";
+    saveDoodle();
+  }
+
+  // 낙서 모드 ON/OFF
+  let doodleActive = false;
+  function toggleDoodle() {
+    doodleActive = !doodleActive;
+    if (doodleActive) {
+      resizeCanvas();
+      loadDoodle();
+      canvas.classList.remove("hidden");
+      toolbar.classList.remove("hidden");
+      btn.classList.add("active");
+      document.body.style.userSelect = "none";
+    } else {
+      canvas.classList.add("hidden");
+      toolbar.classList.add("hidden");
+      btn.classList.remove("active");
+      document.body.style.userSelect = "";
+    }
+  }
+
+  btn.addEventListener("click", toggleDoodle);
+  window.addEventListener("resize", () => { if (doodleActive) resizeCanvas(); });
+
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", endDraw);
+  canvas.addEventListener("mouseleave", endDraw);
+  canvas.addEventListener("touchstart", startDraw, { passive: false });
+  canvas.addEventListener("touchmove", draw, { passive: false });
+  canvas.addEventListener("touchend", endDraw);
+
+  // 색상 버튼
+  toolbar.querySelectorAll(".doodle-tool-color").forEach(b => {
+    b.addEventListener("click", () => {
+      penColor = b.dataset.color;
+      isEraser = false;
+      toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      document.getElementById("doodleEraserBtn")?.classList.remove("active");
+    });
+  });
+
+  // 크기 버튼
+  toolbar.querySelectorAll(".doodle-tool-size").forEach(b => {
+    b.addEventListener("click", () => {
+      penSize = +b.dataset.size;
+      toolbar.querySelectorAll(".doodle-tool-size").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+    });
+  });
+
+  // 지우개
+  document.getElementById("doodleEraserBtn")?.addEventListener("click", function() {
+    isEraser = !isEraser;
+    this.classList.toggle("active", isEraser);
+    if (isEraser) {
+      toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
+    }
+  });
+
+  // 전체 지우기
+  document.getElementById("doodleClearBtn")?.addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    localStorage.removeItem(DOODLE_KEY);
+  });
+
+  // 완료
+  document.getElementById("doodleDoneBtn")?.addEventListener("click", toggleDoodle);
+}
+
 function initMemoSystem() {
   loadMemos();
   renderMemos();
@@ -1826,6 +1982,7 @@ function init() {
 
     updateWelcomeScreen();
     initMemoSystem();
+    initDoodleSystem();
     // 우측 패널에 기록 자동 로드
     renderHistoryScreen();
   });
