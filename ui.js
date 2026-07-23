@@ -215,17 +215,22 @@ function initDoodleSystem() {
 
   // 낙서 모드 ON/OFF
   let doodleActive = false;
+
+  // 저장된 낙서 복원 (항상 화면에 표시)
+  resizeCanvas();
+  loadDoodle();
+  canvas.classList.remove("hidden");
+  canvas.style.pointerEvents = "none";
+
   function toggleDoodle() {
     doodleActive = !doodleActive;
     if (doodleActive) {
-      resizeCanvas();
-      loadDoodle();
-      canvas.classList.remove("hidden");
+      canvas.style.pointerEvents = "auto";
       toolbar.classList.remove("hidden");
       btn.classList.add("active");
       document.body.style.userSelect = "none";
     } else {
-      canvas.classList.add("hidden");
+      canvas.style.pointerEvents = "none";
       toolbar.classList.add("hidden");
       btn.classList.remove("active");
       document.body.style.userSelect = "";
