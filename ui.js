@@ -126,6 +126,103 @@ function renderMemos() {
   });
 }
 
+// ── X 임베드 시스템 ──────────────────────────────────────────────────
+const EMBED_KEY = "dayos_embeds_v1";
+let embeds = [];
+
+function loadEmbeds() { try { embeds = JSON.parse(localStorage.getItem(EMBED_KEY) || "[]"); } catch { embeds = []; } }
+function saveEmbeds() { localStorage.setItem(EMBED_KEY, JSON.stringify(embeds)); }
+
+function getTweetId(url) {
+  const match = url.match(/status\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+function renderEmbeds() {
+  document.querySelectorAll(".tweet-card").forEach(el => el.remove());
+  const section = document.getElementById("homeSection");
+  if (!section) return;
+
+  embeds.forEach((embed, idx) => {
+    const el = document.createElement("div");
+    el.className = "tweet-card";
+    el.style.left = (embed.x || 80 + idx * 24) + "px";
+    el.style.top = (embed.y || 120 + idx * 24) + "px";
+    el.innerHTML = `
+      <div class="tweet-card-drag-handle"></div>
+      <button class="tweet-card-close" data-idx="${idx}">×</button>
+      <iframe
+        src="https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&theme=dark&dnt=true&lang=ko"
+        width="280" height="390" frameborder="0" scrolling="no"
+        allowtransparency="true"
+      ></iframe>
+    `;
+
+    // 드래그 (drag handle 영역만)
+    const handle = el.querySelector(".tweet-card-drag-handle");
+    let dragging = false, ox = 0, oy = 0;
+    handle.addEventListener("mousedown", e => {
+      dragging = true;
+      ox = e.clientX - el.offsetLeft;
+      oy = e.clientY - el.offsetTop;
+      e.preventDefault();
+    });
+    const onMove = e => {
+      if (!dragging) return;
+      el.style.left = (e.clientX - ox) + "px";
+      el.style.top = (e.clientY - oy) + "px";
+    };
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      embeds[idx].x = parseInt(el.style.left);
+      embeds[idx].y = parseInt(el.style.top);
+      saveEmbeds();
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+
+    el.querySelector(".tweet-card-close").addEventListener("click", () => {
+      embeds.splice(idx, 1);
+      saveEmbeds();
+      renderEmbeds();
+    });
+
+    section.appendChild(el);
+  });
+}
+
+function initEmbedSystem() {
+  loadEmbeds();
+  renderEmbeds();
+  const btn = document.getElementById("embedBtn");
+  const panel = document.getElementById("embedInputPanel");
+  const input = document.getElementById("embedUrlInput");
+  if (!btn || !panel || !input) return;
+
+  btn.addEventListener("click", () => {
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open")) input.focus();
+  });
+  document.getElementById("embedCancelBtn")?.addEventListener("click", () => {
+    panel.classList.remove("open");
+    input.value = "";
+  });
+  document.getElementById("embedSaveBtn")?.addEventListener("click", () => {
+    const id = getTweetId(input.value.trim());
+    if (!id) { input.style.borderColor = "rgba(255,100,100,0.6)"; setTimeout(() => input.style.borderColor = "", 1000); return; }
+    embeds.push({ id, x: 80 + (embeds.length % 4) * 28, y: 120 + (embeds.length % 3) * 28 });
+    saveEmbeds();
+    renderEmbeds();
+    panel.classList.remove("open");
+    input.value = "";
+  });
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("embedSaveBtn")?.click();
+    if (e.key === "Escape") document.getElementById("embedCancelBtn")?.click();
+  });
+}
+
 // ── 낙서 시스템 ──────────────────────────────────────────────────────
 const DOODLE_KEY = "dayos_doodle_v1";
 
@@ -1987,6 +2084,7 @@ function init() {
 
     updateWelcomeScreen();
     initMemoSystem();
+    initEmbedSystem();
     initDoodleSystem();
     // 우측 패널에 기록 자동 로드
     renderHistoryScreen();

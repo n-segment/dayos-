@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=78" />
+    <link rel="stylesheet" href="./ui.css?v=79" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -34,6 +34,18 @@
           <path d="M1.5 11.5 L2.5 10" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
         </svg>
       </button>
+      <button class="embed-btn" id="embedBtn" aria-label="X 임베드">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9.2 1H10.9L7.3 5.1L11.5 11H8.2L5.6 7.6L2.6 11H0.9L4.8 6.6L0.8 1H4.2L6.5 4.1L9.2 1ZM8.6 10H9.5L3.7 2H2.7L8.6 10Z" fill="currentColor"/>
+        </svg>
+      </button>
+      <div class="embed-input-panel" id="embedInputPanel">
+        <input class="embed-url-input" id="embedUrlInput" type="text" placeholder="X 링크 붙여넣기..." autocomplete="off"/>
+        <div class="memo-input-panel-actions">
+          <button class="memo-cancel-btn" id="embedCancelBtn">취소</button>
+          <button class="memo-save-btn" id="embedSaveBtn">추가</button>
+        </div>
+      </div>
       <button class="memo-btn" id="memoBtn" aria-label="메모 추가">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.2"/>
@@ -265,6 +277,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <iframe id="musicFrame" style="position:fixed;width:200px;height:113px;opacity:0.001;pointer-events:none;bottom:0;left:0;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-<script src="./ui.js?v=77"></script>
+<script src="./ui.js?v=78"></script>
 </body>
 </html>
