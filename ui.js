@@ -145,17 +145,23 @@ function renderEmbeds() {
 
   embeds.forEach((embed, idx) => {
     const el = document.createElement("div");
-    el.className = "tweet-card";
+    const videoOnly = embed.videoOnly || false;
+    el.className = "tweet-card" + (videoOnly ? " tweet-card--video" : "");
     el.style.left = (embed.x || 80 + idx * 24) + "px";
     el.style.top = (embed.y || 120 + idx * 24) + "px";
     el.innerHTML = `
       <div class="tweet-card-drag-handle"></div>
       <button class="tweet-card-close" data-idx="${idx}">×</button>
-      <iframe
-        src="https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&theme=dark&dnt=true&lang=ko"
-        width="280" height="390" frameborder="0" scrolling="no"
-        allowtransparency="true"
-      ></iframe>
+      <button class="tweet-card-toggle" title="${videoOnly ? '전체 보기' : '영상만 보기'}">
+        ${videoOnly ? '⊞' : '▶'}
+      </button>
+      <div class="tweet-card-viewport">
+        <iframe
+          src="https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&theme=dark&dnt=true&lang=ko"
+          width="280" height="420" frameborder="0" scrolling="no"
+          allowtransparency="true"
+        ></iframe>
+      </div>
     `;
 
     // 드래그 (drag handle 영역만)
@@ -184,6 +190,12 @@ function renderEmbeds() {
 
     el.querySelector(".tweet-card-close").addEventListener("click", () => {
       embeds.splice(idx, 1);
+      saveEmbeds();
+      renderEmbeds();
+    });
+
+    el.querySelector(".tweet-card-toggle").addEventListener("click", () => {
+      embeds[idx].videoOnly = !embeds[idx].videoOnly;
       saveEmbeds();
       renderEmbeds();
     });
