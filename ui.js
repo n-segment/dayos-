@@ -976,7 +976,8 @@ function showScreen(screen) {
       _hideEl(wsActiveState);
     }
     _hideEl(summaryOverlay);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Always show the merged record screen
+    renderHistoryScreen();
   } else if (screen === "history") {
     _hideEl(summaryOverlay);
     renderHistoryScreen();
@@ -1294,18 +1295,13 @@ function renderHistoryScreen(dateStr) {
 function _renderSidebar(sidebar, dates) {
   sidebar.innerHTML = "";
 
-  // ── NAV row ──
+  // ── NAV row (logo only) ──
   const nav = document.createElement("div");
   nav.className = "hs2-sb-nav";
-  const backBtn = document.createElement("button");
-  backBtn.className = "hs2-sb-back";
-  backBtn.textContent = "‹";
-  backBtn.addEventListener("click", () => {
-    if (window._hs2SbClockId) { clearInterval(window._hs2SbClockId); window._hs2SbClockId = null; }
-    _hideEl(document.getElementById("historyScreen"));
-    showScreen(startedAtMs ? "focus" : "welcome");
-  });
-  nav.appendChild(backBtn);
+  const logo = document.createElement("span");
+  logo.className = "hs2-sb-logo";
+  logo.textContent = "DayOS";
+  nav.appendChild(logo);
   sidebar.appendChild(nav);
 
   // ── CLOCK section ──

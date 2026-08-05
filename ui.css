@@ -3570,6 +3570,13 @@ html, body {
   line-height: 1;
 }
 .hs2-sb-back:hover { color: #000; }
+.hs2-sb-logo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.35);
+}
 
 /* CLOCK section */
 .hs2-sb-clock {
