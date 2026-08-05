@@ -3522,17 +3522,86 @@ html, body {
    기록 화면 v2 — 활동 사이드바 + 주간 그리드
    ═══════════════════════════════════════════════════════ */
 
-/* Fixed full-screen overlay */
+/* Fixed full-screen overlay — dark theme */
 #historyScreen {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: #f0eeea;
+  background: #0d0d0d;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 #historyScreen.hidden { display: none !important; }
+
+/* ── Dark overrides for all hs2 elements ── */
+#historyScreen .hs2-sidebar {
+  background: rgba(255,255,255,0.04);
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+#historyScreen .hs2-sb-nav { padding-bottom: 8px; }
+#historyScreen .hs2-sb-logo { color: rgba(255,255,255,0.22); }
+#historyScreen .hs2-sb-date { color: rgba(255,255,255,0.35); }
+#historyScreen .hs2-sb-time { color: #fff; }
+#historyScreen .hs2-sb-timer {
+  background: rgba(255,255,255,0.06);
+}
+#historyScreen .hs2-sb-timer-start { color: rgba(255,255,255,0.8); }
+#historyScreen .hs2-sb-timer-elapsed { color: #fff; }
+#historyScreen .hs2-sb-timer-stop {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+}
+#historyScreen .hs2-sb-divider { background: rgba(255,255,255,0.07); }
+#historyScreen .hs2-sb-acts-label { color: rgba(255,255,255,0.22); }
+#historyScreen .hs2-sb-add-btn { color: rgba(255,255,255,0.3); }
+#historyScreen .hs2-act-card {
+  background: rgba(255,255,255,0.06);
+}
+#historyScreen .hs2-act-card:hover { background: rgba(255,255,255,0.1); }
+#historyScreen .hs2-act-emoji { background: rgba(255,255,255,0.08); }
+#historyScreen .hs2-act-goal {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.55);
+}
+#historyScreen .hs2-act-dots { color: rgba(255,255,255,0.2); }
+#historyScreen .hs2-act-dots-menu {
+  background: #222;
+  border-color: rgba(255,255,255,0.1);
+}
+#historyScreen .hs2-act-dots-item { color: rgba(255,255,255,0.75); }
+#historyScreen .hs2-act-dots-item:hover { background: rgba(255,255,255,0.07); }
+#historyScreen .hs2-act-dots-item--del { color: #ff6b6b; }
+
+/* Grid panel dark */
+#historyScreen .hs2-grid-panel { background: #0d0d0d; }
+#historyScreen .hs2-grid-topbar {
+  background: #0d0d0d;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#historyScreen .hs2-grid-date-label { color: rgba(255,255,255,0.65); }
+#historyScreen .hs2-grid-nav-btn {
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.07);
+}
+#historyScreen .hs2-grid-nav-btn:hover { background: rgba(255,255,255,0.12); }
+#historyScreen .hs2-grid-scroll { background: #0d0d0d; }
+#historyScreen .hs2-grid-body { background: #0d0d0d; }
+#historyScreen .hs2-grid-header-row { border-bottom: 1px solid rgba(255,255,255,0.06); background: #0d0d0d; }
+#historyScreen .hs2-day-col-header { color: rgba(255,255,255,0.38); }
+#historyScreen .hs2-day-col-header .hs2-day-name { color: rgba(255,255,255,0.38); }
+#historyScreen .hs2-day-col-header .hs2-day-date { color: rgba(255,255,255,0.65); }
+#historyScreen .hs2-day-col-header.today .hs2-day-date {
+  background: #fff;
+  color: #000;
+}
+#historyScreen .hs2-grid-hour-label { color: rgba(255,255,255,0.2); }
+#historyScreen .hs2-grid-col { border-left: 1px solid rgba(255,255,255,0.04); }
+#historyScreen .hs2-grid-hour-cell {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+#historyScreen .hs2-grid-hour-cell:hover { background: rgba(255,255,255,0.03); }
+#historyScreen .hs2-grid-col--today { background: rgba(255,255,255,0.025); }
 
 /* Two-panel body */
 .hs2-layout {
