@@ -1267,26 +1267,12 @@ function renderHistoryScreen(dateStr) {
   screen.innerHTML = "";
   _showEl(screen);
 
+  // Clear previous sidebar clock interval
+  if (window._hs2SbClockId) { clearInterval(window._hs2SbClockId); window._hs2SbClockId = null; }
+
   const dates = getWeekDates(_histWeekStart);
 
-  // Top bar
-  const topbar = document.createElement("div");
-  topbar.className = "hs2-topbar";
-  const backBtn = document.createElement("button");
-  backBtn.className = "hs2-back-btn";
-  backBtn.textContent = "‹";
-  backBtn.addEventListener("click", () => {
-    _hideEl(screen);
-    showScreen(startedAtMs ? "focus" : "welcome");
-  });
-  topbar.appendChild(backBtn);
-  const titleSpan = document.createElement("span");
-  titleSpan.className = "hs2-title";
-  titleSpan.textContent = "기록";
-  topbar.appendChild(titleSpan);
-  screen.appendChild(topbar);
-
-  // Two-panel layout
+  // Two-panel layout (no separate topbar)
   const layout = document.createElement("div");
   layout.className = "hs2-layout";
   screen.appendChild(layout);
@@ -1295,7 +1281,7 @@ function renderHistoryScreen(dateStr) {
   const sidebar = document.createElement("div");
   sidebar.className = "hs2-sidebar";
   layout.appendChild(sidebar);
-  _renderActSidebar(sidebar, dates);
+  _renderSidebar(sidebar, dates);
 
   // RIGHT: grid panel
   const gridPanel = document.createElement("div");
@@ -1304,25 +1290,117 @@ function renderHistoryScreen(dateStr) {
   _renderWeekGrid(gridPanel, dates);
 }
 
-// ── Activity sidebar ──
-function _renderActSidebar(sidebar, dates) {
+// ── Unified sidebar (clock + timer + activities) ──
+function _renderSidebar(sidebar, dates) {
   sidebar.innerHTML = "";
-  const acts = loadActs();
 
-  // + add button
-  const addBtn = document.createElement("div");
-  addBtn.className = "hs2-act-add";
+  // ── NAV row ──
+  const nav = document.createElement("div");
+  nav.className = "hs2-sb-nav";
+  const backBtn = document.createElement("button");
+  backBtn.className = "hs2-sb-back";
+  backBtn.textContent = "‹";
+  backBtn.addEventListener("click", () => {
+    if (window._hs2SbClockId) { clearInterval(window._hs2SbClockId); window._hs2SbClockId = null; }
+    _hideEl(document.getElementById("historyScreen"));
+    showScreen(startedAtMs ? "focus" : "welcome");
+  });
+  nav.appendChild(backBtn);
+  sidebar.appendChild(nav);
+
+  // ── CLOCK section ──
+  const clockSection = document.createElement("div");
+  clockSection.className = "hs2-sb-clock";
+
+  const dateEl = document.createElement("div");
+  dateEl.className = "hs2-sb-date";
+  const now = new Date();
+  const DAYS_KO = ["일","월","화","수","목","금","토"];
+  dateEl.textContent = `${now.getMonth()+1}월 ${now.getDate()}일 · ${DAYS_KO[now.getDay()]}요일`;
+  clockSection.appendChild(dateEl);
+
+  const timeEl = document.createElement("div");
+  timeEl.className = "hs2-sb-time";
+  timeEl.textContent = formatClock();
+  clockSection.appendChild(timeEl);
+
+  sidebar.appendChild(clockSection);
+
+  // Live clock update
+  window._hs2SbClockId = setInterval(() => {
+    timeEl.textContent = formatClock();
+    const d = new Date();
+    dateEl.textContent = `${d.getMonth()+1}월 ${d.getDate()}일 · ${DAYS_KO[d.getDay()]}요일`;
+  }, 1000);
+
+  // ── TIMER widget ──
+  const timerBox = document.createElement("div");
+  timerBox.className = "hs2-sb-timer";
+  timerBox.id = "hs2SbTimerBox";
+  _renderSbTimerBox(timerBox);
+  sidebar.appendChild(timerBox);
+
+  // ── DIVIDER ──
+  const divider = document.createElement("div");
+  divider.className = "hs2-sb-divider";
+  sidebar.appendChild(divider);
+
+  // ── ACTS header ──
+  const actsHeader = document.createElement("div");
+  actsHeader.className = "hs2-sb-acts-header";
+  const actsLabel = document.createElement("span");
+  actsLabel.className = "hs2-sb-acts-label";
+  actsLabel.textContent = "활동";
+  actsHeader.appendChild(actsLabel);
+  const addBtn = document.createElement("button");
+  addBtn.className = "hs2-sb-add-btn";
   addBtn.textContent = "+";
-  addBtn.addEventListener("click", () => _openActModal(null, () => {
-    const screen = document.getElementById("historyScreen");
-    const newDates = getWeekDates(_histWeekStart);
-    screen.innerHTML = "";
-    _showEl(screen);
-    const topbar = screen.parentElement ? null : null; // re-render full
-    renderHistoryScreen(_histDate);
-  }));
-  sidebar.appendChild(addBtn);
+  addBtn.addEventListener("click", () => _openActModal(null, () => renderHistoryScreen(_histDate)));
+  actsHeader.appendChild(addBtn);
+  sidebar.appendChild(actsHeader);
 
+  // ── ACTIVITY cards ──
+  _renderActSidebar(sidebar, dates);
+}
+
+// ── Sidebar timer widget ──
+function _renderSbTimerBox(box) {
+  box.innerHTML = "";
+  if (startedAtMs) {
+    const elapsedEl = document.createElement("div");
+    elapsedEl.className = "hs2-sb-timer-elapsed";
+    const updateEl = () => {
+      const pausedMs = totalPausedMs + (isPaused && pausedAt ? Date.now() - pausedAt : 0);
+      elapsedEl.textContent = formatDuration(Date.now() - startedAtMs - pausedMs);
+    };
+    updateEl();
+    if (window._hs2SbTimerId) clearInterval(window._hs2SbTimerId);
+    window._hs2SbTimerId = setInterval(updateEl, 1000);
+    box.appendChild(elapsedEl);
+
+    const stopBtn = document.createElement("button");
+    stopBtn.className = "hs2-sb-timer-stop";
+    stopBtn.textContent = "종료";
+    stopBtn.addEventListener("click", () => {
+      if (window._hs2SbTimerId) { clearInterval(window._hs2SbTimerId); window._hs2SbTimerId = null; }
+      endSession();
+    });
+    box.appendChild(stopBtn);
+  } else {
+    const startBtn = document.createElement("button");
+    startBtn.className = "hs2-sb-timer-start";
+    startBtn.textContent = "시작하기 →";
+    startBtn.addEventListener("click", () => {
+      startSession();
+      _renderSbTimerBox(box);
+    });
+    box.appendChild(startBtn);
+  }
+}
+
+// ── Activity cards (appended into sidebar, no innerHTML reset) ──
+function _renderActSidebar(sidebar, dates) {
+  const acts = loadActs();
   const tlog = loadTlog();
 
   acts.forEach(act => {

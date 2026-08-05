@@ -3534,32 +3534,6 @@ html, body {
 }
 #historyScreen.hidden { display: none !important; }
 
-/* Top bar */
-.hs2-topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  background: #e8e6e1;
-  border-bottom: 1px solid rgba(0,0,0,0.07);
-  flex-shrink: 0;
-}
-.hs2-back-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: rgba(0,0,0,0.4);
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-}
-.hs2-back-btn:hover { color: #000; }
-.hs2-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #222;
-}
-
 /* Two-panel body */
 .hs2-layout {
   display: flex;
@@ -3567,18 +3541,126 @@ html, body {
   overflow: hidden;
 }
 
-/* LEFT — activity sidebar */
+/* LEFT — sidebar */
 .hs2-sidebar {
-  width: 280px;
+  width: 260px;
   flex-shrink: 0;
   background: #e8e6e1;
   border-right: 1px solid rgba(0,0,0,0.07);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 12px;
+  gap: 0;
+  padding: 0;
   overflow-y: auto;
 }
+
+/* NAV row */
+.hs2-sb-nav {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px 4px;
+}
+.hs2-sb-back {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: rgba(0,0,0,0.32);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.hs2-sb-back:hover { color: #000; }
+
+/* CLOCK section */
+.hs2-sb-clock {
+  padding: 8px 18px 18px;
+}
+.hs2-sb-date {
+  font-size: 12px;
+  color: rgba(0,0,0,0.42);
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+.hs2-sb-time {
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: #111;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* TIMER widget */
+.hs2-sb-timer {
+  margin: 0 12px 14px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hs2-sb-timer-start {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #222;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: -0.01em;
+}
+.hs2-sb-timer-start:hover { opacity: 0.65; }
+.hs2-sb-timer-elapsed {
+  font-size: 20px;
+  font-weight: 400;
+  color: #111;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.hs2-sb-timer-stop {
+  background: rgba(0,0,0,0.08);
+  border: none;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #444;
+  cursor: pointer;
+}
+.hs2-sb-timer-stop:hover { background: rgba(0,0,0,0.14); }
+
+/* DIVIDER */
+.hs2-sb-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.07);
+  margin: 0 12px 12px;
+}
+
+/* ACTS header */
+.hs2-sb-acts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 8px;
+}
+.hs2-sb-acts-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.36);
+}
+.hs2-sb-add-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: rgba(0,0,0,0.32);
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.hs2-sb-add-btn:hover { color: #000; }
 
 /* + add button */
 .hs2-act-add {
@@ -3605,6 +3687,7 @@ html, body {
   background: rgba(255,255,255,0.65);
   border-radius: 14px;
   padding: 9px 8px 9px 10px;
+  margin: 0 12px 8px;
   flex-shrink: 0;
   cursor: pointer;
   transition: background 0.12s;
