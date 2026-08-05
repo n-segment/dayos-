@@ -1408,19 +1408,11 @@ function _renderActSidebar(sidebar, dates) {
     card.className = "hs2-act-card";
     card.style.position = "relative";
 
-    // icon chip (SVG image or emoji fallback)
-    const emojiChip = document.createElement("div");
-    emojiChip.className = "hs2-act-emoji";
-    if (act.icon) {
-      const img = document.createElement("img");
-      img.src = act.icon;
-      img.alt = act.name;
-      img.style.cssText = "width:36px;height:36px;object-fit:contain;border-radius:8px;";
-      emojiChip.appendChild(img);
-    } else {
-      emojiChip.textContent = act.emoji || "📌";
-    }
-    card.appendChild(emojiChip);
+    // color dot
+    const dot = document.createElement("div");
+    dot.className = "hs2-act-dot";
+    dot.style.background = act.color || "#E64040";
+    card.appendChild(dot);
 
     // name label blob
     const label = document.createElement("div");
