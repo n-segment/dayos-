@@ -3619,26 +3619,25 @@ html, body {
   display: flex;
   flex: 1;
   overflow: hidden;
-  padding: 0 16px 16px 16px;
+  padding: 12px 16px 16px 16px;
   gap: 12px;
 }
 
 /* Grid panel card */
 #historyScreen .hs2-grid-panel {
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: #141414;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  background: #1c1c1c !important;
 }
 #historyScreen .hs2-grid-topbar {
-  background: #141414;
-  border-radius: 20px 20px 0 0;
+  background: #1c1c1c !important;
 }
 #historyScreen .hs2-grid-day-headers {
-  background: #141414;
+  background: #1c1c1c !important;
 }
-#historyScreen .hs2-grid-scroll { background: #141414; }
-#historyScreen .hs2-grid-body { background: #141414; }
+#historyScreen .hs2-grid-scroll { background: #1c1c1c !important; }
+#historyScreen .hs2-grid-body { background: #1c1c1c !important; }
 
 /* LEFT — sidebar */
 .hs2-sidebar {
