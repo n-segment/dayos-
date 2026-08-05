@@ -1408,7 +1408,12 @@ function _renderActSidebar(sidebar, dates) {
 
     const card = document.createElement("div");
     card.className = "hs2-act-card";
+    card.dataset.actId = act.id;
     card.style.position = "relative";
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".hs2-act-dots") || e.target.closest(".hs2-act-dots-menu")) return;
+      _setPaintAct(act.id);
+    });
 
     // color dot
     const dot = document.createElement("div");
@@ -1471,6 +1476,20 @@ function _renderActSidebar(sidebar, dates) {
 
     sidebar.appendChild(card);
   });
+}
+
+// ── Paint mode state ──
+let _paintActId = null;   // currently selected activity for painting
+
+function _setPaintAct(actId) {
+  _paintActId = (_paintActId === actId) ? null : actId;
+  // update sidebar card highlight
+  document.querySelectorAll(".hs2-act-card").forEach(el => {
+    el.classList.toggle("hs2-act-card--active", el.dataset.actId === _paintActId);
+  });
+  // update grid cursor
+  const body = document.querySelector(".hs2-grid-body");
+  if (body) body.classList.toggle("hs2-paint-cursor", !!_paintActId);
 }
 
 // ── Week grid ──
@@ -1560,6 +1579,78 @@ function _renderWeekGrid(gridPanel, dates) {
   body.className = "hs2-grid-body";
   scroll.appendChild(body);
 
+  // ── Drag-paint logic ──
+  let _painting = false;
+  let _paintStartH = null;
+  let _paintEndH = null;
+  let _paintDate = null;
+  let _paintPreview = null;
+
+  function _getCellInfo(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el?.closest(".hs2-grid-hour-cell");
+    if (!cell) return null;
+    return { date: cell.dataset.date, hour: parseInt(cell.dataset.hour) };
+  }
+
+  function _updatePreview() {
+    if (_paintPreview) _paintPreview.remove();
+    if (!_painting || _paintDate === null || _paintStartH === null || _paintEndH === null) return;
+    const acts = loadActs();
+    const act = acts.find(a => a.id === _paintActId);
+    if (!act) return;
+    const col = body.querySelector(`.hs2-grid-day-col[data-date="${_paintDate}"]`);
+    if (!col) return;
+    const s = Math.min(_paintStartH, _paintEndH);
+    const e2 = Math.max(_paintStartH, _paintEndH) + 1;
+    _paintPreview = document.createElement("div");
+    _paintPreview.className = "hs2-time-block hs2-time-block--preview";
+    _paintPreview.style.background = act.color || "#E64040";
+    _paintPreview.style.top = (s * 44) + "px";
+    _paintPreview.style.height = Math.max((e2 - s) * 44 - 2, 20) + "px";
+    _paintPreview.style.opacity = "0.6";
+    col.appendChild(_paintPreview);
+  }
+
+  body.addEventListener("pointerdown", e => {
+    if (!_paintActId) return;
+    const info = _getCellInfo(e);
+    if (!info) return;
+    e.preventDefault();
+    _painting = true;
+    _paintDate = info.date;
+    _paintStartH = info.hour;
+    _paintEndH = info.hour;
+    body.setPointerCapture(e.pointerId);
+    _updatePreview();
+  });
+
+  body.addEventListener("pointermove", e => {
+    if (!_painting) return;
+    const info = _getCellInfo(e);
+    if (!info || info.date !== _paintDate) return;
+    _paintEndH = info.hour;
+    _updatePreview();
+  });
+
+  body.addEventListener("pointerup", e => {
+    if (!_painting) return;
+    _painting = false;
+    if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
+    if (_paintDate && _paintActId && _paintStartH !== null && _paintEndH !== null) {
+      const s = Math.min(_paintStartH, _paintEndH);
+      const en = Math.max(_paintStartH, _paintEndH) + 1;
+      const tlog = loadTlog();
+      if (!tlog[_paintDate]) tlog[_paintDate] = [];
+      // remove overlapping blocks of same act
+      tlog[_paintDate] = tlog[_paintDate].filter(b => !(b.actId === _paintActId && b.startH < en && b.endH > s));
+      tlog[_paintDate].push({ actId: _paintActId, startH: s, endH: en });
+      localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+      renderHistoryScreen(_histDate);
+    }
+    _paintDate = null; _paintStartH = null; _paintEndH = null;
+  });
+
   const tlog = loadTlog();
   const acts = loadActs();
 
@@ -1578,14 +1669,14 @@ function _renderWeekGrid(gridPanel, dates) {
   dates.forEach((dt, di) => {
     const col = document.createElement("div");
     col.className = "hs2-grid-day-col";
+    col.dataset.date = dt;
 
-    // Hour cells (clickable to add block)
+    // Hour cells (paint mode)
     for (let h = 0; h < 24; h++) {
       const cell = document.createElement("div");
       cell.className = "hs2-grid-hour-cell";
       cell.dataset.date = dt;
       cell.dataset.hour = h;
-      cell.addEventListener("click", () => _openBlockModal(dt, h, null, () => renderHistoryScreen(_histDate)));
       col.appendChild(cell);
     }
 
