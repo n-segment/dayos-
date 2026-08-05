@@ -3536,8 +3536,8 @@ html, body {
 
 /* ── Dark overrides for all hs2 elements ── */
 #historyScreen .hs2-sidebar {
-  background: rgba(255,255,255,0.04);
-  border-right: 1px solid rgba(255,255,255,0.06);
+  background: transparent;
+  border-right: none;
 }
 #historyScreen .hs2-sb-nav { padding-bottom: 8px; }
 #historyScreen .hs2-sb-logo { color: rgba(255,255,255,0.22); }
@@ -3612,14 +3612,13 @@ html, body {
 
 /* LEFT — sidebar */
 .hs2-sidebar {
-  width: 260px;
+  width: 240px;
   flex-shrink: 0;
-  background: #e8e6e1;
-  border-right: 1px solid rgba(0,0,0,0.07);
+  background: transparent;
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 0;
+  padding: 16px 12px;
   overflow-y: auto;
 }
 
@@ -3627,7 +3626,7 @@ html, body {
 .hs2-sb-nav {
   display: flex;
   align-items: center;
-  padding: 14px 16px 4px;
+  padding: 0 4px 12px;
 }
 .hs2-sb-back {
   background: none;
@@ -3647,31 +3646,36 @@ html, body {
   color: rgba(0,0,0,0.35);
 }
 
-/* CLOCK section */
+/* CLOCK section — card */
 .hs2-sb-clock {
-  padding: 8px 18px 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
 }
 .hs2-sb-date {
-  font-size: 12px;
-  color: rgba(0,0,0,0.42);
-  letter-spacing: 0.01em;
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.02em;
   margin-bottom: 4px;
 }
 .hs2-sb-time {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 300;
   letter-spacing: -0.03em;
-  color: #111;
+  color: #fff;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
-/* TIMER widget */
+/* TIMER widget — card */
 .hs2-sb-timer {
-  margin: 0 12px 14px;
-  background: rgba(255,255,255,0.5);
-  border-radius: 14px;
-  padding: 12px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3707,79 +3711,67 @@ html, body {
 .hs2-sb-timer-stop:hover { background: rgba(0,0,0,0.14); }
 
 /* DIVIDER */
-.hs2-sb-divider {
-  height: 1px;
-  background: rgba(0,0,0,0.07);
-  margin: 0 12px 12px;
-}
+.hs2-sb-divider { display: none; }
 
-/* ACTS header */
+/* ACTS section — card container */
 .hs2-sb-acts-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 8px;
+  padding: 0 4px 8px;
 }
 .hs2-sb-acts-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(0,0,0,0.36);
+  color: rgba(255,255,255,0.22);
 }
 .hs2-sb-add-btn {
-  background: none;
+  background: rgba(255,255,255,0.07);
   border: none;
-  font-size: 18px;
-  color: rgba(0,0,0,0.32);
+  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  color: rgba(255,255,255,0.45);
   cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-}
-.hs2-sb-add-btn:hover { color: #000; }
-
-/* + add button */
-.hs2-act-add {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.5);
-  border: 1.5px dashed rgba(0,0,0,0.13);
-  border-radius: 16px;
-  height: 52px;
-  cursor: pointer;
-  font-size: 22px;
-  color: rgba(0,0,0,0.28);
-  transition: all 0.15s;
-  flex-shrink: 0;
+  line-height: 1;
 }
-.hs2-act-add:hover { background: rgba(255,255,255,0.75); color: rgba(0,0,0,0.5); }
+.hs2-sb-add-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
-/* Activity card row */
+/* + add button (legacy, hidden now) */
+.hs2-act-add { display: none; }
+
+/* Activity card */
 .hs2-act-card {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.65);
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
-  padding: 9px 8px 9px 10px;
-  margin: 0 12px 8px;
+  padding: 10px 12px;
+  margin: 0 0 6px;
   flex-shrink: 0;
   cursor: pointer;
   transition: background 0.12s;
 }
-.hs2-act-card:hover { background: rgba(255,255,255,0.85); }
+.hs2-act-card:hover { background: rgba(255,255,255,0.1); }
 
 /* Icon chip */
 .hs2-act-emoji {
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 17px;
   flex-shrink: 0;
   overflow: hidden;
   padding: 2px;
