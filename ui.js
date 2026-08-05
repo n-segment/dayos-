@@ -126,6 +126,153 @@ function renderMemos() {
   });
 }
 
+// ── 음악 시스템 v2 ───────────────────────────────────────────────────
+const MUSIC_V2_KEY = "dayos_music_v2";
+const DEFAULT_MUSIC_VIDEOS = [
+  { id: "aB2z36lEJ_E", title: "새벽 lo-fi", time: "night" },
+  { id: "46e80ussWc0", title: "집중 lo-fi", time: "day" },
+];
+
+function initMusicSystemV2() {
+  let videos = (() => { try { return JSON.parse(localStorage.getItem(MUSIC_V2_KEY)) || [...DEFAULT_MUSIC_VIDEOS]; } catch { return [...DEFAULT_MUSIC_VIDEOS]; } })();
+  let currentId = null;
+  let panelOpen = false;
+  let addTime = "day";
+  let activeTab = "all";
+
+  const musicBtn = document.getElementById("musicBtn");
+  const panel = document.getElementById("musicPanel");
+  const floatPlayer = document.getElementById("musicFloatPlayer");
+  const mfpFrame = document.getElementById("mfpFrame");
+  if (!musicBtn || !panel) return;
+
+  function saveVideos() { localStorage.setItem(MUSIC_V2_KEY, JSON.stringify(videos)); }
+
+  function ytSrc(id) {
+    return `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&rel=0`;
+  }
+
+  function getYTId(url) {
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  async function fetchTitle(id) {
+    try {
+      const r = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
+      if (r.ok) return (await r.json()).title;
+    } catch {}
+    return id;
+  }
+
+  function playVideo(id) {
+    currentId = id;
+    if (mfpFrame) mfpFrame.src = ytSrc(id);
+    floatPlayer?.classList.remove("hidden");
+    musicBtn.classList.add("is-playing");
+    renderPanel();
+  }
+
+  function stopVideo() {
+    currentId = null;
+    if (mfpFrame) mfpFrame.src = "";
+    floatPlayer?.classList.add("hidden");
+    musicBtn.classList.remove("is-playing");
+    renderPanel();
+  }
+
+  function renderPanel() {
+    const filtered = activeTab === "all" ? videos : videos.filter(v => v.time === activeTab);
+    panel.innerHTML = `
+      <div class="mp-tabs">
+        <button class="mp-tab${activeTab==="all"?" active":""}" data-tab="all">전체</button>
+        <button class="mp-tab${activeTab==="day"?" active":""}" data-tab="day">☀︎ 낮</button>
+        <button class="mp-tab${activeTab==="night"?" active":""}" data-tab="night">☽ 밤</button>
+      </div>
+      <div class="mp-list">
+        ${filtered.length === 0 ? `<div class="mp-empty">없음</div>` : filtered.map(v => {
+          const gi = videos.indexOf(v);
+          const isPlaying = v.id === currentId;
+          return `<div class="mp-item${isPlaying?" mp-item--active":""}">
+            <img class="mp-thumb" src="https://i.ytimg.com/vi/${v.id}/default.jpg" />
+            <div class="mp-item-meta">
+              <div class="mp-item-title">${v.title || v.id}</div>
+              <span class="mp-tag mp-tag--${v.time}">${v.time==="day"?"낮":"밤"}</span>
+            </div>
+            <div class="mp-item-btns">
+              <button class="mp-btn-play" data-id="${v.id}">${isPlaying?"■":"▶"}</button>
+              <button class="mp-btn-tag" data-i="${gi}">${v.time==="day"?"→밤":"→낮"}</button>
+              <button class="mp-btn-del" data-i="${gi}">×</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="mp-add">
+        <input class="mp-url-input" id="mpUrlInput" placeholder="YouTube URL..." />
+        <div class="mp-add-tags">
+          <button class="mp-add-tag${addTime==="day"?" active":""}" data-time="day">☀︎ 낮</button>
+          <button class="mp-add-tag${addTime==="night"?" active":""}" data-time="night">☽ 밤</button>
+        </div>
+        <button class="mp-add-btn" id="mpAddBtn">추가</button>
+      </div>
+    `;
+
+    panel.querySelectorAll(".mp-tab").forEach(b => b.addEventListener("click", () => { activeTab = b.dataset.tab; renderPanel(); }));
+    panel.querySelectorAll(".mp-btn-play").forEach(b => b.addEventListener("click", () => {
+      if (b.dataset.id === currentId) stopVideo(); else playVideo(b.dataset.id);
+    }));
+    panel.querySelectorAll(".mp-btn-tag").forEach(b => b.addEventListener("click", () => {
+      const i = +b.dataset.i;
+      videos[i].time = videos[i].time === "day" ? "night" : "day";
+      saveVideos(); renderPanel();
+    }));
+    panel.querySelectorAll(".mp-btn-del").forEach(b => b.addEventListener("click", () => {
+      const i = +b.dataset.i;
+      if (videos[i].id === currentId) stopVideo();
+      videos.splice(i, 1); saveVideos(); renderPanel();
+    }));
+    panel.querySelectorAll(".mp-add-tag").forEach(b => b.addEventListener("click", () => { addTime = b.dataset.time; renderPanel(); }));
+    document.getElementById("mpAddBtn")?.addEventListener("click", async () => {
+      const inp = document.getElementById("mpUrlInput");
+      const id = getYTId(inp.value.trim());
+      if (!id) { inp.style.outline = "1px solid rgba(255,100,100,0.6)"; setTimeout(() => inp.style.outline = "", 1000); return; }
+      inp.disabled = true;
+      const title = await fetchTitle(id);
+      videos.push({ id, title, time: addTime });
+      saveVideos(); inp.value = ""; inp.disabled = false;
+      renderPanel();
+    });
+    document.getElementById("mpUrlInput")?.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("mpAddBtn")?.click(); });
+  }
+
+  // 패널 토글
+  musicBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    panelOpen = !panelOpen;
+    if (panelOpen) { renderPanel(); panel.classList.remove("hidden"); }
+    else panel.classList.add("hidden");
+  });
+  document.addEventListener("click", e => {
+    if (panelOpen && !panel.contains(e.target) && e.target !== musicBtn) {
+      panelOpen = false; panel.classList.add("hidden");
+    }
+  });
+
+  // 플로팅 플레이어 닫기
+  document.getElementById("mfpClose")?.addEventListener("click", stopVideo);
+
+  // 플로팅 플레이어 드래그
+  const dragHandle = document.getElementById("mfpDragHandle");
+  if (dragHandle && floatPlayer) {
+    let dragging = false, ox = 0, oy = 0;
+    dragHandle.addEventListener("mousedown", e => {
+      dragging = true; ox = e.clientX - floatPlayer.offsetLeft; oy = e.clientY - floatPlayer.offsetTop; e.preventDefault();
+    });
+    document.addEventListener("mousemove", e => { if (dragging) { floatPlayer.style.left = (e.clientX - ox) + "px"; floatPlayer.style.top = (e.clientY - oy) + "px"; } });
+    document.addEventListener("mouseup", () => { dragging = false; });
+  }
+}
+
 // ── X 임베드 시스템 ──────────────────────────────────────────────────
 const EMBED_KEY = "dayos_embeds_v1";
 let embeds = [];
@@ -2181,46 +2328,16 @@ function init() {
 
   // historyBackButton removed from new layout — no-op
 
-  // 음악 버튼
-  const musicBtn = document.getElementById("musicBtn");
-  const musicFrame = document.getElementById("musicFrame");
-  let musicPlaying = false;
+  // 새벽: 배경 영상 교체
   const hour = new Date().getHours();
-  const isDawn = hour >= 0 && hour < 6; // 새벽 0~5시
-
-  // 새벽: welcome 화면 배경 영상을 드라이브 영상으로 교체
+  const isDawn = hour >= 0 && hour < 6;
   if (isDawn) {
     document.querySelectorAll(".welcome-bg-video").forEach(v => {
-      v.src = "./dawn-drive.mp4";
-      v.load();
-      v.play().catch(() => {});
+      v.src = "./dawn-drive.mp4"; v.load(); v.play().catch(() => {});
     });
   }
 
-  musicBtn?.addEventListener("click", () => {
-    if (!musicPlaying) {
-      const MUSIC_ID = isDawn ? "aB2z36lEJ_E" : "46e80ussWc0";
-      const MUSIC_SRC = `https://www.youtube.com/embed/${MUSIC_ID}?autoplay=1&loop=1&playlist=${MUSIC_ID}&enablejsapi=1`;
-      const newFrame = document.createElement("iframe");
-      newFrame.id = "musicFrame";
-      newFrame.src = MUSIC_SRC;
-      newFrame.style.cssText = musicFrame.style.cssText;
-      newFrame.frameBorder = "0";
-      newFrame.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
-      newFrame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-      newFrame.allowFullscreen = true;
-      musicFrame.replaceWith(newFrame);
-      musicBtn.classList.add("is-playing");
-      musicBtn.title = "음악 정지";
-      musicPlaying = true;
-    } else {
-      const frame = document.getElementById("musicFrame");
-      if (frame) frame.src = "";
-      musicBtn.classList.remove("is-playing");
-      musicBtn.title = "음악 재생";
-      musicPlaying = false;
-    }
-  });
+  initMusicSystemV2();
 
   // 피드백 버튼
   const feedbackBtn = document.getElementById("feedbackBtn");

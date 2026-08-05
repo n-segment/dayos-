@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=80" />
+    <link rel="stylesheet" href="./ui.css?v=81" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -26,7 +26,8 @@
   <!-- Fixed header (always visible) -->
   <header class="app-header">
     <div class="brand-left">
-      <button class="music-btn" id="musicBtn" aria-label="음악 재생" aria-pressed="false">♪</button>
+      <button class="music-btn" id="musicBtn" aria-label="음악">♪</button>
+      <div class="music-panel hidden" id="musicPanel"></div>
       <button class="doodle-btn" id="doodleBtn" aria-label="낙서하기">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2 10.5 Q4 8 6.5 6.5 Q9 5 10.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
@@ -250,6 +251,17 @@
     </div>
   </div>
 
+<!-- 플로팅 음악 플레이어 -->
+<div class="music-float-player hidden" id="musicFloatPlayer">
+  <div class="mfp-drag-handle" id="mfpDragHandle"></div>
+  <div class="mfp-screen">
+    <iframe id="mfpFrame" frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen></iframe>
+  </div>
+  <button class="mfp-close" id="mfpClose">×</button>
+</div>
+
 <!-- 낙서 캔버스 (전체화면 오버레이) -->
 <canvas class="doodle-canvas hidden" id="doodleCanvas"></canvas>
 <div class="doodle-toolbar hidden" id="doodleToolbar">
@@ -278,7 +290,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<iframe id="musicFrame" style="position:fixed;width:200px;height:113px;opacity:0.001;pointer-events:none;bottom:0;left:0;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-<script src="./ui.js?v=80"></script>
+<script src="./ui.js?v=81"></script>
 </body>
 </html>
