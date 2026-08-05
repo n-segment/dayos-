@@ -3664,7 +3664,7 @@ html, body {
   border: none;
   border-radius: 0;
   padding: 0;
-  margin-bottom: 0;
+  margin-bottom: 20px;
 }
 .hs2-sb-date {
   font-size: 11px;
