@@ -1579,61 +1579,71 @@ function _renderWeekGrid(gridPanel, dates) {
   body.className = "hs2-grid-body";
   scroll.appendChild(body);
 
-  // ── Drag-paint logic ──
+  // ── Drag-paint logic (coordinate-based) ──
+  const HOUR_H = 44;
+  const TIME_COL_W = 44;
   let _painting = false;
   let _paintStartH = null;
   let _paintEndH = null;
   let _paintDate = null;
   let _paintPreview = null;
+  let _paintColIdx = null;
 
-  function _getCellInfo(e) {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const cell = el?.closest(".hs2-grid-hour-cell");
-    if (!cell) return null;
-    return { date: cell.dataset.date, hour: parseInt(cell.dataset.hour) };
+  function _coordToInfo(e) {
+    const rect = scroll.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top + scroll.scrollTop;
+    if (x < TIME_COL_W || y < 0) return null;
+    const colW = (rect.width - TIME_COL_W) / 7;
+    const colIdx = Math.floor((x - TIME_COL_W) / colW);
+    if (colIdx < 0 || colIdx > 6) return null;
+    const hour = Math.floor(y / HOUR_H);
+    if (hour < 0 || hour > 23) return null;
+    return { colIdx, date: dates[colIdx], hour };
   }
 
   function _updatePreview() {
-    if (_paintPreview) _paintPreview.remove();
-    if (!_painting || _paintDate === null || _paintStartH === null || _paintEndH === null) return;
-    const acts = loadActs();
-    const act = acts.find(a => a.id === _paintActId);
+    if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
+    if (!_painting || _paintDate === null) return;
+    const actsList = loadActs();
+    const act = actsList.find(a => a.id === _paintActId);
     if (!act) return;
-    const col = body.querySelector(`.hs2-grid-day-col[data-date="${_paintDate}"]`);
+    const col = body.querySelectorAll(".hs2-grid-day-col")[_paintColIdx];
     if (!col) return;
     const s = Math.min(_paintStartH, _paintEndH);
     const e2 = Math.max(_paintStartH, _paintEndH) + 1;
     _paintPreview = document.createElement("div");
     _paintPreview.className = "hs2-time-block hs2-time-block--preview";
-    _paintPreview.style.background = act.color || "#E64040";
-    _paintPreview.style.top = (s * 44) + "px";
-    _paintPreview.style.height = Math.max((e2 - s) * 44 - 2, 20) + "px";
-    _paintPreview.style.opacity = "0.6";
+    _paintPreview.style.background = act.color || "#555";
+    _paintPreview.style.top = (s * HOUR_H) + "px";
+    _paintPreview.style.height = Math.max((e2 - s) * HOUR_H - 2, 20) + "px";
+    _paintPreview.style.opacity = "0.55";
     col.appendChild(_paintPreview);
   }
 
-  body.addEventListener("pointerdown", e => {
+  scroll.addEventListener("pointerdown", e => {
     if (!_paintActId) return;
-    const info = _getCellInfo(e);
+    const info = _coordToInfo(e);
     if (!info) return;
     e.preventDefault();
     _painting = true;
     _paintDate = info.date;
+    _paintColIdx = info.colIdx;
     _paintStartH = info.hour;
     _paintEndH = info.hour;
-    body.setPointerCapture(e.pointerId);
+    scroll.setPointerCapture(e.pointerId);
     _updatePreview();
   });
 
-  body.addEventListener("pointermove", e => {
+  scroll.addEventListener("pointermove", e => {
     if (!_painting) return;
-    const info = _getCellInfo(e);
-    if (!info || info.date !== _paintDate) return;
+    const info = _coordToInfo(e);
+    if (!info || info.colIdx !== _paintColIdx) return;
     _paintEndH = info.hour;
     _updatePreview();
   });
 
-  body.addEventListener("pointerup", e => {
+  scroll.addEventListener("pointerup", e => {
     if (!_painting) return;
     _painting = false;
     if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
@@ -1642,13 +1652,13 @@ function _renderWeekGrid(gridPanel, dates) {
       const en = Math.max(_paintStartH, _paintEndH) + 1;
       const tlog = loadTlog();
       if (!tlog[_paintDate]) tlog[_paintDate] = [];
-      // remove overlapping blocks of same act
+      // merge: remove any blocks of same act that overlap
       tlog[_paintDate] = tlog[_paintDate].filter(b => !(b.actId === _paintActId && b.startH < en && b.endH > s));
       tlog[_paintDate].push({ actId: _paintActId, startH: s, endH: en });
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
       renderHistoryScreen(_histDate);
     }
-    _paintDate = null; _paintStartH = null; _paintEndH = null;
+    _paintDate = null; _paintStartH = null; _paintEndH = null; _paintColIdx = null;
   });
 
   const tlog = loadTlog();
