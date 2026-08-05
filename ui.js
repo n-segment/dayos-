@@ -1221,14 +1221,14 @@ const ACT_KEY  = "dayos_activities_v1";
 const TLOG_KEY = "dayos_timelog_v1";
 
 const ACT_COLORS = [
-  "#E64040","#E67040","#E6AA40","#5AAE6A",
-  "#4A8DE6","#9B5AE6","#E64078","#555555"
+  "#7A3A3A","#7A5A2A","#4A7A3A","#2A6A6A",
+  "#2A4A7A","#5A2A7A","#7A2A5A","#4A4A4A"
 ];
 
 const DEFAULT_ACTS = [
-  { id:"act_sleep", name:"수면", emoji:"😴", icon:"./icon_sleep.svg", color:"#4A8DE6", goalH:7 },
-  { id:"act_work",  name:"작업", emoji:"💻", icon:"./icon_work.svg",  color:"#9B5AE6", goalH:0 },
-  { id:"act_food",  name:"밥",   emoji:"🍚", icon:"./icon_food.svg",  color:"#5AAE6A", goalH:0 },
+  { id:"act_sleep", name:"수면", emoji:"😴", icon:"./icon_sleep.svg", color:"#2A4A7A", goalH:7 },
+  { id:"act_work",  name:"작업", emoji:"💻", icon:"./icon_work.svg",  color:"#5A2A7A", goalH:0 },
+  { id:"act_food",  name:"밥",   emoji:"🍚", icon:"./icon_food.svg",  color:"#2A6A6A", goalH:0 },
 ];
 
 function loadActs() {
@@ -1236,11 +1236,13 @@ function loadActs() {
     const r = localStorage.getItem(ACT_KEY);
     if (r) {
       const stored = JSON.parse(r);
-      // migrate: add icon field to default acts that are missing it
+      // migrate: sync icon + muted color from defaults
+      const BRIGHT = ["#4A8DE6","#9B5AE6","#5AAE6A","#E64040","#E67040","#E6AA40","#E64078"];
       let changed = false;
       stored.forEach(a => {
         const def = DEFAULT_ACTS.find(d => d.id === a.id);
         if (def && def.icon && !a.icon) { a.icon = def.icon; changed = true; }
+        if (def && BRIGHT.includes(a.color)) { a.color = def.color; changed = true; }
       });
       if (changed) localStorage.setItem(ACT_KEY, JSON.stringify(stored));
       return stored;
