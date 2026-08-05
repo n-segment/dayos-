@@ -1278,68 +1278,64 @@ function renderHistoryScreen(dateStr) {
   layout.className = "hs2-layout";
   screen.appendChild(layout);
 
-  // LEFT: grid panel
-  const gridPanel = document.createElement("div");
-  gridPanel.className = "hs2-grid-panel";
-  layout.appendChild(gridPanel);
-  _renderWeekGrid(gridPanel, dates);
-
-  // RIGHT: sidebar
+  // LEFT: sidebar
   const sidebar = document.createElement("div");
   sidebar.className = "hs2-sidebar";
   layout.appendChild(sidebar);
   _renderSidebar(sidebar, dates);
+
+  // RIGHT: grid panel
+  const gridPanel = document.createElement("div");
+  gridPanel.className = "hs2-grid-panel";
+  layout.appendChild(gridPanel);
+  _renderWeekGrid(gridPanel, dates);
 }
 
-// ── Unified sidebar (clock + timer + activities) ──
+// ── Unified sidebar — Porto Rocha style ──
 function _renderSidebar(sidebar, dates) {
   sidebar.innerHTML = "";
 
-  // ── NAV row (logo only) ──
-  const nav = document.createElement("div");
-  nav.className = "hs2-sb-nav";
-  const logo = document.createElement("span");
+  // ── LOGO ──
+  const logo = document.createElement("div");
   logo.className = "hs2-sb-logo";
-  logo.textContent = "DayOS";
-  nav.appendChild(logo);
-  sidebar.appendChild(nav);
+  logo.textContent = "DAYOS";
+  sidebar.appendChild(logo);
 
-  // ── CLOCK section ──
-  const clockSection = document.createElement("div");
-  clockSection.className = "hs2-sb-clock";
+  // ── CLOCK block (Porto Rocha: big date + time, centered, breathing room) ──
+  const clockBlock = document.createElement("div");
+  clockBlock.className = "hs2-sb-clock";
 
+  const DAYS_KO = ["일","월","화","수","목","금","토"];
+  const now = new Date();
   const dateEl = document.createElement("div");
   dateEl.className = "hs2-sb-date";
-  const now = new Date();
-  const DAYS_KO = ["일","월","화","수","목","금","토"];
   dateEl.textContent = `${now.getMonth()+1}월 ${now.getDate()}일 · ${DAYS_KO[now.getDay()]}요일`;
-  clockSection.appendChild(dateEl);
+  clockBlock.appendChild(dateEl);
 
   const timeEl = document.createElement("div");
   timeEl.className = "hs2-sb-time";
   timeEl.textContent = formatClock();
-  clockSection.appendChild(timeEl);
+  clockBlock.appendChild(timeEl);
 
-  sidebar.appendChild(clockSection);
+  sidebar.appendChild(clockBlock);
 
-  // Live clock update
   window._hs2SbClockId = setInterval(() => {
     timeEl.textContent = formatClock();
     const d = new Date();
     dateEl.textContent = `${d.getMonth()+1}월 ${d.getDate()}일 · ${DAYS_KO[d.getDay()]}요일`;
   }, 1000);
 
-  // ── TIMER widget ──
+  // ── TIMER row ──
   const timerBox = document.createElement("div");
   timerBox.className = "hs2-sb-timer";
   timerBox.id = "hs2SbTimerBox";
   _renderSbTimerBox(timerBox);
   sidebar.appendChild(timerBox);
 
-  // ── DIVIDER ──
-  const divider = document.createElement("div");
-  divider.className = "hs2-sb-divider";
-  sidebar.appendChild(divider);
+  // ── SPACER ──
+  const spacer = document.createElement("div");
+  spacer.className = "hs2-sb-spacer";
+  sidebar.appendChild(spacer);
 
   // ── ACTS header ──
   const actsHeader = document.createElement("div");
@@ -1355,7 +1351,7 @@ function _renderSidebar(sidebar, dates) {
   actsHeader.appendChild(addBtn);
   sidebar.appendChild(actsHeader);
 
-  // ── ACTIVITY cards ──
+  // ── ACTIVITY list ──
   _renderActSidebar(sidebar, dates);
 }
 

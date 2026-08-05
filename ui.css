@@ -3537,11 +3537,8 @@ html, body {
 /* ── Dark overrides for all hs2 elements ── */
 #historyScreen .hs2-sidebar {
   background: transparent;
-  border-left: 1px solid rgba(255,255,255,0.06);
-  border-right: none;
 }
-#historyScreen .hs2-sb-nav { padding-bottom: 8px; }
-#historyScreen .hs2-sb-logo { color: rgba(255,255,255,0.22); }
+#historyScreen .hs2-sb-logo { color: rgba(255,255,255,0.18); }
 #historyScreen .hs2-sb-date { color: rgba(255,255,255,0.35); }
 #historyScreen .hs2-sb-time { color: #fff; }
 #historyScreen .hs2-sb-timer {
@@ -3557,9 +3554,9 @@ html, body {
 #historyScreen .hs2-sb-acts-label { color: rgba(255,255,255,0.22); }
 #historyScreen .hs2-sb-add-btn { color: rgba(255,255,255,0.3); }
 #historyScreen .hs2-act-card {
-  background: rgba(255,255,255,0.06);
+  background: none;
 }
-#historyScreen .hs2-act-card:hover { background: rgba(255,255,255,0.1); }
+#historyScreen .hs2-act-card:hover { opacity: 0.7; }
 #historyScreen .hs2-act-emoji { background: rgba(255,255,255,0.08); }
 #historyScreen .hs2-act-goal {
   background: rgba(255,255,255,0.08);
@@ -3639,72 +3636,65 @@ html, body {
 #historyScreen .hs2-grid-scroll { background: #1c1c1c !important; }
 #historyScreen .hs2-grid-body { background: #1c1c1c !important; }
 
-/* LEFT — sidebar */
+/* LEFT — sidebar (Porto Rocha style) */
 .hs2-sidebar {
-  width: 240px;
+  width: 280px;
   flex-shrink: 0;
   background: transparent;
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 16px 12px;
+  padding: 28px 24px 20px;
   overflow-y: auto;
 }
 
-/* NAV row */
-.hs2-sb-nav {
-  display: flex;
-  align-items: center;
-  padding: 0 4px 12px;
-}
-.hs2-sb-back {
-  background: none;
-  border: none;
-  font-size: 22px;
-  color: rgba(0,0,0,0.32);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-.hs2-sb-back:hover { color: #000; }
+/* LOGO */
 .hs2-sb-logo {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.2);
+  margin-bottom: 32px;
 }
 
-/* CLOCK section — card */
+/* CLOCK — bare typography, Porto Rocha style */
 .hs2-sb-clock {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 18px;
-  padding: 16px 18px;
-  margin-bottom: 8px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
 }
 .hs2-sb-date {
   font-size: 11px;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.02em;
-  margin-bottom: 4px;
+  color: rgba(255,255,255,0.32);
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
 }
 .hs2-sb-time {
-  font-size: 30px;
-  font-weight: 300;
-  letter-spacing: -0.03em;
+  font-size: 42px;
+  font-weight: 200;
+  letter-spacing: -0.04em;
   color: #fff;
-  line-height: 1.1;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-/* TIMER widget — card */
+/* SPACER — breathing room between clock and activities */
+.hs2-sb-spacer {
+  flex: 1;
+  min-height: 32px;
+  max-height: 80px;
+}
+
+/* TIMER widget — slim inline row, no card box */
 .hs2-sb-timer {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 18px;
-  padding: 14px 18px;
-  margin-bottom: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3742,19 +3732,20 @@ html, body {
 /* DIVIDER */
 .hs2-sb-divider { display: none; }
 
-/* ACTS section — card container */
+/* ACTS section header */
 .hs2-sb-acts-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px 8px;
+  padding: 0 2px 4px;
+  margin-bottom: 0;
 }
 .hs2-sb-acts-label {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.2);
 }
 .hs2-sb-add-btn {
   background: rgba(255,255,255,0.07);
@@ -3775,21 +3766,23 @@ html, body {
 /* + add button (legacy, hidden now) */
 .hs2-act-add { display: none; }
 
-/* Activity card */
+/* Activity card — Porto Rocha list row style */
 .hs2-act-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 18px;
-  padding: 12px 14px;
-  margin: 0 0 6px;
+  gap: 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0;
+  padding: 13px 2px;
+  margin: 0;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: opacity 0.12s;
 }
-.hs2-act-card:hover { background: rgba(255,255,255,0.11); }
+.hs2-act-card:first-of-type { border-top: 1px solid rgba(255,255,255,0.07); }
+.hs2-act-card:hover { opacity: 0.7; }
 
 /* Icon chip */
 .hs2-act-emoji {
