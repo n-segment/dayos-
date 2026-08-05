@@ -1224,15 +1224,25 @@ const ACT_COLORS = [
 ];
 
 const DEFAULT_ACTS = [
-  { id:"act_sleep", name:"수면", emoji:"😴", color:"#E64040", goalH:7 },
-  { id:"act_work",  name:"작업", emoji:"💻", color:"#E64040", goalH:0 },
-  { id:"act_food",  name:"밥",   emoji:"🍚", color:"#E64040", goalH:0 },
+  { id:"act_sleep", name:"수면", emoji:"😴", icon:"./icon_sleep.svg", color:"#4A8DE6", goalH:7 },
+  { id:"act_work",  name:"작업", emoji:"💻", icon:"./icon_work.svg",  color:"#9B5AE6", goalH:0 },
+  { id:"act_food",  name:"밥",   emoji:"🍚", icon:"./icon_food.svg",  color:"#5AAE6A", goalH:0 },
 ];
 
 function loadActs() {
   try {
     const r = localStorage.getItem(ACT_KEY);
-    if (r) return JSON.parse(r);
+    if (r) {
+      const stored = JSON.parse(r);
+      // migrate: add icon field to default acts that are missing it
+      let changed = false;
+      stored.forEach(a => {
+        const def = DEFAULT_ACTS.find(d => d.id === a.id);
+        if (def && def.icon && !a.icon) { a.icon = def.icon; changed = true; }
+      });
+      if (changed) localStorage.setItem(ACT_KEY, JSON.stringify(stored));
+      return stored;
+    }
   } catch(e) {}
   localStorage.setItem(ACT_KEY, JSON.stringify(DEFAULT_ACTS));
   return DEFAULT_ACTS.map(a => ({ ...a }));
@@ -1327,10 +1337,18 @@ function _renderActSidebar(sidebar, dates) {
     card.className = "hs2-act-card";
     card.style.position = "relative";
 
-    // emoji chip
+    // icon chip (SVG image or emoji fallback)
     const emojiChip = document.createElement("div");
     emojiChip.className = "hs2-act-emoji";
-    emojiChip.textContent = act.emoji || "📌";
+    if (act.icon) {
+      const img = document.createElement("img");
+      img.src = act.icon;
+      img.alt = act.name;
+      img.style.cssText = "width:36px;height:36px;object-fit:contain;border-radius:8px;";
+      emojiChip.appendChild(img);
+    } else {
+      emojiChip.textContent = act.emoji || "📌";
+    }
     card.appendChild(emojiChip);
 
     // name label blob
