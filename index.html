@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=81" />
+    <link rel="stylesheet" href="./ui.css?v=82" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -65,6 +65,12 @@
     </div>
     <div class="session-badge" id="sessionBadge" role="status" aria-live="polite">대기</div>
     <div class="brand-right">
+      <button class="record-nav-btn" id="recordNavBtn" aria-label="기록 화면 열기">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.5" y="0.5" width="13" height="13" rx="2.5" stroke="currentColor" stroke-width="1"/>
+          <path d="M3 4h8M3 7h8M3 10h5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+      </button>
       <button class="feedback-btn" id="feedbackBtn" aria-label="피드백 보내기">
         <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="0.5" y="0.5" width="13" height="10" rx="1.5" stroke="currentColor" stroke-width="1"/>
@@ -153,17 +159,44 @@
         </div>
       </div>
 
-      <!-- 오른쪽: 기록 패널 -->
-      <div class="ws-right">
-        <section id="historyScreen">
-          <div class="history-panel">
-            <div class="history-week-total" id="historyWeekTotal"></div>
-            <div class="history-list" id="historyList"></div>
-          </div>
-        </section>
-      </div>
+      <!-- 오른쪽: 기록 패널 (빈 공간 — 기록 화면은 고정 오버레이로 분리) -->
+      <div class="ws-right"></div>
 
     </section>
+
+    <!-- 기록 화면 (full-screen fixed overlay) -->
+    <section id="historyScreen" class="hidden"></section>
+
+    <!-- 활동 추가/편집 모달 -->
+    <div class="hs-act-modal hidden" id="hsActModal">
+      <div class="hs-act-modal-box">
+        <div class="hs-act-modal-icon-area" id="hsActModalIcon">
+          <span class="hs-act-modal-emoji" id="hsActModalEmoji">✏️</span>
+        </div>
+        <div class="hs-act-modal-form">
+          <div class="hs-act-form-group">
+            <label class="hs-act-form-label">활동 명</label>
+            <input class="hs-act-form-input" id="hsActNameInput" type="text" placeholder="예: 수면, 운동, 독서" autocomplete="off"/>
+          </div>
+          <div class="hs-act-form-group">
+            <label class="hs-act-form-label">목표 시간</label>
+            <input class="hs-act-form-input" id="hsActGoalInput" type="text" placeholder="예: 7 (시간 단위)" autocomplete="off"/>
+          </div>
+          <div class="hs-act-form-group">
+            <label class="hs-act-form-label">색깔</label>
+            <div class="hs-act-color-row" id="hsActColorRow"></div>
+          </div>
+          <div class="hs-act-form-group">
+            <label class="hs-act-form-label">이모지</label>
+            <input class="hs-act-form-input" id="hsActEmojiInput" type="text" placeholder="예: 😴 💻 🍚" maxlength="4" autocomplete="off"/>
+          </div>
+          <div class="hs-act-modal-actions">
+            <button class="hs-act-cancel-btn" id="hsActCancelBtn">취소</button>
+            <button class="hs-act-save-btn" id="hsActSaveBtn">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 목표 모달 -->
     <div class="goal-modal hidden" id="goalModal">
@@ -290,6 +323,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="./ui.js?v=81"></script>
+<script src="./ui.js?v=82"></script>
 </body>
 </html>

@@ -76,502 +76,6 @@ let lastTrackerSegments = [];
 
 const segmentMemos = {};
 
-// ── 스티키 메모 시스템 ──
-const MEMO_KEY = "dayos_memos_v1";
-let memos = [];
-
-function loadMemos() {
-  try { memos = JSON.parse(localStorage.getItem(MEMO_KEY) || "[]"); } catch { memos = []; }
-}
-function saveMemos() { localStorage.setItem(MEMO_KEY, JSON.stringify(memos)); }
-
-function renderMemos() {
-  const section = document.getElementById("homeSection");
-  if (!section) return;
-  section.querySelectorAll(".sticky-memo").forEach(el => el.remove());
-  memos.forEach((memo, idx) => {
-    const el = document.createElement("div");
-    el.className = "sticky-memo";
-    el.style.left = (memo.x || 40 + idx * 20) + "px";
-    el.style.top = (memo.y || 80 + idx * 20) + "px";
-    el.innerHTML = `<button class="sticky-memo-delete" data-idx="${idx}">×</button>${memo.text}`;
-    // 드래그
-    let dragging = false, ox = 0, oy = 0;
-    el.addEventListener("mousedown", e => {
-      if (e.target.classList.contains("sticky-memo-delete")) return;
-      dragging = true;
-      ox = e.clientX - el.offsetLeft;
-      oy = e.clientY - el.offsetTop;
-      el.style.transition = "none";
-      e.preventDefault();
-    });
-    document.addEventListener("mousemove", e => {
-      if (!dragging) return;
-      el.style.left = (e.clientX - ox) + "px";
-      el.style.top = (e.clientY - oy) + "px";
-    });
-    document.addEventListener("mouseup", () => {
-      if (!dragging) return;
-      dragging = false;
-      memos[idx].x = parseInt(el.style.left);
-      memos[idx].y = parseInt(el.style.top);
-      saveMemos();
-    });
-    el.querySelector(".sticky-memo-delete").addEventListener("click", () => {
-      memos.splice(idx, 1);
-      saveMemos();
-      renderMemos();
-    });
-    section.appendChild(el);
-  });
-}
-
-// ── 음악 시스템 v2 ───────────────────────────────────────────────────
-const MUSIC_V2_KEY = "dayos_music_v2";
-const DEFAULT_MUSIC_VIDEOS = [
-  { id: "aB2z36lEJ_E", title: "새벽 lo-fi", time: "night" },
-  { id: "46e80ussWc0", title: "집중 lo-fi", time: "day" },
-];
-
-function initMusicSystemV2() {
-  let videos = (() => { try { return JSON.parse(localStorage.getItem(MUSIC_V2_KEY)) || [...DEFAULT_MUSIC_VIDEOS]; } catch { return [...DEFAULT_MUSIC_VIDEOS]; } })();
-  let currentId = null;
-  let panelOpen = false;
-  let addTime = "day";
-  let activeTab = "all";
-
-  const musicBtn = document.getElementById("musicBtn");
-  const panel = document.getElementById("musicPanel");
-  const floatPlayer = document.getElementById("musicFloatPlayer");
-  const mfpFrame = document.getElementById("mfpFrame");
-  if (!musicBtn || !panel) return;
-
-  function saveVideos() { localStorage.setItem(MUSIC_V2_KEY, JSON.stringify(videos)); }
-
-  function ytSrc(id) {
-    return `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&rel=0`;
-  }
-
-  function getYTId(url) {
-    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
-    return m ? m[1] : null;
-  }
-
-  async function fetchTitle(id) {
-    try {
-      const r = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
-      if (r.ok) return (await r.json()).title;
-    } catch {}
-    return id;
-  }
-
-  function playVideo(id) {
-    currentId = id;
-    if (mfpFrame) mfpFrame.src = ytSrc(id);
-    floatPlayer?.classList.remove("hidden");
-    musicBtn.classList.add("is-playing");
-    renderPanel();
-  }
-
-  function stopVideo() {
-    currentId = null;
-    if (mfpFrame) mfpFrame.src = "";
-    floatPlayer?.classList.add("hidden");
-    musicBtn.classList.remove("is-playing");
-    renderPanel();
-  }
-
-  function renderPanel() {
-    const filtered = activeTab === "all" ? videos : videos.filter(v => v.time === activeTab);
-    panel.innerHTML = `
-      <div class="mp-tabs">
-        <button class="mp-tab${activeTab==="all"?" active":""}" data-tab="all">전체</button>
-        <button class="mp-tab${activeTab==="day"?" active":""}" data-tab="day">☀︎ 낮</button>
-        <button class="mp-tab${activeTab==="night"?" active":""}" data-tab="night">☽ 밤</button>
-      </div>
-      <div class="mp-list">
-        ${filtered.length === 0 ? `<div class="mp-empty">없음</div>` : filtered.map(v => {
-          const gi = videos.indexOf(v);
-          const isPlaying = v.id === currentId;
-          return `<div class="mp-item${isPlaying?" mp-item--active":""}">
-            <img class="mp-thumb" src="https://i.ytimg.com/vi/${v.id}/default.jpg" />
-            <div class="mp-item-meta">
-              <div class="mp-item-title">${v.title || v.id}</div>
-              <span class="mp-tag mp-tag--${v.time}">${v.time==="day"?"낮":"밤"}</span>
-            </div>
-            <div class="mp-item-btns">
-              <button class="mp-btn-play" data-id="${v.id}">${isPlaying?"■":"▶"}</button>
-              <button class="mp-btn-tag" data-i="${gi}">${v.time==="day"?"→밤":"→낮"}</button>
-              <button class="mp-btn-del" data-i="${gi}">×</button>
-            </div>
-          </div>`;
-        }).join("")}
-      </div>
-      <div class="mp-add">
-        <input class="mp-url-input" id="mpUrlInput" placeholder="YouTube URL..." />
-        <div class="mp-add-tags">
-          <button class="mp-add-tag${addTime==="day"?" active":""}" data-time="day">☀︎ 낮</button>
-          <button class="mp-add-tag${addTime==="night"?" active":""}" data-time="night">☽ 밤</button>
-        </div>
-        <button class="mp-add-btn" id="mpAddBtn">추가</button>
-      </div>
-    `;
-
-    panel.querySelectorAll(".mp-tab").forEach(b => b.addEventListener("click", () => { activeTab = b.dataset.tab; renderPanel(); }));
-    panel.querySelectorAll(".mp-btn-play").forEach(b => b.addEventListener("click", () => {
-      if (b.dataset.id === currentId) stopVideo(); else playVideo(b.dataset.id);
-    }));
-    panel.querySelectorAll(".mp-btn-tag").forEach(b => b.addEventListener("click", () => {
-      const i = +b.dataset.i;
-      videos[i].time = videos[i].time === "day" ? "night" : "day";
-      saveVideos(); renderPanel();
-    }));
-    panel.querySelectorAll(".mp-btn-del").forEach(b => b.addEventListener("click", () => {
-      const i = +b.dataset.i;
-      if (videos[i].id === currentId) stopVideo();
-      videos.splice(i, 1); saveVideos(); renderPanel();
-    }));
-    panel.querySelectorAll(".mp-add-tag").forEach(b => b.addEventListener("click", () => { addTime = b.dataset.time; renderPanel(); }));
-    document.getElementById("mpAddBtn")?.addEventListener("click", async () => {
-      const inp = document.getElementById("mpUrlInput");
-      const id = getYTId(inp.value.trim());
-      if (!id) { inp.style.outline = "1px solid rgba(255,100,100,0.6)"; setTimeout(() => inp.style.outline = "", 1000); return; }
-      inp.disabled = true;
-      const title = await fetchTitle(id);
-      videos.push({ id, title, time: addTime });
-      saveVideos(); inp.value = ""; inp.disabled = false;
-      renderPanel();
-    });
-    document.getElementById("mpUrlInput")?.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("mpAddBtn")?.click(); });
-  }
-
-  // 패널 토글
-  musicBtn.addEventListener("click", e => {
-    e.stopPropagation();
-    panelOpen = !panelOpen;
-    if (panelOpen) { renderPanel(); panel.classList.remove("hidden"); }
-    else panel.classList.add("hidden");
-  });
-  document.addEventListener("click", e => {
-    if (panelOpen && !panel.contains(e.target) && e.target !== musicBtn) {
-      panelOpen = false; panel.classList.add("hidden");
-    }
-  });
-
-  // 플로팅 플레이어 닫기
-  document.getElementById("mfpClose")?.addEventListener("click", stopVideo);
-
-  // 플로팅 플레이어 드래그
-  const dragHandle = document.getElementById("mfpDragHandle");
-  if (dragHandle && floatPlayer) {
-    let dragging = false, ox = 0, oy = 0;
-    dragHandle.addEventListener("mousedown", e => {
-      dragging = true; ox = e.clientX - floatPlayer.offsetLeft; oy = e.clientY - floatPlayer.offsetTop; e.preventDefault();
-    });
-    document.addEventListener("mousemove", e => { if (dragging) { floatPlayer.style.left = (e.clientX - ox) + "px"; floatPlayer.style.top = (e.clientY - oy) + "px"; } });
-    document.addEventListener("mouseup", () => { dragging = false; });
-  }
-}
-
-// ── X 임베드 시스템 ──────────────────────────────────────────────────
-const EMBED_KEY = "dayos_embeds_v1";
-let embeds = [];
-
-function loadEmbeds() { try { embeds = JSON.parse(localStorage.getItem(EMBED_KEY) || "[]"); } catch { embeds = []; } }
-function saveEmbeds() { localStorage.setItem(EMBED_KEY, JSON.stringify(embeds)); }
-
-function getTweetId(url) {
-  const match = url.match(/status\/(\d+)/);
-  return match ? match[1] : null;
-}
-
-function renderEmbeds() {
-  document.querySelectorAll(".tweet-card").forEach(el => el.remove());
-  const section = document.getElementById("homeSection");
-  if (!section) return;
-
-  embeds.forEach((embed, idx) => {
-    const el = document.createElement("div");
-    const videoOnly = embed.videoOnly || false;
-    el.className = "tweet-card" + (videoOnly ? " tweet-card--video" : "");
-    el.style.left = (embed.x || 80 + idx * 24) + "px";
-    el.style.top = (embed.y || 120 + idx * 24) + "px";
-    el.innerHTML = `
-      <div class="tweet-card-drag-handle"></div>
-      <button class="tweet-card-close" data-idx="${idx}">×</button>
-      <button class="tweet-card-toggle" title="${videoOnly ? '전체 보기' : '영상만 보기'}">
-        ${videoOnly ? '⊞' : '▶'}
-      </button>
-      <div class="tweet-card-viewport">
-        <iframe
-          src="https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&theme=dark&dnt=true&lang=ko"
-          width="280" height="420" frameborder="0" scrolling="no"
-          allowtransparency="true"
-        ></iframe>
-      </div>
-    `;
-
-    // 드래그 (drag handle 영역만)
-    const handle = el.querySelector(".tweet-card-drag-handle");
-    let dragging = false, ox = 0, oy = 0;
-    handle.addEventListener("mousedown", e => {
-      dragging = true;
-      ox = e.clientX - el.offsetLeft;
-      oy = e.clientY - el.offsetTop;
-      e.preventDefault();
-    });
-    const onMove = e => {
-      if (!dragging) return;
-      el.style.left = (e.clientX - ox) + "px";
-      el.style.top = (e.clientY - oy) + "px";
-    };
-    const onUp = () => {
-      if (!dragging) return;
-      dragging = false;
-      embeds[idx].x = parseInt(el.style.left);
-      embeds[idx].y = parseInt(el.style.top);
-      saveEmbeds();
-    };
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-
-    el.querySelector(".tweet-card-close").addEventListener("click", () => {
-      embeds.splice(idx, 1);
-      saveEmbeds();
-      renderEmbeds();
-    });
-
-    el.querySelector(".tweet-card-toggle").addEventListener("click", () => {
-      embeds[idx].videoOnly = !embeds[idx].videoOnly;
-      saveEmbeds();
-      renderEmbeds();
-    });
-
-    section.appendChild(el);
-  });
-}
-
-function initEmbedSystem() {
-  loadEmbeds();
-  renderEmbeds();
-  const btn = document.getElementById("embedBtn");
-  const panel = document.getElementById("embedInputPanel");
-  const input = document.getElementById("embedUrlInput");
-  if (!btn || !panel || !input) return;
-
-  btn.addEventListener("click", () => {
-    panel.classList.toggle("open");
-    if (panel.classList.contains("open")) input.focus();
-  });
-  document.getElementById("embedCancelBtn")?.addEventListener("click", () => {
-    panel.classList.remove("open");
-    input.value = "";
-  });
-  document.getElementById("embedSaveBtn")?.addEventListener("click", () => {
-    const id = getTweetId(input.value.trim());
-    if (!id) { input.style.borderColor = "rgba(255,100,100,0.6)"; setTimeout(() => input.style.borderColor = "", 1000); return; }
-    embeds.push({ id, x: 80 + (embeds.length % 4) * 28, y: 120 + (embeds.length % 3) * 28 });
-    saveEmbeds();
-    renderEmbeds();
-    panel.classList.remove("open");
-    input.value = "";
-  });
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter") document.getElementById("embedSaveBtn")?.click();
-    if (e.key === "Escape") document.getElementById("embedCancelBtn")?.click();
-  });
-}
-
-// ── 낙서 시스템 ──────────────────────────────────────────────────────
-const DOODLE_KEY = "dayos_doodle_v1";
-
-function initDoodleSystem() {
-  const btn = document.getElementById("doodleBtn");
-  const canvas = document.getElementById("doodleCanvas");
-  const toolbar = document.getElementById("doodleToolbar");
-  if (!btn || !canvas || !toolbar) return;
-
-  const ctx = canvas.getContext("2d");
-  let isDrawing = false;
-  let isEraser = false;
-  let penColor = "#ffffff";
-  let penSize = 3;
-  let lastX = 0, lastY = 0;
-
-  function resizeCanvas() {
-    const img = canvas.toDataURL();
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    // 기존 그림 복원
-    if (img !== "data:,") {
-      const image = new Image();
-      image.onload = () => ctx.drawImage(image, 0, 0);
-      image.src = img;
-    }
-  }
-
-  function loadDoodle() {
-    const saved = localStorage.getItem(DOODLE_KEY);
-    if (!saved) return;
-    const image = new Image();
-    image.onload = () => ctx.drawImage(image, 0, 0);
-    image.src = saved;
-  }
-
-  function saveDoodle() {
-    try { localStorage.setItem(DOODLE_KEY, canvas.toDataURL()); } catch(e) {}
-  }
-
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  function startDraw(e) {
-    e.preventDefault();
-    isDrawing = true;
-    const { x, y } = getPos(e);
-    lastX = x; lastY = y;
-    ctx.beginPath();
-    ctx.arc(x, y, (isEraser ? penSize * 4 : penSize) / 2, 0, Math.PI * 2);
-    ctx.fillStyle = isEraser ? "rgba(0,0,0,1)" : penColor;
-    if (isEraser) ctx.globalCompositeOperation = "destination-out";
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-  }
-
-  function draw(e) {
-    if (!isDrawing) return;
-    e.preventDefault();
-    const { x, y } = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = penColor;
-    ctx.lineWidth = isEraser ? penSize * 4 : penSize;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    if (isEraser) ctx.globalCompositeOperation = "destination-out";
-    else ctx.globalCompositeOperation = "source-over";
-    ctx.stroke();
-    lastX = x; lastY = y;
-  }
-
-  function endDraw() {
-    if (!isDrawing) return;
-    isDrawing = false;
-    ctx.globalCompositeOperation = "source-over";
-    saveDoodle();
-  }
-
-  // 낙서 모드 ON/OFF
-  let doodleActive = false;
-
-  // 저장된 낙서 복원 (항상 화면에 표시)
-  resizeCanvas();
-  loadDoodle();
-  canvas.classList.remove("hidden");
-  canvas.style.pointerEvents = "none";
-
-  function toggleDoodle() {
-    doodleActive = !doodleActive;
-    if (doodleActive) {
-      canvas.style.pointerEvents = "auto";
-      toolbar.classList.remove("hidden");
-      btn.classList.add("active");
-      document.body.style.userSelect = "none";
-    } else {
-      canvas.style.pointerEvents = "none";
-      toolbar.classList.add("hidden");
-      btn.classList.remove("active");
-      document.body.style.userSelect = "";
-    }
-  }
-
-  btn.addEventListener("click", toggleDoodle);
-  window.addEventListener("resize", () => { if (doodleActive) resizeCanvas(); });
-
-  canvas.addEventListener("mousedown", startDraw);
-  canvas.addEventListener("mousemove", draw);
-  canvas.addEventListener("mouseup", endDraw);
-  canvas.addEventListener("mouseleave", endDraw);
-  canvas.addEventListener("touchstart", startDraw, { passive: false });
-  canvas.addEventListener("touchmove", draw, { passive: false });
-  canvas.addEventListener("touchend", endDraw);
-
-  // 색상 버튼
-  toolbar.querySelectorAll(".doodle-tool-color").forEach(b => {
-    b.addEventListener("click", () => {
-      penColor = b.dataset.color;
-      isEraser = false;
-      toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      document.getElementById("doodleEraserBtn")?.classList.remove("active");
-    });
-  });
-
-  // 크기 버튼
-  toolbar.querySelectorAll(".doodle-tool-size").forEach(b => {
-    b.addEventListener("click", () => {
-      penSize = +b.dataset.size;
-      toolbar.querySelectorAll(".doodle-tool-size").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-    });
-  });
-
-  // 지우개
-  document.getElementById("doodleEraserBtn")?.addEventListener("click", function() {
-    isEraser = !isEraser;
-    this.classList.toggle("active", isEraser);
-    if (isEraser) {
-      toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
-    }
-  });
-
-  // 전체 지우기
-  document.getElementById("doodleClearBtn")?.addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    localStorage.removeItem(DOODLE_KEY);
-  });
-
-  // 완료
-  document.getElementById("doodleDoneBtn")?.addEventListener("click", toggleDoodle);
-}
-
-function initMemoSystem() {
-  loadMemos();
-  renderMemos();
-  const btn = document.getElementById("memoBtn");
-  const panel = document.getElementById("memoInputPanel");
-  const textarea = document.getElementById("memoTextarea");
-  if (!btn || !panel) return;
-  btn.addEventListener("click", () => {
-    panel.classList.toggle("open");
-    if (panel.classList.contains("open")) textarea?.focus();
-  });
-  document.getElementById("memoCancelBtn")?.addEventListener("click", () => {
-    panel.classList.remove("open");
-    if (textarea) textarea.value = "";
-  });
-  document.getElementById("memoSaveBtn")?.addEventListener("click", () => {
-    const text = textarea?.value.trim();
-    if (!text) return;
-    memos.push({ text, x: 40 + (memos.length % 5) * 30, y: 80 + (memos.length % 4) * 40 });
-    saveMemos();
-    renderMemos();
-    panel.classList.remove("open");
-    if (textarea) textarea.value = "";
-  });
-  textarea?.addEventListener("keydown", e => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) document.getElementById("memoSaveBtn")?.click();
-  });
-}
-
 // ── 바운싱 이미지 이스터에그 ──
 let bouncingImgActive = false;
 let lastBounceHour = 0;
@@ -656,7 +160,11 @@ function segKey(seg) {
 }
 
 function getTimeOfDayText() {
-  return { eyebrow: "", title: "", desc: "" };
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12)  return { eyebrow: "MORNING", title: "오전부터 시작하다니", desc: "진짜 대단하다. 이 시간에 이러는 사람 별로 없음." };
+  if (h >= 12 && h < 17) return { eyebrow: "AFTERNOON", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "어제보다 조금만 더. 그거면 충분해." };
+  if (h >= 17 && h < 20) return { eyebrow: "", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "" };
+  return { eyebrow: "", title: "오늘도 화이팅 ദ്ദി (ˊᗜˋა)", desc: "" };
 }
 
 function updateWelcomeScreen() {
@@ -943,9 +451,6 @@ function restoreState() {
   } catch { /* noop */ }
 }
 
-function _showEl(el) { if (el) { el.classList.remove("hidden"); el.style.display = ""; } }
-function _hideEl(el) { if (el) { el.classList.add("hidden"); el.style.display = "none"; } }
-
 function showScreen(screen) {
   const loginOverlay = document.getElementById("loginScreen");
   const appMain = document.getElementById("appMain");
@@ -955,32 +460,33 @@ function showScreen(screen) {
 
   if (screen === "login") {
     loginOverlay?.classList.add("is-active");
-    _hideEl(appMain);
+    if (appMain) appMain.style.display = "none";
     return;
   }
 
   // Logged in — show app
   loginOverlay?.classList.remove("is-active");
-  _showEl(appMain);
+  if (appMain) appMain.style.display = "";
 
   if (screen === "focus") {
-    _hideEl(wsIdleState);
-    _showEl(wsActiveState);
-    _hideEl(summaryOverlay);
+    wsIdleState?.classList.add("hidden");
+    wsActiveState?.classList.remove("hidden");
+    summaryOverlay?.classList.add("hidden");
     document.getElementById("workspaceSection")
       ?.scrollIntoView({ behavior: "smooth" });
   } else if (screen === "welcome") {
     if (!startedAtMs) {
-      _showEl(wsIdleState);
-      _hideEl(wsActiveState);
+      wsIdleState?.classList.remove("hidden");
+      wsActiveState?.classList.add("hidden");
     }
-    _hideEl(summaryOverlay);
+    summaryOverlay?.classList.add("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (screen === "history") {
-    _hideEl(summaryOverlay);
-    renderHistoryScreen();
+    summaryOverlay?.classList.add("hidden");
+    document.getElementById("workspaceSection")
+      ?.scrollIntoView({ behavior: "smooth" });
   } else if (screen === "summary") {
-    _showEl(summaryOverlay);
+    summaryOverlay?.classList.remove("hidden");
   }
 }
 
@@ -1190,17 +696,13 @@ function getWeekRange() {
 
 let historyTab = "week";
 
-// ─── 기록 화면 v2 — 활동 사이드바 + 주간 그리드 ──────────────────
-
+// ─── 히스토리 화면 (신규 디자인) ──────────────────────────────────
 let _histDate = null;
-let _histWeekStart = null;
+let _histView = 'day'; // 'day' | 'week' | 'month'
 
-// Utility
 function getWeekStart(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  // Start on Monday (1). If Sunday (0) go back 6 days.
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  d.setDate(d.getDate() - d.getDay()); // back to Sunday
   return toDateStr(d.getTime());
 }
 
@@ -1214,542 +716,107 @@ function getWeekDates(weekStart) {
   return dates;
 }
 
-// ── Activity system (localStorage) ──
-const ACT_KEY  = "dayos_activities_v1";
-const TLOG_KEY = "dayos_timelog_v1";
-
-const ACT_COLORS = [
-  "#E64040","#E67040","#E6AA40","#5AAE6A",
-  "#4A8DE6","#9B5AE6","#E64078","#555555"
-];
-
-const DEFAULT_ACTS = [
-  { id:"act_sleep", name:"수면", emoji:"😴", color:"#E64040", goalH:7 },
-  { id:"act_work",  name:"작업", emoji:"💻", color:"#E64040", goalH:0 },
-  { id:"act_food",  name:"밥",   emoji:"🍚", color:"#E64040", goalH:0 },
-];
-
-function loadActs() {
-  try {
-    const r = localStorage.getItem(ACT_KEY);
-    if (r) return JSON.parse(r);
-  } catch(e) {}
-  localStorage.setItem(ACT_KEY, JSON.stringify(DEFAULT_ACTS));
-  return DEFAULT_ACTS.map(a => ({ ...a }));
-}
-function saveActs(acts) { localStorage.setItem(ACT_KEY, JSON.stringify(acts)); }
-
-function loadTlog() {
-  try { return JSON.parse(localStorage.getItem(TLOG_KEY) || "{}"); } catch(e) { return {}; }
-}
-function saveTlog(log) { localStorage.setItem(TLOG_KEY, JSON.stringify(log)); }
-
-function makeTblockId() { return "tb_" + Date.now() + "_" + Math.random().toString(36).slice(2,6); }
-
-// ── Main render ──
-function renderHistoryScreen(dateStr) {
+async function renderHistoryScreen(dateStr) {
   const todayStr = toDateStr(Date.now());
   _histDate = dateStr || todayStr;
-  _histWeekStart = getWeekStart(_histDate);
 
-  const screen = document.getElementById("historyScreen");
-  screen.innerHTML = "";
-  _showEl(screen);
+  const panel = document.querySelector("#historyScreen .history-panel");
+  panel.innerHTML = "";
 
-  const dates = getWeekDates(_histWeekStart);
+  const header = document.createElement("div");
+  header.className = "hs-header";
+  panel.appendChild(header);
 
-  // Top bar
-  const topbar = document.createElement("div");
-  topbar.className = "hs2-topbar";
-  const backBtn = document.createElement("button");
-  backBtn.className = "hs2-back-btn";
-  backBtn.textContent = "‹";
-  backBtn.addEventListener("click", () => {
-    _hideEl(screen);
-    showScreen(startedAtMs ? "focus" : "welcome");
-  });
-  topbar.appendChild(backBtn);
-  const titleSpan = document.createElement("span");
-  titleSpan.className = "hs2-title";
-  titleSpan.textContent = "기록";
-  topbar.appendChild(titleSpan);
-  screen.appendChild(topbar);
+  const content = document.createElement("div");
+  content.className = "hs-content";
+  panel.appendChild(content);
 
-  // Two-panel layout
-  const layout = document.createElement("div");
-  layout.className = "hs2-layout";
-  screen.appendChild(layout);
+  function buildHeader() {
+    const d = new Date(_histDate + "T00:00:00");
+    const DAYS = ["일","월","화","수","목","금","토"];
+    let dateLabel = "";
+    let todayLabel = "오늘";
 
-  // LEFT: sidebar
-  const sidebar = document.createElement("div");
-  sidebar.className = "hs2-sidebar";
-  layout.appendChild(sidebar);
-  _renderActSidebar(sidebar, dates);
-
-  // RIGHT: grid panel
-  const gridPanel = document.createElement("div");
-  gridPanel.className = "hs2-grid-panel";
-  layout.appendChild(gridPanel);
-  _renderWeekGrid(gridPanel, dates);
-}
-
-// ── Activity sidebar ──
-function _renderActSidebar(sidebar, dates) {
-  sidebar.innerHTML = "";
-  const acts = loadActs();
-
-  // + add button
-  const addBtn = document.createElement("div");
-  addBtn.className = "hs2-act-add";
-  addBtn.textContent = "+";
-  addBtn.addEventListener("click", () => _openActModal(null, () => {
-    const screen = document.getElementById("historyScreen");
-    const newDates = getWeekDates(_histWeekStart);
-    screen.innerHTML = "";
-    _showEl(screen);
-    const topbar = screen.parentElement ? null : null; // re-render full
-    renderHistoryScreen(_histDate);
-  }));
-  sidebar.appendChild(addBtn);
-
-  const tlog = loadTlog();
-
-  acts.forEach(act => {
-    // calculate this week's total hours for this activity
-    let totalMs = 0;
-    dates.forEach(dt => {
-      const blocks = (tlog[dt] || []).filter(b => b.actId === act.id);
-      blocks.forEach(b => { totalMs += (b.endH - b.startH) * 3600000; });
-    });
-    const totalH = Math.round(totalMs / 3600000 * 10) / 10;
-
-    const card = document.createElement("div");
-    card.className = "hs2-act-card";
-    card.style.position = "relative";
-
-    // emoji chip
-    const emojiChip = document.createElement("div");
-    emojiChip.className = "hs2-act-emoji";
-    emojiChip.textContent = act.emoji || "📌";
-    card.appendChild(emojiChip);
-
-    // name label blob
-    const label = document.createElement("div");
-    label.className = "hs2-act-label";
-    label.style.background = act.color || "#E64040";
-    label.textContent = act.name;
-    card.appendChild(label);
-
-    // goal / logged time chip
-    if (act.goalH || totalH > 0) {
-      const timeChip = document.createElement("div");
-      timeChip.className = "hs2-act-goal";
-      if (totalH > 0) {
-        timeChip.textContent = totalH % 1 === 0 ? `${totalH}H` : `${totalH}H`;
-      } else if (act.goalH) {
-        timeChip.textContent = `목표 ${act.goalH}H`;
-        timeChip.style.opacity = "0.55";
-      }
-      card.appendChild(timeChip);
-    }
-
-    // three-dot menu
-    const dots = document.createElement("button");
-    dots.className = "hs2-act-dots";
-    dots.textContent = "⋯";
-    dots.addEventListener("click", (e) => {
-      e.stopPropagation();
-      // close any existing menu
-      document.querySelectorAll(".hs2-act-dots-menu").forEach(m => m.remove());
-      const menu = document.createElement("div");
-      menu.className = "hs2-act-dots-menu";
-      const editBtn = document.createElement("button");
-      editBtn.className = "hs2-act-dots-item";
-      editBtn.textContent = "수정";
-      editBtn.addEventListener("click", () => {
-        menu.remove();
-        _openActModal(act.id, () => renderHistoryScreen(_histDate));
-      });
-      const delBtn = document.createElement("button");
-      delBtn.className = "hs2-act-dots-item hs2-act-dots-item--del";
-      delBtn.textContent = "삭제";
-      delBtn.addEventListener("click", () => {
-        menu.remove();
-        const acts2 = loadActs().filter(a => a.id !== act.id);
-        saveActs(acts2);
-        renderHistoryScreen(_histDate);
-      });
-      menu.appendChild(editBtn);
-      menu.appendChild(delBtn);
-      card.appendChild(menu);
-      setTimeout(() => document.addEventListener("click", () => menu.remove(), { once: true }), 0);
-    });
-    card.appendChild(dots);
-
-    sidebar.appendChild(card);
-  });
-}
-
-// ── Week grid ──
-function _renderWeekGrid(gridPanel, dates) {
-  const todayStr = toDateStr(Date.now());
-  const DAYS_EN = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
-
-  // Topbar (week nav)
-  const topbar = document.createElement("div");
-  topbar.className = "hs2-grid-topbar";
-
-  const wsD = new Date(_histWeekStart + "T00:00:00");
-  const weD = new Date(_histWeekStart + "T00:00:00"); weD.setDate(weD.getDate() + 6);
-  const sameMonth = wsD.getMonth() === weD.getMonth();
-  const label = document.createElement("span");
-  label.className = "hs2-grid-date-label";
-  label.textContent = sameMonth
-    ? `${wsD.getMonth()+1}월 ${wsD.getDate()}일 — ${weD.getDate()}일`
-    : `${wsD.getMonth()+1}/${wsD.getDate()} — ${weD.getMonth()+1}/${weD.getDate()}`;
-  topbar.appendChild(label);
-
-  const todayBtn = document.createElement("button");
-  todayBtn.className = "hs2-grid-nav-btn";
-  todayBtn.textContent = "오늘";
-  todayBtn.addEventListener("click", () => {
-    _histDate = toDateStr(Date.now());
-    _histWeekStart = getWeekStart(_histDate);
-    renderHistoryScreen(_histDate);
-  });
-
-  const prevBtn = document.createElement("button");
-  prevBtn.className = "hs2-grid-nav-btn";
-  prevBtn.textContent = "‹";
-  prevBtn.addEventListener("click", () => {
-    const d = new Date(_histWeekStart + "T00:00:00");
-    d.setDate(d.getDate() - 7);
-    _histWeekStart = toDateStr(d.getTime());
-    _histDate = _histWeekStart;
-    renderHistoryScreen(_histDate);
-  });
-
-  const nextBtn = document.createElement("button");
-  nextBtn.className = "hs2-grid-nav-btn";
-  nextBtn.textContent = "›";
-  nextBtn.addEventListener("click", () => {
-    const d = new Date(_histWeekStart + "T00:00:00");
-    d.setDate(d.getDate() + 7);
-    _histWeekStart = toDateStr(d.getTime());
-    _histDate = _histWeekStart;
-    renderHistoryScreen(_histDate);
-  });
-
-  topbar.appendChild(prevBtn);
-  topbar.appendChild(todayBtn);
-  topbar.appendChild(nextBtn);
-  gridPanel.appendChild(topbar);
-
-  // Day headers
-  const dayHeaders = document.createElement("div");
-  dayHeaders.className = "hs2-grid-day-headers";
-  // empty corner cell
-  const corner = document.createElement("div");
-  dayHeaders.appendChild(corner);
-
-  dates.forEach((dt, i) => {
-    const d = new Date(dt + "T00:00:00");
-    const isToday = dt === todayStr;
-    const cell = document.createElement("div");
-    cell.className = "hs2-grid-day-hdr" + (isToday ? " is-today" : "");
-    const dayName = document.createElement("span");
-    dayName.textContent = DAYS_EN[i];
-    const dayNum = document.createElement("span");
-    dayNum.className = "hs2-grid-day-num";
-    dayNum.textContent = d.getDate();
-    cell.appendChild(dayName);
-    cell.appendChild(dayNum);
-    dayHeaders.appendChild(cell);
-  });
-  gridPanel.appendChild(dayHeaders);
-
-  // Scrollable grid
-  const scroll = document.createElement("div");
-  scroll.className = "hs2-grid-scroll";
-  gridPanel.appendChild(scroll);
-
-  const body = document.createElement("div");
-  body.className = "hs2-grid-body";
-  scroll.appendChild(body);
-
-  const tlog = loadTlog();
-  const acts = loadActs();
-
-  // Time labels column
-  const timeCol = document.createElement("div");
-  timeCol.className = "hs2-grid-time-col";
-  for (let h = 0; h < 24; h++) {
-    const lbl = document.createElement("div");
-    lbl.className = "hs2-grid-hour-label";
-    lbl.textContent = h === 0 ? "" : `${h}:00`;
-    timeCol.appendChild(lbl);
-  }
-  body.appendChild(timeCol);
-
-  // Day columns
-  dates.forEach((dt, di) => {
-    const col = document.createElement("div");
-    col.className = "hs2-grid-day-col";
-
-    // Hour cells (clickable to add block)
-    for (let h = 0; h < 24; h++) {
-      const cell = document.createElement("div");
-      cell.className = "hs2-grid-hour-cell";
-      cell.dataset.date = dt;
-      cell.dataset.hour = h;
-      cell.addEventListener("click", () => _openBlockModal(dt, h, null, () => renderHistoryScreen(_histDate)));
-      col.appendChild(cell);
-    }
-
-    // Render existing time blocks for this day
-    const blocks = tlog[dt] || [];
-    blocks.forEach(block => {
-      const act = acts.find(a => a.id === block.actId);
-      if (!act) return;
-      const tb = document.createElement("div");
-      tb.className = "hs2-time-block";
-      tb.style.background = act.color || "#E64040";
-      tb.style.top = (block.startH * 44) + "px";
-      tb.style.height = Math.max((block.endH - block.startH) * 44 - 2, 20) + "px";
-      const lbl = document.createElement("div");
-      lbl.className = "hs2-time-block-label";
-      lbl.textContent = act.name;
-      tb.appendChild(lbl);
-      tb.addEventListener("click", (e) => {
-        e.stopPropagation();
-        _openBlockModal(dt, block.startH, block, () => renderHistoryScreen(_histDate));
-      });
-      col.appendChild(tb);
-    });
-
-    body.appendChild(col);
-  });
-
-  // Scroll to 7am
-  setTimeout(() => { scroll.scrollTop = 7 * 44; }, 0);
-}
-
-// ── Activity modal (add / edit) ──
-function _openActModal(actId, onDone) {
-  const acts = loadActs();
-  const existing = actId ? acts.find(a => a.id === actId) : null;
-
-  const modal = document.getElementById("hsActModal");
-  const emojiEl = document.getElementById("hsActModalEmoji");
-  const nameInput = document.getElementById("hsActNameInput");
-  const goalInput = document.getElementById("hsActGoalInput");
-  const emojiInput = document.getElementById("hsActEmojiInput");
-  const colorRow = document.getElementById("hsActColorRow");
-  const cancelBtn = document.getElementById("hsActCancelBtn");
-  const saveBtn = document.getElementById("hsActSaveBtn");
-
-  // Remove old delete button if any
-  document.getElementById("hsActDelBtn")?.remove();
-
-  // Pre-fill
-  let selColor = existing ? existing.color : ACT_COLORS[0];
-  nameInput.value = existing ? existing.name : "";
-  goalInput.value = existing && existing.goalH ? String(existing.goalH) : "";
-  emojiInput.value = existing ? existing.emoji : "";
-  emojiEl.textContent = existing ? existing.emoji : "✏️";
-
-  // Color swatches
-  colorRow.innerHTML = "";
-  ACT_COLORS.forEach(c => {
-    const sw = document.createElement("div");
-    sw.className = "hs-act-color-swatch" + (c === selColor ? " selected" : "");
-    sw.style.background = c;
-    sw.addEventListener("click", () => {
-      colorRow.querySelectorAll(".hs-act-color-swatch").forEach(s => s.classList.remove("selected"));
-      sw.classList.add("selected");
-      selColor = c;
-    });
-    colorRow.appendChild(sw);
-  });
-
-  // Emoji input → update preview
-  emojiInput.addEventListener("input", () => {
-    const v = emojiInput.value.trim();
-    emojiEl.textContent = v || "✏️";
-  });
-
-  // Show delete button for existing
-  if (existing) {
-    const delBtn = document.createElement("button");
-    delBtn.id = "hsActDelBtn";
-    delBtn.className = "hs-act-del-btn";
-    delBtn.textContent = "삭제";
-    delBtn.addEventListener("click", () => {
-      const acts2 = loadActs().filter(a => a.id !== actId);
-      saveActs(acts2);
-      _hideEl(modal);
-      onDone?.();
-    });
-    document.querySelector(".hs-act-modal-actions").prepend(delBtn);
-  }
-
-  _showEl(modal);
-
-  const close = () => _hideEl(modal);
-  cancelBtn.onclick = close;
-
-  saveBtn.onclick = () => {
-    const name = nameInput.value.trim();
-    if (!name) { nameInput.focus(); return; }
-    const emoji = emojiInput.value.trim() || "📌";
-    const goalH = parseFloat(goalInput.value) || 0;
-
-    if (existing) {
-      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, goalH } : a);
-      saveActs(acts2);
+    if (_histView === 'day') {
+      dateLabel = `${d.getMonth()+1}월 ${d.getDate()}일, ${DAYS[d.getDay()]}요일`;
+    } else if (_histView === 'week') {
+      const ws = getWeekStart(_histDate);
+      const wsD = new Date(ws + "T00:00:00");
+      const weD = new Date(ws + "T00:00:00"); weD.setDate(weD.getDate() + 6);
+      const sameMonth = wsD.getMonth() === weD.getMonth();
+      dateLabel = sameMonth
+        ? `${wsD.getMonth()+1}월 ${wsD.getDate()}일 - ${weD.getDate()}일`
+        : `${wsD.getMonth()+1}/${wsD.getDate()} - ${weD.getMonth()+1}/${weD.getDate()}`;
+      todayLabel = "이번주";
     } else {
-      const acts2 = loadActs();
-      acts2.push({ id: "act_" + Date.now(), name, emoji, color: selColor, goalH });
-      saveActs(acts2);
+      dateLabel = `${d.getFullYear()}년 ${d.getMonth()+1}월`;
+      todayLabel = "이번달";
     }
-    close();
-    onDone?.();
-  };
-}
 
-// ── Time block modal (add / edit / delete) ──
-function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
-  // Remove any existing modal
-  document.getElementById("hs2BlockModal")?.remove();
+    header.innerHTML = `
+      <div class="hs-header-left">
+        <button class="hs-back-btn" id="hsBack">‹</button>
+        <span class="hs-date-label">${dateLabel}</span>
+      </div>
+      <div class="hs-header-right">
+        <div class="hs-view-toggle">
+          <button class="hs-view-btn${_histView==='day'?' active':''}" data-view="day">일</button>
+          <button class="hs-view-btn${_histView==='week'?' active':''}" data-view="week">주</button>
+          <button class="hs-view-btn${_histView==='month'?' active':''}" data-view="month">월</button>
+        </div>
+        <div class="hs-nav-group">
+          <button class="hs-nav-btn" id="hsPrev">‹</button>
+          <button class="hs-nav-btn hs-nav-btn--today" id="hsToday">${todayLabel}</button>
+          <button class="hs-nav-btn" id="hsNext">›</button>
+        </div>
+      </div>
+    `;
 
-  const acts = loadActs();
-  if (!acts.length) { alert("먼저 활동을 추가해주세요."); return; }
+    document.getElementById("hsBack").addEventListener("click", () => showScreen(startedAtMs ? "focus" : "welcome"));
 
-  const modal = document.createElement("div");
-  modal.className = "hs2-block-modal";
-  modal.id = "hs2BlockModal";
-
-  const box = document.createElement("div");
-  box.className = "hs2-block-modal-box";
-
-  const title = document.createElement("div");
-  title.className = "hs2-block-modal-title";
-  const d = new Date(dateStr + "T00:00:00");
-  const DAYS_KO = ["일","월","화","수","목","금","토"];
-  title.textContent = `${d.getMonth()+1}월 ${d.getDate()}일 ${DAYS_KO[d.getDay()]}요일`;
-  box.appendChild(title);
-
-  // Activity list
-  let selActId = existingBlock ? existingBlock.actId : acts[0].id;
-  const actList = document.createElement("div");
-  actList.className = "hs2-block-act-list";
-  acts.forEach(act => {
-    const item = document.createElement("div");
-    item.className = "hs2-block-act-item" + (act.id === selActId ? " selected" : "");
-    const dot = document.createElement("div");
-    dot.className = "hs2-block-act-dot";
-    dot.style.background = act.color;
-    const name = document.createElement("div");
-    name.className = "hs2-block-act-name";
-    name.textContent = `${act.emoji} ${act.name}`;
-    item.appendChild(dot);
-    item.appendChild(name);
-    item.addEventListener("click", () => {
-      actList.querySelectorAll(".hs2-block-act-item").forEach(el => el.classList.remove("selected"));
-      item.classList.add("selected");
-      selActId = act.id;
+    header.querySelectorAll(".hs-view-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        _histView = btn.dataset.view;
+        buildHeader();
+        loadCurrentView();
+      });
     });
-    actList.appendChild(item);
-  });
-  box.appendChild(actList);
 
-  // Time range inputs
-  const timeRow = document.createElement("div");
-  timeRow.className = "hs2-block-time-row";
-
-  const fmt = h => `${String(h).padStart(2,"0")}:00`;
-  const startInput = document.createElement("input");
-  startInput.className = "hs2-block-time-input";
-  startInput.type = "text";
-  startInput.value = existingBlock ? fmt(existingBlock.startH) : fmt(hintH);
-  startInput.placeholder = "시작";
-
-  const sep = document.createElement("span");
-  sep.className = "hs2-block-time-sep";
-  sep.textContent = "→";
-
-  const endInput = document.createElement("input");
-  endInput.className = "hs2-block-time-input";
-  endInput.type = "text";
-  endInput.value = existingBlock ? fmt(existingBlock.endH) : fmt(Math.min(hintH + 1, 24));
-  endInput.placeholder = "종료";
-
-  timeRow.appendChild(startInput);
-  timeRow.appendChild(sep);
-  timeRow.appendChild(endInput);
-  box.appendChild(timeRow);
-
-  // Actions
-  const actions = document.createElement("div");
-  actions.className = "hs2-block-modal-actions";
-
-  const parseHr = str => {
-    str = str.trim().replace(/[시:h]/g, "").replace(/\s/g,"");
-    const n = parseFloat(str);
-    return isNaN(n) ? null : Math.min(Math.max(Math.round(n * 2) / 2, 0), 24);
-  };
-
-  if (existingBlock) {
-    const delBtn = document.createElement("button");
-    delBtn.className = "hs2-block-del";
-    delBtn.textContent = "삭제";
-    delBtn.addEventListener("click", () => {
-      const log = loadTlog();
-      log[dateStr] = (log[dateStr] || []).filter(b => b.id !== existingBlock.id);
-      saveTlog(log);
-      modal.remove();
-      onDone?.();
+    document.getElementById("hsPrev").addEventListener("click", () => navigateView(-1));
+    document.getElementById("hsToday").addEventListener("click", () => {
+      _histDate = todayStr; buildHeader(); loadCurrentView();
     });
-    actions.appendChild(delBtn);
+    document.getElementById("hsNext").addEventListener("click", () => navigateView(1));
   }
 
-  const cancelBtn = document.createElement("button");
-  cancelBtn.className = "hs2-block-cancel";
-  cancelBtn.textContent = "취소";
-  cancelBtn.addEventListener("click", () => modal.remove());
-  actions.appendChild(cancelBtn);
-
-  const saveBtn = document.createElement("button");
-  saveBtn.className = "hs2-block-save";
-  saveBtn.textContent = "저장";
-  saveBtn.addEventListener("click", () => {
-    const startH = parseHr(startInput.value);
-    const endH = parseHr(endInput.value);
-    if (startH === null || endH === null || endH <= startH) {
-      startInput.style.borderColor = "#E64040";
-      endInput.style.borderColor = "#E64040";
-      return;
-    }
-    const log = loadTlog();
-    log[dateStr] = log[dateStr] || [];
-    if (existingBlock) {
-      const idx = log[dateStr].findIndex(b => b.id === existingBlock.id);
-      if (idx >= 0) log[dateStr][idx] = { ...existingBlock, actId: selActId, startH, endH };
+  function navigateView(dir) {
+    const d = new Date(_histDate + "T00:00:00");
+    if (_histView === 'day') {
+      d.setDate(d.getDate() + dir);
+    } else if (_histView === 'week') {
+      d.setDate(d.getDate() + (dir * 7));
     } else {
-      log[dateStr].push({ id: makeTblockId(), actId: selActId, startH, endH });
+      d.setMonth(d.getMonth() + dir);
+      d.setDate(1);
     }
-    saveTlog(log);
-    modal.remove();
-    onDone?.();
-  });
-  actions.appendChild(saveBtn);
+    _histDate = toDateStr(d.getTime());
+    buildHeader();
+    loadCurrentView();
+  }
 
-  box.appendChild(actions);
-  modal.appendChild(box);
-  document.body.appendChild(modal);
+  function loadCurrentView() {
+    if (_histView === 'day') {
+      loadHistoryDay(_histDate, content);
+    } else if (_histView === 'week') {
+      loadHistoryWeek(getWeekStart(_histDate), content);
+    } else {
+      const d = new Date(_histDate + "T00:00:00");
+      loadHistoryMonth(d.getFullYear(), d.getMonth(), content);
+    }
+  }
 
-  // Close on backdrop click
-  modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
+  buildHeader();
+  loadCurrentView();
 }
 
 // ── 주 뷰 ──────────────────────────────────────────────────────────
@@ -1774,97 +841,95 @@ async function loadHistoryWeek(weekStart, container) {
 
 function renderWeekView(container, recordsByDate, dates) {
   container.innerHTML = "";
+  const HOUR_H = 56; // px per hour
   const todayStr = toDateStr(Date.now());
   const DAYS_KO = ["일","월","화","수","목","금","토"];
 
-  // ── 1. 주간 타임라인 (날짜별 가로 바) ──
-  const tlSection = document.createElement("div");
-  tlSection.className = "hs-tl-section";
+  const wrap = document.createElement("div");
+  wrap.className = "hs-week-wrap";
 
-  const tlHeader = document.createElement("div");
-  tlHeader.className = "hs-tl-header";
-  tlHeader.innerHTML = `<span class="hs-section-label">이번 주 타임라인</span>`;
-  tlSection.appendChild(tlHeader);
-
-  dates.forEach(dt => {
+  // ─ 헤더 (요일/날짜) ─
+  const hdr = document.createElement("div");
+  hdr.className = "hs-week-header";
+  hdr.innerHTML = `<div class="hs-week-tc"></div>` + dates.map(dt => {
     const d = new Date(dt + "T00:00:00");
     const isToday = dt === todayStr;
-    const dayStart = d.getTime();
-    const records = recordsByDate[dt] || [];
-    const allCI = records
-      .flatMap(r => (r.checkIns || []))
-      .filter(c => c.text && c.text !== "(기록 없음)" && c.timeMs);
+    return `<div class="hs-week-dc">
+      <span class="hs-week-dayname">${DAYS_KO[d.getDay()]}</span>
+      <span class="hs-week-daynum${isToday?' is-today':''}">${d.getDate()}</span>
+    </div>`;
+  }).join("");
+  wrap.appendChild(hdr);
 
-    const dayRow = document.createElement("div");
-    dayRow.className = "hs-week-tl-row" + (isToday ? " is-today" : "");
+  // ─ 바디 ─
+  const bodyWrap = document.createElement("div");
+  bodyWrap.className = "hs-week-body";
 
-    const label = document.createElement("div");
-    label.className = "hs-week-tl-label";
-    label.innerHTML = `<span class="hs-week-tl-dayname">${DAYS_KO[d.getDay()]}</span><span class="hs-week-tl-daynum">${d.getDate()}</span>`;
+  // 시간 레이블 컬럼
+  const tc = document.createElement("div");
+  tc.className = "hs-week-tc hs-week-time-col";
+  for (let h = 0; h < 24; h++) {
+    const lbl = document.createElement("div");
+    lbl.className = "hs-week-hour-label";
+    lbl.style.height = HOUR_H + "px";
+    lbl.textContent = h ? `${h}시` : "";
+    tc.appendChild(lbl);
+  }
+  bodyWrap.appendChild(tc);
 
-    const bar = document.createElement("div");
-    bar.className = "hs-tl-wrap hs-week-tl-bar";
+  // 요일별 컬럼
+  dates.forEach(dt => {
+    const dayStart = new Date(dt + "T00:00:00").getTime();
+    const col = document.createElement("div");
+    col.className = "hs-week-day-col";
+    col.style.height = (HOUR_H * 24) + "px";
 
-    allCI.forEach(c => {
-      const left = Math.max(0, ((c.timeMs - dayStart) / 86400000 * 100)).toFixed(2);
-      const t = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
-      const color = t ? t.color : "rgba(255,255,255,0.45)";
-      if (c.durationMs > 0) {
-        const width = Math.max((c.durationMs / 86400000 * 100), 0.5).toFixed(2);
-        const seg = document.createElement("div");
-        seg.className = "hs-tl-seg";
-        seg.style.left = left + "%";
-        seg.style.width = width + "%";
-        seg.style.background = color;
-        bar.appendChild(seg);
-      } else {
-        const marker = document.createElement("div");
-        marker.className = "hs-tl-marker";
-        marker.style.left = left + "%";
-        marker.style.background = color;
-        bar.appendChild(marker);
-      }
-    });
-
-    if (isToday) {
-      const nowPct = ((Date.now() - dayStart) / 86400000 * 100).toFixed(2);
-      const nm = document.createElement("div");
-      nm.className = "hs-tl-now-marker";
-      nm.style.left = nowPct + "%";
-      bar.appendChild(nm);
+    // 시간별 그리드선
+    for (let h = 0; h < 24; h++) {
+      const line = document.createElement("div");
+      line.className = "hs-week-hour-line";
+      line.style.top = (h * HOUR_H) + "px";
+      col.appendChild(line);
     }
 
-    dayRow.appendChild(label);
-    dayRow.appendChild(bar);
-    tlSection.appendChild(dayRow);
-  });
-
-  // 축
-  const axisWrap = document.createElement("div");
-  axisWrap.className = "hs-week-tl-axis-wrap";
-  axisWrap.innerHTML = `<div class="hs-week-tl-axis-spacer"></div><div class="hs-tl-axis"><span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>24시</span></div>`;
-  tlSection.appendChild(axisWrap);
-  container.appendChild(tlSection);
-
-  // ── 2. 주간 카테고리 합계 카드 ──
-  const tagTotals = {};
-  dates.forEach(dt => {
+    // 이벤트 블록
     const records = recordsByDate[dt] || [];
-    records.flatMap(r => (r.checkIns || [])).filter(c => c.durationMs && c.tags).forEach(c => {
-      c.tags.forEach(tid => { tagTotals[tid] = (tagTotals[tid] || 0) + c.durationMs; });
+    records.flatMap(r =>
+      (r.checkIns || []).map((c, i) => ({ ...c, _record: r, _idx: i }))
+    ).filter(c => c.text && c.text !== "(기록 없음)" && c.timeMs).forEach(c => {
+      const topPx = ((c.timeMs - dayStart) / 3600000) * HOUR_H;
+      if (topPx < 0 || topPx > HOUR_H * 24) return;
+      const heightPx = c.durationMs ? Math.max((c.durationMs / 3600000) * HOUR_H, 20) : 20;
+      const tag = c.tags && c.tags[0] ? getTag(c.tags[0]) : null;
+      const color = tag ? tag.color : "rgba(255,255,255,0.35)";
+      const blk = document.createElement("div");
+      blk.className = "hs-week-event";
+      blk.style.cssText = `top:${topPx.toFixed(1)}px;height:${heightPx.toFixed(1)}px;border-left:3px solid ${color};background:${color}1a;`;
+      blk.innerHTML = `<span class="hs-week-event-title">${c.text}</span>`;
+      col.appendChild(blk);
     });
+
+    // 현재 시각 선
+    if (dt === todayStr) {
+      const nowTop = ((Date.now() - dayStart) / 3600000) * HOUR_H;
+      const nl = document.createElement("div");
+      nl.className = "hs-week-now-line";
+      nl.style.top = nowTop.toFixed(1) + "px";
+      nl.innerHTML = `<div class="hs-week-now-dot"></div>`;
+      col.appendChild(nl);
+    }
+
+    bodyWrap.appendChild(col);
   });
 
-  const statsRow = document.createElement("div");
-  statsRow.className = "hs-stats-row";
-  Object.entries(tagTotals).forEach(([tid, ms]) => {
-    const tag = getTag(tid); if (!tag) return;
-    const card = document.createElement("div");
-    card.className = "hs-stat-card";
-    card.innerHTML = `<div class="hs-stat-label"><span class="hs-stat-dot" style="background:${tag.color}"></span>${tag.name}</div><div class="hs-stat-value">${fmtDur(ms)}</div>`;
-    statsRow.appendChild(card);
-  });
-  container.appendChild(statsRow);
+  wrap.appendChild(bodyWrap);
+  container.appendChild(wrap);
+
+  // 현재 시각으로 스크롤
+  const scrollTarget = dates.includes(todayStr)
+    ? Math.max(0, new Date().getHours() * HOUR_H - 120)
+    : 8 * HOUR_H;
+  setTimeout(() => { bodyWrap.scrollTop = scrollTarget; }, 50);
 }
 
 // ── 월 뷰 ──────────────────────────────────────────────────────────
@@ -2172,27 +1237,14 @@ function renderDayContent(container, records, dateStr) {
   retroTa.className = "hs-retro-ta";
   retroTa.placeholder = "오늘 하루를 돌아보세요...";
   retroTa.value = retroRecord?.retro || "";
-  const retroSaveBtn = document.createElement("button");
-  retroSaveBtn.className = "hs-retro-save-btn";
-  retroSaveBtn.textContent = "저장";
-
-  async function saveRetro() {
-    const val = retroTa.value.trim();
-    if (!retroRecord?._id) return;
-    retroRecord.retro = val;
-    await updateRecord(retroRecord._id, { retro: val });
-    retroSaveBtn.textContent = "저장됨 ✓";
-    retroSaveBtn.disabled = true;
-    setTimeout(() => { retroSaveBtn.textContent = "저장"; retroSaveBtn.disabled = false; }, 1800);
-  }
-
+  let retroTimer;
   retroTa.addEventListener("input", () => {
-    retroSaveBtn.textContent = "저장";
-    retroSaveBtn.disabled = false;
+    clearTimeout(retroTimer);
+    retroTimer = setTimeout(async () => {
+      if (retroRecord?._id) { retroRecord.retro = retroTa.value; await updateRecord(retroRecord._id, { retro: retroTa.value }); }
+    }, 800);
   });
-  retroSaveBtn.addEventListener("click", saveRetro);
   retroSection.appendChild(retroTa);
-  retroSection.appendChild(retroSaveBtn);
   container.appendChild(retroSection);
 }
 
@@ -2501,8 +1553,8 @@ function startSession() {
   const focusPauseBtn = document.getElementById("focusPauseBtn");
   if (focusPauseBtn) focusPauseBtn.textContent = "일시정지";
   // Show active state in left panel
-  _hideEl(document.getElementById("wsIdleState"));
-  _showEl(document.getElementById("wsActiveState"));
+  document.getElementById("wsIdleState")?.classList.add("hidden");
+  document.getElementById("wsActiveState")?.classList.remove("hidden");
   // Scroll to workspace
   document.getElementById("workspaceSection")
     ?.scrollIntoView({ behavior: "smooth" });
@@ -2532,8 +1584,8 @@ function finishSession(retro = "") {
   const _fo = document.getElementById("focusOverlay");
   if (_fo) _fo.style.display = "none";
   // Show idle state in left panel
-  _showEl(document.getElementById("wsIdleState"));
-  _hideEl(document.getElementById("wsActiveState"));
+  document.getElementById("wsIdleState")?.classList.remove("hidden");
+  document.getElementById("wsActiveState")?.classList.add("hidden");
   openSummaryScreen();
 }
 
@@ -2668,21 +1720,18 @@ function init() {
     if (_appMain) _appMain.style.display = "";
 
     if (startedAtMs) {
-      _hideEl(document.getElementById("wsIdleState"));
-      _showEl(document.getElementById("wsActiveState"));
+      document.getElementById("wsIdleState")?.classList.add("hidden");
+      document.getElementById("wsActiveState")?.classList.remove("hidden");
       els.sessionBadge.textContent = "작업 기록 중";
       updateFocusScreen();
       timerId = setInterval(updateFocusScreen, 1000);
     } else {
-      _showEl(document.getElementById("wsIdleState"));
-      _hideEl(document.getElementById("wsActiveState"));
+      document.getElementById("wsIdleState")?.classList.remove("hidden");
+      document.getElementById("wsActiveState")?.classList.add("hidden");
       els.sessionBadge.textContent = "대기";
     }
 
     updateWelcomeScreen();
-    initMemoSystem();
-    initEmbedSystem();
-    initDoodleSystem();
     // 우측 패널에 기록 자동 로드
     renderHistoryScreen();
   });
@@ -2730,7 +1779,8 @@ function init() {
   document.getElementById("focusEndBtn")?.addEventListener("click", endSession);
 
   els.summaryBackButton?.addEventListener("click", () => {
-    _hideEl(document.getElementById("summaryScreen"));
+    // 요약 닫기, 작업 중이면 왼쪽 패널 유지
+    document.getElementById("summaryScreen")?.classList.add("hidden");
     if (startedAtMs) {
       document.getElementById("workspaceSection")
         ?.scrollIntoView({ behavior: "smooth" });
@@ -2738,7 +1788,7 @@ function init() {
   });
   els.summarySaveButton?.addEventListener("click", async () => {
     await saveSessionToHistory();
-    _hideEl(document.getElementById("summaryScreen"));
+    document.getElementById("summaryScreen")?.classList.add("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
     renderHistoryScreen();
   });
@@ -2756,31 +1806,52 @@ function init() {
   });
 
   els.historyLinkButton?.addEventListener("click", () => {
-    if (startedAtMs) {
-      document.getElementById("workspaceSection")
-        ?.scrollIntoView({ behavior: "smooth" });
-    } else {
-      startSession();
-    }
+    document.getElementById("workspaceSection")
+      ?.scrollIntoView({ behavior: "smooth" });
   });
 
   // historyBackButton removed from new layout — no-op
 
-  // 기록 화면 열기 버튼 (헤더)
-  document.getElementById("recordNavBtn")?.addEventListener("click", () => {
-    renderHistoryScreen();
-  });
-
-  // 새벽: 배경 영상 교체
+  // 음악 버튼
+  const musicBtn = document.getElementById("musicBtn");
+  const musicFrame = document.getElementById("musicFrame");
+  let musicPlaying = false;
   const hour = new Date().getHours();
-  const isDawn = hour >= 0 && hour < 6;
+  const isDawn = hour >= 0 && hour < 6; // 새벽 0~5시
+
+  // 새벽: welcome 화면 배경 영상을 드라이브 영상으로 교체
   if (isDawn) {
     document.querySelectorAll(".welcome-bg-video").forEach(v => {
-      v.src = "./dawn-drive.mp4"; v.load(); v.play().catch(() => {});
+      v.src = "./dawn-drive.mp4";
+      v.load();
+      v.play().catch(() => {});
     });
   }
 
-  initMusicSystemV2();
+  musicBtn?.addEventListener("click", () => {
+    if (!musicPlaying) {
+      const MUSIC_ID = isDawn ? "aB2z36lEJ_E" : "46e80ussWc0";
+      const MUSIC_SRC = `https://www.youtube.com/embed/${MUSIC_ID}?autoplay=1&loop=1&playlist=${MUSIC_ID}&enablejsapi=1`;
+      const newFrame = document.createElement("iframe");
+      newFrame.id = "musicFrame";
+      newFrame.src = MUSIC_SRC;
+      newFrame.style.cssText = musicFrame.style.cssText;
+      newFrame.frameBorder = "0";
+      newFrame.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+      newFrame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      newFrame.allowFullscreen = true;
+      musicFrame.replaceWith(newFrame);
+      musicBtn.classList.add("is-playing");
+      musicBtn.title = "음악 정지";
+      musicPlaying = true;
+    } else {
+      const frame = document.getElementById("musicFrame");
+      if (frame) frame.src = "";
+      musicBtn.classList.remove("is-playing");
+      musicBtn.title = "음악 재생";
+      musicPlaying = false;
+    }
+  });
 
   // 피드백 버튼
   const feedbackBtn = document.getElementById("feedbackBtn");
