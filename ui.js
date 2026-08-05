@@ -679,9 +679,10 @@ function formatDate(date = new Date()) {
 function formatClock(date = new Date()) {
   const hour24 = date.getHours();
   const minute = String(date.getMinutes()).padStart(2, "0");
+  const second = String(date.getSeconds()).padStart(2, "0");
   const ampm = hour24 < 12 ? "오전" : "오후";
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${ampm} ${hour12}:${minute}`;
+  return `${ampm} ${hour12}:${minute}:${second}`;
 }
 
 function formatDuration(ms) {
@@ -2708,7 +2709,7 @@ function init() {
   setInterval(() => {
     if (els.todayText) els.todayText.textContent = formatDate();
     updateWelcomeScreen();
-  }, 30000);
+  }, 1000);
 
   // Google 로그인 버튼
   els.googleLoginBtn?.addEventListener("click", signInWithGoogle);
