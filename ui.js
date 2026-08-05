@@ -1278,17 +1278,17 @@ function renderHistoryScreen(dateStr) {
   layout.className = "hs2-layout";
   screen.appendChild(layout);
 
-  // LEFT: sidebar
-  const sidebar = document.createElement("div");
-  sidebar.className = "hs2-sidebar";
-  layout.appendChild(sidebar);
-  _renderSidebar(sidebar, dates);
-
-  // RIGHT: grid panel
+  // LEFT: grid panel
   const gridPanel = document.createElement("div");
   gridPanel.className = "hs2-grid-panel";
   layout.appendChild(gridPanel);
   _renderWeekGrid(gridPanel, dates);
+
+  // RIGHT: sidebar
+  const sidebar = document.createElement("div");
+  sidebar.className = "hs2-sidebar";
+  layout.appendChild(sidebar);
+  _renderSidebar(sidebar, dates);
 }
 
 // ── Unified sidebar (clock + timer + activities) ──

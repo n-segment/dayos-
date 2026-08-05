@@ -3537,6 +3537,7 @@ html, body {
 /* ── Dark overrides for all hs2 elements ── */
 #historyScreen .hs2-sidebar {
   background: transparent;
+  border-left: 1px solid rgba(255,255,255,0.06);
   border-right: none;
 }
 #historyScreen .hs2-sb-nav { padding-bottom: 8px; }
