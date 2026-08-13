@@ -1652,7 +1652,7 @@ function _openTaskPanel(date, block, act) {
 let _paintActId = null;   // currently selected activity for painting
 
 function _setPaintAct(actId) {
-  _paintActId = (_paintActId === actId) ? null : actId;
+  _paintActId = (actId !== null && _paintActId === actId) ? null : actId;
   // update sidebar card highlight
   document.querySelectorAll(".hs2-act-card").forEach(el => {
     el.classList.toggle("hs2-act-card--active", el.dataset.actId === _paintActId);
@@ -1660,7 +1660,21 @@ function _setPaintAct(actId) {
   // update grid cursor
   const body = document.querySelector(".hs2-grid-body");
   if (body) body.classList.toggle("hs2-paint-cursor", !!_paintActId);
+  // update paint banner
+  const banner = document.querySelector(".hs2-paint-banner");
+  if (banner) {
+    if (_paintActId) {
+      const act = loadActs().find(a => a.id === _paintActId);
+      banner.querySelector(".hs2-paint-banner-dot").style.background = act?.color || "#555";
+      banner.querySelector(".hs2-paint-banner-text").textContent = `${act?.name || ""} 칠하는 중`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
 }
+// ESC to cancel paint mode
+document.addEventListener("keydown", e => { if (e.key === "Escape" && _paintActId) _setPaintAct(null); });
 
 // ── Week grid ──
 function _renderWeekGrid(gridPanel, dates) {
@@ -1740,6 +1754,23 @@ function _renderWeekGrid(gridPanel, dates) {
   });
   gridPanel.appendChild(dayHeaders);
 
+  // Paint mode banner
+  const paintBanner = document.createElement("div");
+  paintBanner.className = "hs2-paint-banner";
+  paintBanner.style.display = "none";
+  const bannerDot = document.createElement("div");
+  bannerDot.className = "hs2-paint-banner-dot";
+  const bannerText = document.createElement("span");
+  bannerText.className = "hs2-paint-banner-text";
+  const bannerEsc = document.createElement("span");
+  bannerEsc.className = "hs2-paint-banner-esc";
+  bannerEsc.textContent = "ESC";
+  bannerEsc.addEventListener("click", () => _setPaintAct(null));
+  paintBanner.appendChild(bannerDot);
+  paintBanner.appendChild(bannerText);
+  paintBanner.appendChild(bannerEsc);
+  gridPanel.appendChild(paintBanner);
+
   // Scrollable grid
   const scroll = document.createElement("div");
   scroll.className = "hs2-grid-scroll";
@@ -1807,11 +1838,12 @@ function _renderWeekGrid(gridPanel, dates) {
 
   scroll.addEventListener("pointermove", e => {
     if (!_painting) return;
+    e.preventDefault(); // prevent scroll while painting
     const info = _coordToInfo(e);
     if (!info || info.colIdx !== _paintColIdx) return;
     _paintEndH = info.hour;
     _updatePreview();
-  });
+  }, { passive: false });
 
   scroll.addEventListener("pointerup", e => {
     if (!_painting) return;
@@ -1826,7 +1858,12 @@ function _renderWeekGrid(gridPanel, dates) {
       tlog[_paintDate] = tlog[_paintDate].filter(b => !(b.actId === _paintActId && b.startH < en && b.endH > s));
       tlog[_paintDate].push({ actId: _paintActId, startH: s, endH: en });
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+      const savedScrollTop = scroll.scrollTop;
       renderHistoryScreen(_histDate);
+      requestAnimationFrame(() => {
+        const newScroll = document.querySelector(".hs2-grid-scroll");
+        if (newScroll) newScroll.scrollTop = savedScrollTop;
+      });
     }
     _paintDate = null; _paintStartH = null; _paintEndH = null; _paintColIdx = null;
   });

@@ -3799,6 +3799,41 @@ html, body {
 .hs2-grid-body.hs2-paint-cursor .hs2-grid-hour-cell {
   cursor: crosshair;
 }
+
+/* Paint mode banner */
+.hs2-paint-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  flex-shrink: 0;
+}
+.hs2-paint-banner-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hs2-paint-banner-text {
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+}
+.hs2-paint-banner-esc {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.hs2-paint-banner-esc:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.3); }
 .hs2-time-block--preview {
   pointer-events: none;
   border-radius: 4px;
