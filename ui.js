@@ -1423,8 +1423,8 @@ function _renderActSidebar(sidebar, dates) {
     card.dataset.actId = act.id;
     card.style.position = "relative";
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".hs2-act-dots") || e.target.closest(".hs2-act-dots-menu")) return;
-      _setPaintAct(act.id);
+      if (e.target.closest(".hs2-act-dots") || e.target.closest(".hs2-act-dots-menu") || e.target.closest(".hs2-act-paint-btn")) return;
+      _openAddBlockModal(act);
     });
 
     // color dot
@@ -1452,6 +1452,17 @@ function _renderActSidebar(sidebar, dates) {
       }
       card.appendChild(timeChip);
     }
+
+    // paint mode toggle button
+    const paintBtn = document.createElement("button");
+    paintBtn.className = "hs2-act-paint-btn";
+    paintBtn.title = "드래그로 칠하기";
+    paintBtn.textContent = "✏";
+    paintBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      _setPaintAct(act.id);
+    });
+    card.appendChild(paintBtn);
 
     // three-dot menu
     const dots = document.createElement("button");
@@ -1488,6 +1499,155 @@ function _renderActSidebar(sidebar, dates) {
 
     sidebar.appendChild(card);
   });
+}
+
+// ── Add block modal ──
+function _openAddBlockModal(act) {
+  document.querySelector(".hs2-add-block-overlay")?.remove();
+
+  const overlay = document.createElement("div");
+  overlay.className = "hs2-add-block-overlay";
+
+  const modal = document.createElement("div");
+  modal.className = "hs2-add-block-modal";
+
+  // Header
+  const hdr = document.createElement("div");
+  hdr.className = "hs2-abm-header";
+  const hdot = document.createElement("div");
+  hdot.className = "hs2-abm-dot";
+  hdot.style.background = act.color || "#555";
+  const htitle = document.createElement("div");
+  htitle.className = "hs2-abm-title";
+  htitle.textContent = act.name + " 추가";
+  const hclose = document.createElement("button");
+  hclose.className = "hs2-abm-close";
+  hclose.textContent = "×";
+  hclose.addEventListener("click", () => overlay.remove());
+  hdr.appendChild(hdot); hdr.appendChild(htitle); hdr.appendChild(hclose);
+  modal.appendChild(hdr);
+
+  // Fields
+  const fields = document.createElement("div");
+  fields.className = "hs2-abm-fields";
+
+  function _row(labelText, input) {
+    const row = document.createElement("div");
+    row.className = "hs2-abm-row";
+    const lbl = document.createElement("label");
+    lbl.className = "hs2-abm-label";
+    lbl.textContent = labelText;
+    row.appendChild(lbl);
+    row.appendChild(input);
+    return row;
+  }
+
+  // Date input
+  const dateInput = document.createElement("input");
+  dateInput.type = "date";
+  dateInput.className = "hs2-abm-input";
+  dateInput.value = _histDate || toDateStr(Date.now());
+  fields.appendChild(_row("날짜", dateInput));
+
+  // Start time
+  const startSel = document.createElement("select");
+  startSel.className = "hs2-abm-input";
+  // End time
+  const endSel = document.createElement("select");
+  endSel.className = "hs2-abm-input";
+  for (let h = 0; h < 24; h++) {
+    const ap = h < 12 ? "오전" : "오후";
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const label = `${ap} ${h12}:00`;
+    const os = document.createElement("option"); os.value = h; os.textContent = label;
+    const oe = document.createElement("option"); oe.value = h; oe.textContent = label;
+    startSel.appendChild(os);
+    endSel.appendChild(oe);
+  }
+  startSel.value = 22;
+  endSel.value = 23;
+  startSel.addEventListener("change", () => {
+    if (parseInt(endSel.value) <= parseInt(startSel.value)) {
+      endSel.value = Math.min(parseInt(startSel.value) + 1, 23);
+    }
+  });
+  fields.appendChild(_row("시작", startSel));
+  fields.appendChild(_row("종료", endSel));
+
+  // Repeat
+  const repeatSel = document.createElement("select");
+  repeatSel.className = "hs2-abm-input";
+  [["none","반복 없음"], ["daily","매일 (이번 주)"], ["weekly","매주 (4주)"]].forEach(([v, t]) => {
+    const o = document.createElement("option"); o.value = v; o.textContent = t;
+    repeatSel.appendChild(o);
+  });
+  fields.appendChild(_row("반복", repeatSel));
+
+  modal.appendChild(fields);
+
+  // Buttons
+  const btns = document.createElement("div");
+  btns.className = "hs2-abm-btns";
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "hs2-abm-btn hs2-abm-btn--cancel";
+  cancelBtn.textContent = "취소";
+  cancelBtn.addEventListener("click", () => overlay.remove());
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "hs2-abm-btn hs2-abm-btn--save";
+  saveBtn.textContent = "추가";
+  saveBtn.addEventListener("click", () => {
+    const date = dateInput.value;
+    const s = parseInt(startSel.value);
+    const en = Math.max(parseInt(endSel.value), s + 1);
+    const repeat = repeatSel.value;
+    if (!date) return;
+
+    // Build list of dates
+    let dates = [date];
+    if (repeat === "daily") {
+      // all 7 days of current week
+      const ws = new Date(_histWeekStart + "T00:00:00");
+      dates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(ws); d.setDate(d.getDate() + i);
+        dates.push(toDateStr(d.getTime()));
+      }
+    } else if (repeat === "weekly") {
+      const base = new Date(date + "T00:00:00");
+      dates = [];
+      for (let w = 0; w < 4; w++) {
+        const d = new Date(base); d.setDate(d.getDate() + w * 7);
+        dates.push(toDateStr(d.getTime()));
+      }
+    }
+
+    const tlog = loadTlog();
+    for (const dt of dates) {
+      if (!tlog[dt]) tlog[dt] = [];
+      tlog[dt] = tlog[dt].filter(b => !(b.actId === act.id && b.startH < en && b.endH > s));
+      tlog[dt].push({ actId: act.id, startH: s, endH: en });
+      // merge adjacent
+      tlog[dt].sort((a, b) => a.startH - b.startH);
+      const merged = [];
+      for (const blk of tlog[dt]) {
+        const last = merged[merged.length - 1];
+        if (last && last.actId === blk.actId && last.endH >= blk.startH) {
+          last.endH = Math.max(last.endH, blk.endH);
+        } else { merged.push({ ...blk }); }
+      }
+      tlog[dt] = merged;
+    }
+    localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+    overlay.remove();
+    renderHistoryScreen(_histDate);
+  });
+  btns.appendChild(cancelBtn);
+  btns.appendChild(saveBtn);
+  modal.appendChild(btns);
+
+  overlay.appendChild(modal);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById("historyScreen").appendChild(overlay);
 }
 
 // ── Task panel (slide-in from right) ──

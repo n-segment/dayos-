@@ -4236,6 +4236,108 @@ html, body {
 }
 .hs2-tp-del-block:hover { border-color: rgba(255,100,100,0.5); color: rgba(255,100,100,0.8); }
 
+/* ── Paint button on activity card ── */
+.hs2-act-paint-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.2);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
+  margin-left: auto;
+}
+.hs2-act-paint-btn:hover { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.08); }
+.hs2-act-card--active .hs2-act-paint-btn { color: rgba(255,255,255,0.8); }
+
+/* ── Add block modal ── */
+.hs2-add-block-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+}
+.hs2-add-block-modal {
+  background: #1c1c1e;
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  width: 300px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+}
+.hs2-abm-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.07);
+}
+.hs2-abm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hs2-abm-title { font-size: 14px; font-weight: 500; color: #fff; }
+.hs2-abm-close {
+  margin-left: auto;
+  background: none; border: none;
+  color: rgba(255,255,255,0.3);
+  font-size: 18px; cursor: pointer; line-height: 1; padding: 0;
+}
+.hs2-abm-close:hover { color: rgba(255,255,255,0.7); }
+.hs2-abm-fields { padding: 6px 0; }
+.hs2-abm-row {
+  display: flex;
+  align-items: center;
+  padding: 11px 20px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.05);
+  gap: 12px;
+}
+.hs2-abm-row:last-child { border-bottom: none; }
+.hs2-abm-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  width: 36px;
+  flex-shrink: 0;
+}
+.hs2-abm-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.hs2-abm-input:focus { border-color: rgba(255,255,255,0.25); }
+.hs2-abm-input option { background: #1c1c1e; color: #fff; }
+.hs2-abm-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.4; }
+.hs2-abm-btns {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px 20px;
+  border-top: 0.5px solid rgba(255,255,255,0.07);
+}
+.hs2-abm-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.hs2-abm-btn--cancel { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+.hs2-abm-btn--cancel:hover { background: rgba(255,255,255,0.12); }
+.hs2-abm-btn--save { background: #fff; color: #000; }
+.hs2-abm-btn--save:hover { opacity: 0.88; }
+
 /* Block add tooltip */
 .hs2-add-block-tip {
   position: absolute;
