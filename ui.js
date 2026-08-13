@@ -1868,9 +1868,22 @@ function _renderWeekGrid(gridPanel, dates) {
       const en = Math.max(_paintStartH, _paintEndH) + 1;
       const tlog = loadTlog();
       if (!tlog[_paintDate]) tlog[_paintDate] = [];
-      // merge: remove any blocks of same act that overlap
+      // Remove overlapping same-act blocks, then add new block
       tlog[_paintDate] = tlog[_paintDate].filter(b => !(b.actId === _paintActId && b.startH < en && b.endH > s));
       tlog[_paintDate].push({ actId: _paintActId, startH: s, endH: en });
+      // Merge adjacent/touching same-act blocks into one continuous block
+      tlog[_paintDate].sort((a, b) => a.startH - b.startH);
+      const merged = [];
+      for (const blk of tlog[_paintDate]) {
+        const last = merged[merged.length - 1];
+        if (last && last.actId === blk.actId && last.endH >= blk.startH) {
+          last.endH = Math.max(last.endH, blk.endH);
+          if (blk.tasks) last.tasks = [...(last.tasks || []), ...blk.tasks];
+        } else {
+          merged.push({ ...blk });
+        }
+      }
+      tlog[_paintDate] = merged;
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
       renderHistoryScreen(_histDate); // scroll position auto-restored via _restoreScrollTop
     }
