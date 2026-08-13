@@ -4429,12 +4429,28 @@ html, body {
   width: 100%;
 }
 .hs-act-form-input:focus { border-bottom-color: rgba(0,0,0,0.4); }
-.hs-act-time-row {
+.hs-act-dur-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.hs-act-time-sep { color: rgba(0,0,0,0.3); font-size: 12px; }
+.hs-act-dur-input {
+  width: 72px !important;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  padding: 2px 4px !important;
+}
+.hs-act-dur-unit {
+  font-size: 13px;
+  color: rgba(0,0,0,0.4);
+}
+.hs-act-end-display {
+  font-size: 13px;
+  color: rgba(0,0,0,0.35);
+  padding: 4px 0;
+}
 .hs-act-form-select {
   flex: 1;
   background: rgba(0,0,0,0.05);

@@ -2135,19 +2135,38 @@ function _openActModal(actId, onDone) {
   const cancelBtn = document.getElementById("hsActCancelBtn");
   const saveBtn = document.getElementById("hsActSaveBtn");
   const startHSel = document.getElementById("hsActStartH");
-  const endHSel = document.getElementById("hsActEndH");
+  const durInput = document.getElementById("hsActDuration");
+  const endDisplay = document.getElementById("hsActEndDisplay");
   const repeatSel = document.getElementById("hsActRepeat");
 
-  // Populate time selects (only once)
+  // Populate start time select (only once)
   if (!startHSel.options.length) {
     for (let h = 0; h < 24; h++) {
       const ap = h < 12 ? "오전" : "오후";
       const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      const lbl = `${ap} ${h12}:00`;
-      startHSel.appendChild(Object.assign(document.createElement("option"), { value: h, textContent: lbl }));
-      endHSel.appendChild(Object.assign(document.createElement("option"), { value: h, textContent: lbl }));
+      startHSel.appendChild(Object.assign(document.createElement("option"), { value: h, textContent: `${ap} ${h12}:00` }));
     }
   }
+
+  function _fmtHour(h) {
+    const hh = ((h % 24) + 24) % 24;
+    const ap = hh < 12 ? "오전" : "오후";
+    const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+    return `${ap} ${h12}:00`;
+  }
+  function _updateEndDisplay() {
+    const s = parseInt(startHSel.value) || 0;
+    const dur = parseFloat(durInput.value) || 0;
+    if (dur > 0) {
+      endDisplay.textContent = _fmtHour(s + dur);
+      endDisplay.style.color = "";
+    } else {
+      endDisplay.textContent = "—";
+      endDisplay.style.color = "var(--text-muted, rgba(0,0,0,0.25))";
+    }
+  }
+  startHSel.addEventListener("change", _updateEndDisplay);
+  durInput.addEventListener("input", _updateEndDisplay);
 
   // Remove old delete button if any
   document.getElementById("hsActDelBtn")?.remove();
@@ -2159,8 +2178,9 @@ function _openActModal(actId, onDone) {
   emojiInput.value = existing ? existing.emoji : "";
   emojiEl.textContent = existing ? existing.emoji : "✏️";
   startHSel.value = existing?.defaultStartH ?? 22;
-  endHSel.value = existing?.defaultEndH ?? 23;
+  durInput.value = existing?.defaultDuration ?? "";
   repeatSel.value = existing?.defaultRepeat ?? "none";
+  _updateEndDisplay();
 
   // Color swatches
   colorRow.innerHTML = "";
@@ -2208,18 +2228,19 @@ function _openActModal(actId, onDone) {
     const emoji = emojiInput.value.trim() || "📌";
     const goalH = parseFloat(goalInput.value) || 0;
     const defaultStartH = parseInt(startHSel.value);
-    const defaultEndH = Math.max(parseInt(endHSel.value), defaultStartH + 1);
+    const defaultDuration = Math.max(parseFloat(durInput.value) || 1, 0.5);
+    const defaultEndH = Math.round((defaultStartH + defaultDuration) * 2) / 2; // keep 0.5h precision
     const defaultRepeat = repeatSel.value;
 
     let savedActId;
     if (existing) {
-      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, goalH, defaultStartH, defaultEndH, defaultRepeat } : a);
+      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, goalH, defaultStartH, defaultDuration, defaultEndH, defaultRepeat } : a);
       saveActs(acts2);
       savedActId = actId;
     } else {
       savedActId = "act_" + Date.now();
       const acts2 = loadActs();
-      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH, defaultStartH, defaultEndH, defaultRepeat });
+      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH, defaultStartH, defaultDuration, defaultEndH, defaultRepeat });
       saveActs(acts2);
     }
 
