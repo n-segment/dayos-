@@ -4045,12 +4045,15 @@ html, body {
 .hs2-task-panel.open { transform: translateX(0); }
 
 .hs2-tp-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 20px 18px 16px;
   border-bottom: 0.5px solid rgba(255,255,255,0.08);
   flex-shrink: 0;
+}
+.hs2-tp-header-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .hs2-tp-dot {
   width: 8px;
@@ -4063,11 +4066,6 @@ html, body {
   font-weight: 500;
   color: #fff;
 }
-.hs2-tp-time {
-  font-size: 11px;
-  color: rgba(255,255,255,0.35);
-  margin-left: 2px;
-}
 .hs2-tp-close {
   margin-left: auto;
   background: none;
@@ -4079,6 +4077,23 @@ html, body {
   padding: 0;
 }
 .hs2-tp-close:hover { color: rgba(255,255,255,0.7); }
+.hs2-tp-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-left: 18px;
+}
+.hs2-tp-meta-date {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.02em;
+}
+.hs2-tp-meta-time {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
 
 .hs2-tp-tasks {
   flex: 1;

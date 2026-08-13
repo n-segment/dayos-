@@ -1488,23 +1488,48 @@ function _openTaskPanel(date, block, act) {
   // Header
   const header = document.createElement("div");
   header.className = "hs2-tp-header";
+
+  // Top row: dot + name + close
+  const headerTop = document.createElement("div");
+  headerTop.className = "hs2-tp-header-top";
   const dot = document.createElement("div");
   dot.className = "hs2-tp-dot";
   dot.style.background = act.color || "#555";
   const title = document.createElement("div");
   title.className = "hs2-tp-title";
   title.textContent = act.name;
-  const timeRange = document.createElement("div");
-  timeRange.className = "hs2-tp-time";
-  timeRange.textContent = `${block.startH}:00 – ${block.endH}:00`;
   const closeBtn = document.createElement("button");
   closeBtn.className = "hs2-tp-close";
   closeBtn.textContent = "×";
   closeBtn.addEventListener("click", () => panel.remove());
-  header.appendChild(dot);
-  header.appendChild(title);
-  header.appendChild(timeRange);
-  header.appendChild(closeBtn);
+  headerTop.appendChild(dot);
+  headerTop.appendChild(title);
+  headerTop.appendChild(closeBtn);
+  header.appendChild(headerTop);
+
+  // Meta: date + time range with duration
+  const d = new Date(date + "T00:00:00");
+  const dayNames = ["일","월","화","수","목","금","토"];
+  const dateStr = `${d.getMonth()+1}월 ${d.getDate()}일 (${dayNames[d.getDay()]})`;
+  function _fmtH(h) {
+    if (h === 0) return "오전 12:00";
+    if (h === 12) return "오후 12:00";
+    const ap = h < 12 ? "오전" : "오후";
+    return `${ap} ${h > 12 ? h - 12 : h}:00`;
+  }
+  const dur = block.endH - block.startH;
+  const durStr = dur >= 1 ? `${dur}시간` : `${dur * 60}분`;
+  const meta = document.createElement("div");
+  meta.className = "hs2-tp-meta";
+  const metaDate = document.createElement("div");
+  metaDate.className = "hs2-tp-meta-date";
+  metaDate.textContent = dateStr;
+  const metaTime = document.createElement("div");
+  metaTime.className = "hs2-tp-meta-time";
+  metaTime.textContent = `${_fmtH(block.startH)} – ${_fmtH(block.endH)} · ${durStr}`;
+  meta.appendChild(metaDate);
+  meta.appendChild(metaTime);
+  header.appendChild(meta);
   panel.appendChild(header);
 
   // Task list
