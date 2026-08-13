@@ -1263,14 +1263,18 @@ function makeTblockId() { return "tb_" + Date.now() + "_" + Math.random().toStri
 // ── Main render ──
 let _restoreScrollTop = 0;
 
-function renderHistoryScreen(dateStr) {
+function renderHistoryScreen(dateStr, forceScrollTop) {
   const todayStr = toDateStr(Date.now());
   _histDate = dateStr || todayStr;
   _histWeekStart = getWeekStart(_histDate);
 
   // Save scroll position before destroying DOM
   const prevScroll = document.querySelector(".hs2-grid-scroll");
-  if (prevScroll) _restoreScrollTop = prevScroll.scrollTop;
+  if (forceScrollTop !== undefined) {
+    _restoreScrollTop = forceScrollTop;
+  } else if (prevScroll) {
+    _restoreScrollTop = prevScroll.scrollTop;
+  }
 
   const screen = document.getElementById("historyScreen");
   screen.innerHTML = "";
@@ -2025,6 +2029,7 @@ function _renderWeekGrid(gridPanel, dates) {
   scroll.addEventListener("pointerup", e => {
     if (!_painting) return;
     _painting = false;
+    const savedScrollTop = scroll.scrollTop; // save BEFORE overflowY is restored (browser may scroll on restore)
     scroll.style.overflowY = ""; // restore scroll
     if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
     if (_paintDate && _paintActId && _paintStartH !== null && _paintEndH !== null) {
@@ -2049,10 +2054,15 @@ function _renderWeekGrid(gridPanel, dates) {
       }
       tlog[_paintDate] = merged;
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
-      renderHistoryScreen(_histDate); // scroll position auto-restored via _restoreScrollTop
+      renderHistoryScreen(_histDate, savedScrollTop); // pass saved scroll to prevent jump
     }
     _paintDate = null; _paintStartH = null; _paintEndH = null; _paintColIdx = null;
   });
+
+  // Block wheel scroll while in paint mode (prevents trackpad scroll during painting)
+  scroll.addEventListener("wheel", e => {
+    if (_paintActId) e.preventDefault();
+  }, { passive: false });
 
   const tlog = loadTlog();
   const acts = loadActs();
