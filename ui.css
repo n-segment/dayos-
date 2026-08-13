@@ -4241,16 +4241,19 @@ html, body {
   background: none;
   border: none;
   color: rgba(255,255,255,0.2);
-  font-size: 12px;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px;
   border-radius: 4px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.12s, background 0.12s;
   margin-left: auto;
+  line-height: 0;
 }
-.hs2-act-paint-btn:hover { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.08); }
-.hs2-act-card--active .hs2-act-paint-btn { color: rgba(255,255,255,0.8); }
+.hs2-act-paint-btn:hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.08); }
+.hs2-act-card--active .hs2-act-paint-btn { color: rgba(255,255,255,0.9); }
 
 /* ── Add block modal ── */
 .hs2-add-block-overlay {
