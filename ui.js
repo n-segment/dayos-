@@ -2130,6 +2130,20 @@ function _openActModal(actId, onDone) {
   const colorRow = document.getElementById("hsActColorRow");
   const cancelBtn = document.getElementById("hsActCancelBtn");
   const saveBtn = document.getElementById("hsActSaveBtn");
+  const startHSel = document.getElementById("hsActStartH");
+  const endHSel = document.getElementById("hsActEndH");
+  const repeatSel = document.getElementById("hsActRepeat");
+
+  // Populate time selects (only once)
+  if (!startHSel.options.length) {
+    for (let h = 0; h < 24; h++) {
+      const ap = h < 12 ? "오전" : "오후";
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      const lbl = `${ap} ${h12}:00`;
+      startHSel.appendChild(Object.assign(document.createElement("option"), { value: h, textContent: lbl }));
+      endHSel.appendChild(Object.assign(document.createElement("option"), { value: h, textContent: lbl }));
+    }
+  }
 
   // Remove old delete button if any
   document.getElementById("hsActDelBtn")?.remove();
@@ -2140,6 +2154,9 @@ function _openActModal(actId, onDone) {
   goalInput.value = existing && existing.goalH ? String(existing.goalH) : "";
   emojiInput.value = existing ? existing.emoji : "";
   emojiEl.textContent = existing ? existing.emoji : "✏️";
+  startHSel.value = existing?.defaultStartH ?? 22;
+  endHSel.value = existing?.defaultEndH ?? 23;
+  repeatSel.value = existing?.defaultRepeat ?? "none";
 
   // Color swatches
   colorRow.innerHTML = "";
@@ -2186,15 +2203,57 @@ function _openActModal(actId, onDone) {
     if (!name) { nameInput.focus(); return; }
     const emoji = emojiInput.value.trim() || "📌";
     const goalH = parseFloat(goalInput.value) || 0;
+    const defaultStartH = parseInt(startHSel.value);
+    const defaultEndH = Math.max(parseInt(endHSel.value), defaultStartH + 1);
+    const defaultRepeat = repeatSel.value;
 
+    let savedActId;
     if (existing) {
-      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, goalH } : a);
+      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, goalH, defaultStartH, defaultEndH, defaultRepeat } : a);
       saveActs(acts2);
+      savedActId = actId;
     } else {
+      savedActId = "act_" + Date.now();
       const acts2 = loadActs();
-      acts2.push({ id: "act_" + Date.now(), name, emoji, color: selColor, goalH });
+      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH, defaultStartH, defaultEndH, defaultRepeat });
       saveActs(acts2);
     }
+
+    // Create time blocks if repeat is set
+    if (defaultRepeat !== "none") {
+      const today = toDateStr(Date.now());
+      const ws = _histWeekStart || getWeekStart(today);
+      let dates = [];
+      if (defaultRepeat === "daily") {
+        const wsD = new Date(ws + "T00:00:00");
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(wsD); d.setDate(d.getDate() + i);
+          dates.push(toDateStr(d.getTime()));
+        }
+      } else if (defaultRepeat === "weekly") {
+        const baseD = new Date(ws + "T00:00:00");
+        for (let w = 0; w < 4; w++) {
+          const d = new Date(baseD); d.setDate(d.getDate() + w * 7);
+          dates.push(toDateStr(d.getTime()));
+        }
+      }
+      const tlog = loadTlog();
+      for (const dt of dates) {
+        if (!tlog[dt]) tlog[dt] = [];
+        tlog[dt] = tlog[dt].filter(b => !(b.actId === savedActId && b.startH < defaultEndH && b.endH > defaultStartH));
+        tlog[dt].push({ actId: savedActId, startH: defaultStartH, endH: defaultEndH });
+        tlog[dt].sort((a, b) => a.startH - b.startH);
+        const merged = [];
+        for (const blk of tlog[dt]) {
+          const last = merged[merged.length - 1];
+          if (last && last.actId === blk.actId && last.endH >= blk.startH) { last.endH = Math.max(last.endH, blk.endH); }
+          else merged.push({ ...blk });
+        }
+        tlog[dt] = merged;
+      }
+      localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+    }
+
     close();
     onDone?.();
   };

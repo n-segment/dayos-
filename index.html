@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=105" />
+    <link rel="stylesheet" href="./ui.css?v=106" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -190,6 +190,22 @@
             <label class="hs-act-form-label">이모지</label>
             <input class="hs-act-form-input" id="hsActEmojiInput" type="text" placeholder="예: 😴 💻 🍚" maxlength="4" autocomplete="off"/>
           </div>
+          <div class="hs-act-form-group">
+            <label class="hs-act-form-label">시간대</label>
+            <div class="hs-act-time-row">
+              <select class="hs-act-form-select" id="hsActStartH"></select>
+              <span class="hs-act-time-sep">–</span>
+              <select class="hs-act-form-select" id="hsActEndH"></select>
+            </div>
+          </div>
+          <div class="hs-act-form-group">
+            <label class="hs-act-form-label">반복</label>
+            <select class="hs-act-form-select" id="hsActRepeat">
+              <option value="none">없음</option>
+              <option value="daily">매일 (이번 주)</option>
+              <option value="weekly">매주 (4주)</option>
+            </select>
+          </div>
           <div class="hs-act-modal-actions">
             <button class="hs-act-cancel-btn" id="hsActCancelBtn">취소</button>
             <button class="hs-act-save-btn" id="hsActSaveBtn">저장</button>
@@ -323,6 +339,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="./ui.js?v=105"></script>
+<script src="./ui.js?v=106"></script>
 </body>
 </html>
