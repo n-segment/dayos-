@@ -4237,6 +4237,13 @@ html, body {
 .hs2-tp-del-block:hover { border-color: rgba(255,100,100,0.5); color: rgba(255,100,100,0.8); }
 
 /* ── Paint button on activity card ── */
+.hs2-act-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .hs2-act-paint-btn {
   background: none;
   border: none;
@@ -4249,7 +4256,6 @@ html, body {
   align-items: center;
   justify-content: center;
   transition: color 0.12s, background 0.12s;
-  margin-left: auto;
   line-height: 0;
 }
 .hs2-act-paint-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }

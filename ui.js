@@ -1462,7 +1462,10 @@ function _renderActSidebar(sidebar, dates) {
       e.stopPropagation();
       _setPaintAct(act.id);
     });
-    card.appendChild(paintBtn);
+    // right-side action group (paint + dots aligned together)
+    const rightGroup = document.createElement("div");
+    rightGroup.className = "hs2-act-right";
+    rightGroup.appendChild(paintBtn);
 
     // three-dot menu
     const dots = document.createElement("button");
@@ -1492,10 +1495,11 @@ function _renderActSidebar(sidebar, dates) {
       });
       menu.appendChild(editBtn);
       menu.appendChild(delBtn);
-      card.appendChild(menu);
+      rightGroup.appendChild(menu);
       setTimeout(() => document.addEventListener("click", () => menu.remove(), { once: true }), 0);
     });
-    card.appendChild(dots);
+    rightGroup.appendChild(dots);
+    card.appendChild(rightGroup);
 
     sidebar.appendChild(card);
   });
