@@ -1261,10 +1261,16 @@ function saveTlog(log) { localStorage.setItem(TLOG_KEY, JSON.stringify(log)); }
 function makeTblockId() { return "tb_" + Date.now() + "_" + Math.random().toString(36).slice(2,6); }
 
 // ── Main render ──
+let _restoreScrollTop = 0;
+
 function renderHistoryScreen(dateStr) {
   const todayStr = toDateStr(Date.now());
   _histDate = dateStr || todayStr;
   _histWeekStart = getWeekStart(_histDate);
+
+  // Save scroll position before destroying DOM
+  const prevScroll = document.querySelector(".hs2-grid-scroll");
+  if (prevScroll) _restoreScrollTop = prevScroll.scrollTop;
 
   const screen = document.getElementById("historyScreen");
   screen.innerHTML = "";
@@ -1291,6 +1297,12 @@ function renderHistoryScreen(dateStr) {
   gridPanel.className = "hs2-grid-panel";
   layout.appendChild(gridPanel);
   _renderWeekGrid(gridPanel, dates);
+
+  // Restore scroll position synchronously (after DOM is created)
+  if (_restoreScrollTop) {
+    const newScroll = document.querySelector(".hs2-grid-scroll");
+    if (newScroll) newScroll.scrollTop = _restoreScrollTop;
+  }
 }
 
 // ── Unified sidebar — Porto Rocha style ──
@@ -1833,8 +1845,9 @@ function _renderWeekGrid(gridPanel, dates) {
     _paintStartH = info.hour;
     _paintEndH = info.hour;
     scroll.setPointerCapture(e.pointerId);
+    scroll.style.overflowY = "hidden"; // lock scroll while painting
     _updatePreview();
-  });
+  }, { passive: false });
 
   scroll.addEventListener("pointermove", e => {
     if (!_painting) return;
@@ -1848,6 +1861,7 @@ function _renderWeekGrid(gridPanel, dates) {
   scroll.addEventListener("pointerup", e => {
     if (!_painting) return;
     _painting = false;
+    scroll.style.overflowY = ""; // restore scroll
     if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
     if (_paintDate && _paintActId && _paintStartH !== null && _paintEndH !== null) {
       const s = Math.min(_paintStartH, _paintEndH);
@@ -1858,12 +1872,7 @@ function _renderWeekGrid(gridPanel, dates) {
       tlog[_paintDate] = tlog[_paintDate].filter(b => !(b.actId === _paintActId && b.startH < en && b.endH > s));
       tlog[_paintDate].push({ actId: _paintActId, startH: s, endH: en });
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
-      const savedScrollTop = scroll.scrollTop;
-      renderHistoryScreen(_histDate);
-      requestAnimationFrame(() => {
-        const newScroll = document.querySelector(".hs2-grid-scroll");
-        if (newScroll) newScroll.scrollTop = savedScrollTop;
-      });
+      renderHistoryScreen(_histDate); // scroll position auto-restored via _restoreScrollTop
     }
     _paintDate = null; _paintStartH = null; _paintEndH = null; _paintColIdx = null;
   });
