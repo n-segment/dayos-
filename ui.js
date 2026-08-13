@@ -1478,6 +1478,151 @@ function _renderActSidebar(sidebar, dates) {
   });
 }
 
+// ── Task panel (slide-in from right) ──
+function _openTaskPanel(date, block, act) {
+  document.querySelector(".hs2-task-panel")?.remove();
+
+  const panel = document.createElement("div");
+  panel.className = "hs2-task-panel";
+
+  // Header
+  const header = document.createElement("div");
+  header.className = "hs2-tp-header";
+  const dot = document.createElement("div");
+  dot.className = "hs2-tp-dot";
+  dot.style.background = act.color || "#555";
+  const title = document.createElement("div");
+  title.className = "hs2-tp-title";
+  title.textContent = act.name;
+  const timeRange = document.createElement("div");
+  timeRange.className = "hs2-tp-time";
+  timeRange.textContent = `${block.startH}:00 – ${block.endH}:00`;
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "hs2-tp-close";
+  closeBtn.textContent = "×";
+  closeBtn.addEventListener("click", () => panel.remove());
+  header.appendChild(dot);
+  header.appendChild(title);
+  header.appendChild(timeRange);
+  header.appendChild(closeBtn);
+  panel.appendChild(header);
+
+  // Task list
+  const taskList = document.createElement("div");
+  taskList.className = "hs2-tp-tasks";
+  panel.appendChild(taskList);
+
+  if (!block.tasks) block.tasks = [];
+
+  function _saveTasks() {
+    const tlog = loadTlog();
+    const blocks = tlog[date] || [];
+    const idx = blocks.findIndex(b => b.startH === block.startH && b.actId === block.actId);
+    if (idx !== -1) {
+      blocks[idx].tasks = block.tasks;
+      localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+    }
+    // refresh badge on the time block without full re-render
+    document.querySelectorAll(".hs2-time-block").forEach(tb => {
+      const lbl = tb.querySelector(".hs2-time-block-label");
+      if (lbl && lbl.textContent === act.name) {
+        const top = parseInt(tb.style.top);
+        if (top === block.startH * 44) {
+          let badge = tb.querySelector(".hs2-block-badge");
+          if (!badge) { badge = document.createElement("div"); badge.className = "hs2-block-badge"; tb.appendChild(badge); }
+          const done = block.tasks.filter(t => t.done).length;
+          badge.textContent = `${done}/${block.tasks.length}`;
+        }
+      }
+    });
+  }
+
+  function _renderTasks() {
+    taskList.innerHTML = "";
+    block.tasks.forEach((task, i) => {
+      const row = document.createElement("div");
+      row.className = "hs2-tp-task" + (task.done ? " done" : "");
+      const cb = document.createElement("div");
+      cb.className = "hs2-tp-check" + (task.done ? " done" : "");
+      cb.textContent = task.done ? "✓" : "";
+      cb.addEventListener("click", () => {
+        task.done = !task.done;
+        _saveTasks();
+        _renderTasks();
+      });
+      const txt = document.createElement("span");
+      txt.className = "hs2-tp-task-text";
+      txt.textContent = task.text;
+      const del = document.createElement("button");
+      del.className = "hs2-tp-del";
+      del.textContent = "×";
+      del.addEventListener("click", () => {
+        block.tasks.splice(i, 1);
+        _saveTasks();
+        _renderTasks();
+      });
+      row.appendChild(cb);
+      row.appendChild(txt);
+      row.appendChild(del);
+      taskList.appendChild(row);
+    });
+  }
+  _renderTasks();
+
+  // Add task input
+  const addRow = document.createElement("div");
+  addRow.className = "hs2-tp-add-row";
+  const input = document.createElement("input");
+  input.className = "hs2-tp-input";
+  input.placeholder = "할 일 추가...";
+  input.type = "text";
+  function _addTask() {
+    const text = input.value.trim();
+    if (!text) return;
+    block.tasks.push({ id: Date.now().toString(), text, done: false });
+    _saveTasks();
+    _renderTasks();
+    input.value = "";
+    input.focus();
+  }
+  input.addEventListener("keydown", e => { if (e.key === "Enter") _addTask(); });
+  const addBtn = document.createElement("button");
+  addBtn.className = "hs2-tp-add-btn";
+  addBtn.textContent = "+";
+  addBtn.addEventListener("click", _addTask);
+  addRow.appendChild(input);
+  addRow.appendChild(addBtn);
+  panel.appendChild(addRow);
+
+  // Delete block button
+  const delBlock = document.createElement("button");
+  delBlock.className = "hs2-tp-del-block";
+  delBlock.textContent = "블록 삭제";
+  delBlock.addEventListener("click", () => {
+    const tlog = loadTlog();
+    if (tlog[date]) {
+      tlog[date] = tlog[date].filter(b => !(b.startH === block.startH && b.actId === block.actId));
+      localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+    }
+    panel.remove();
+    renderHistoryScreen(_histDate);
+  });
+  panel.appendChild(delBlock);
+
+  // Append to historyScreen
+  document.getElementById("historyScreen").appendChild(panel);
+  setTimeout(() => panel.classList.add("open"), 10);
+
+  // Close on outside click
+  const outsideClose = (e) => {
+    if (!panel.contains(e.target) && !e.target.closest(".hs2-time-block")) {
+      panel.remove();
+      document.removeEventListener("pointerdown", outsideClose);
+    }
+  };
+  setTimeout(() => document.addEventListener("pointerdown", outsideClose), 100);
+}
+
 // ── Paint mode state ──
 let _paintActId = null;   // currently selected activity for painting
 
@@ -1697,16 +1842,26 @@ function _renderWeekGrid(gridPanel, dates) {
       if (!act) return;
       const tb = document.createElement("div");
       tb.className = "hs2-time-block";
-      tb.style.background = act.color || "#E64040";
+      tb.style.background = act.color || "#555";
       tb.style.top = (block.startH * 44) + "px";
       tb.style.height = Math.max((block.endH - block.startH) * 44 - 2, 20) + "px";
+      // name
       const lbl = document.createElement("div");
       lbl.className = "hs2-time-block-label";
       lbl.textContent = act.name;
       tb.appendChild(lbl);
+      // task count badge
+      if (block.tasks && block.tasks.length > 0) {
+        const done = block.tasks.filter(t => t.done).length;
+        const badge = document.createElement("div");
+        badge.className = "hs2-block-badge";
+        badge.textContent = `${done}/${block.tasks.length}`;
+        tb.appendChild(badge);
+      }
       tb.addEventListener("click", (e) => {
+        if (_paintActId) return; // paint mode: ignore click on existing blocks
         e.stopPropagation();
-        _openBlockModal(dt, block.startH, block, () => renderHistoryScreen(_histDate));
+        _openTaskPanel(dt, block, act);
       });
       col.appendChild(tb);
     });

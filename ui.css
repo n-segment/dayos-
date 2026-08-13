@@ -4018,6 +4018,174 @@ html, body {
   line-height: 1.3;
 }
 
+/* Block badge (task count) */
+.hs2-block-badge {
+  font-size: 9px;
+  color: rgba(255,255,255,0.55);
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+/* Task panel — slide in from right */
+.hs2-task-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  height: 100%;
+  background: #1a1a1a;
+  border-left: 0.5px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 300;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  overflow: hidden;
+}
+.hs2-task-panel.open { transform: translateX(0); }
+
+.hs2-tp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px 16px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.hs2-tp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hs2-tp-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+.hs2-tp-time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  margin-left: 2px;
+}
+.hs2-tp-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.hs2-tp-close:hover { color: rgba(255,255,255,0.7); }
+
+.hs2-tp-tasks {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.hs2-tp-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 0.5px solid rgba(255,255,255,0.05);
+}
+.hs2-tp-task.done .hs2-tp-task-text {
+  color: rgba(255,255,255,0.2);
+  text-decoration: line-through;
+}
+.hs2-tp-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.2);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: rgba(255,255,255,0.7);
+  transition: background 0.1s;
+}
+.hs2-tp-check.done {
+  background: rgba(255,255,255,0.15);
+  border-color: transparent;
+}
+.hs2-tp-check:hover { background: rgba(255,255,255,0.1); }
+.hs2-tp-task-text {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.4;
+}
+.hs2-tp-del {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.15);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+  padding: 0 2px;
+}
+.hs2-tp-task:hover .hs2-tp-del { opacity: 1; }
+.hs2-tp-del:hover { color: rgba(255,255,255,0.5); }
+
+.hs2-tp-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 0.5px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.hs2-tp-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #fff;
+  outline: none;
+}
+.hs2-tp-input::placeholder { color: rgba(255,255,255,0.25); }
+.hs2-tp-input:focus { border-color: rgba(255,255,255,0.25); }
+.hs2-tp-add-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 7px;
+  color: rgba(255,255,255,0.5);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hs2-tp-add-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+.hs2-tp-del-block {
+  margin: 0 18px 18px;
+  background: none;
+  border: 0.5px solid rgba(255,100,100,0.2);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  color: rgba(255,100,100,0.45);
+  cursor: pointer;
+  width: calc(100% - 36px);
+  flex-shrink: 0;
+}
+.hs2-tp-del-block:hover { border-color: rgba(255,100,100,0.5); color: rgba(255,100,100,0.8); }
+
 /* Block add tooltip */
 .hs2-add-block-tip {
   position: absolute;
