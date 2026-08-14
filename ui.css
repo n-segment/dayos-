@@ -1272,8 +1272,8 @@ body.app-view-timetable .app-floating-nav-hitarea {
   bottom: 0;
   z-index: 250;
   display: block;
-  width: 280px;
-  height: 10px;
+  width: 400px;
+  height: 80px;
   transform: translateX(-50%);
 }
 

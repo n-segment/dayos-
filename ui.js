@@ -1108,8 +1108,8 @@ function handleFloatingNavPointer(event) {
     setFloatingNavPeek(true);
     return;
   }
-  const nearBottom = event.clientY > window.innerHeight - 10;
-  const nearCenter = Math.abs(event.clientX - window.innerWidth / 2) < 140;
+  const nearBottom = event.clientY > window.innerHeight - 80;
+  const nearCenter = Math.abs(event.clientX - window.innerWidth / 2) < 200;
   setFloatingNavPeek(nearBottom && nearCenter);
 }
 
