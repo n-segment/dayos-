@@ -3814,6 +3814,39 @@ html, body {
 /* + add button (legacy, hidden now) */
 .hs2-act-add { display: none; }
 
+/* Inline "활동 추가" row at bottom of activity list */
+.hs2-act-add-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.hs2-act-add-row:hover { opacity: 0.8; }
+.hs2-act-add-plus {
+  font-size: 16px;
+  color: rgba(255,255,255,0.9);
+  line-height: 1;
+  font-weight: 300;
+}
+.hs2-act-add-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+}
+
+/* Grid edit (pencil) button */
+.hs2-grid-edit-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+}
+
 /* Activity card — Porto Rocha list row style */
 .hs2-act-card {
   display: flex;

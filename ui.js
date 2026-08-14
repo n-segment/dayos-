@@ -1359,16 +1359,6 @@ function _renderSidebar(sidebar, dates) {
   actsLabel.className = "hs2-sb-acts-label";
   actsLabel.textContent = "활동";
   actsHeader.appendChild(actsLabel);
-  const fillBtn = document.createElement("button");
-  fillBtn.className = "hs2-sb-fill-btn";
-  fillBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:5px"><path d="M 21.7573 2.5747 c -1.0533 -1.052 -2.888 -1.0533 -3.9427 0 l -6.86 6.86 c 0.8973 0.3333 1.7253 0.8413 2.4227 1.5413 0.7 0.7027 1.196 1.5267 1.52 2.4027 l 6.8613 -6.8613 c 1.0867 -1.0867 1.0867 -2.856 0 -3.944 Z" fill="currentColor"/><path d="M 11.96 12.388 c -0.892 -0.8947 -2.072 -1.388 -3.3253 -1.388 h -0.008 c -1.248 0.0027 -2.4227 0.496 -3.3067 1.3907 -1.2693 1.2827 -1.492 2.5773 -1.6693 3.616 -0.1987 1.1587 -0.3293 1.9227 -1.796 2.724 -0.3547 0.1933 -0.5573 0.58 -0.516 0.9813 0.0427 0.4013 0.3213 0.7387 0.7067 0.8547 1.4107 0.424 2.9133 0.7733 4.408 0.7733 1.9173 0 3.8227 -0.5733 5.5067 -2.2987 1.828 -1.8333 1.828 -4.8187 0 -6.652 Z" fill="currentColor"/></svg>블록 채우기`;
-  fillBtn.addEventListener("click", () => _openPaintOverlay());
-  actsHeader.appendChild(fillBtn);
-  const addBtn = document.createElement("button");
-  addBtn.className = "hs2-sb-fill-btn";
-  addBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>활동 추가`;
-  addBtn.addEventListener("click", () => _openActModal(null, () => renderHistoryScreen(_histDate)));
-  actsHeader.appendChild(addBtn);
   sidebar.appendChild(actsHeader);
 
   // ── ACTIVITY list ──
@@ -1499,6 +1489,13 @@ function _renderActSidebar(sidebar, dates) {
 
     sidebar.appendChild(card);
   });
+
+  // "+ 활동 추가" inline at bottom of list
+  const addActRow = document.createElement("div");
+  addActRow.className = "hs2-act-add-row";
+  addActRow.innerHTML = `<span class="hs2-act-add-plus">+</span><span class="hs2-act-add-label">활동 추가</span>`;
+  addActRow.addEventListener("click", () => _openActModal(null, () => renderHistoryScreen(_histDate)));
+  sidebar.appendChild(addActRow);
 }
 
 // ── Add block modal ──
@@ -2084,9 +2081,16 @@ function _renderWeekGrid(gridPanel, dates) {
     renderHistoryScreen(_histDate);
   });
 
+  const editBtn = document.createElement("button");
+  editBtn.className = "hs2-grid-nav-btn hs2-grid-edit-btn";
+  editBtn.title = "블록 채우기";
+  editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M 21.7573 2.5747 c -1.0533 -1.052 -2.888 -1.0533 -3.9427 0 l -6.86 6.86 c 0.8973 0.3333 1.7253 0.8413 2.4227 1.5413 0.7 0.7027 1.196 1.5267 1.52 2.4027 l 6.8613 -6.8613 c 1.0867 -1.0867 1.0867 -2.856 0 -3.944 Z" fill="currentColor"/><path d="M 11.96 12.388 c -0.892 -0.8947 -2.072 -1.388 -3.3253 -1.388 h -0.008 c -1.248 0.0027 -2.4227 0.496 -3.3067 1.3907 -1.2693 1.2827 -1.492 2.5773 -1.6693 3.616 -0.1987 1.1587 -0.3293 1.9227 -1.796 2.724 -0.3547 0.1933 -0.5573 0.58 -0.516 0.9813 0.0427 0.4013 0.3213 0.7387 0.7067 0.8547 1.4107 0.424 2.9133 0.7733 4.408 0.7733 1.9173 0 3.8227 -0.5733 5.5067 -2.2987 1.828 -1.8333 1.828 -4.8187 0 -6.652 Z" fill="currentColor"/></svg>`;
+  editBtn.addEventListener("click", () => _openPaintOverlay());
+
   topbar.appendChild(prevBtn);
   topbar.appendChild(todayBtn);
   topbar.appendChild(nextBtn);
+  topbar.appendChild(editBtn);
 
   gridPanel.appendChild(topbar);
 
