@@ -3601,14 +3601,31 @@ html, body {
   align-items: center;
   justify-content: center;
 }
-/* Hour cells */
-#historyScreen .hs2-grid-hour-label { color: rgba(255,255,255,0.18); }
-#historyScreen .hs2-grid-col { border-left: 1px solid rgba(255,255,255,0.04); }
-#historyScreen .hs2-grid-hour-cell {
-  border-top: 1px solid rgba(255,255,255,0.04);
+/* Hour cells — gap-based grid matching paint mode */
+#historyScreen .hs2-grid-hour-label { color: rgba(255,255,255,0.22); }
+#historyScreen .hs2-grid-body {
+  background: rgba(255,255,255,0.07) !important; /* gap line color */
+  gap: 1px !important;
 }
-#historyScreen .hs2-grid-hour-cell:hover { background: rgba(255,255,255,0.03); }
-#historyScreen .hs2-grid-col--today { background: rgba(255,255,255,0.025); }
+#historyScreen .hs2-grid-time-col {
+  gap: 1px;
+  display: flex;
+  flex-direction: column;
+}
+#historyScreen .hs2-grid-day-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  border-left: none !important;
+}
+#historyScreen .hs2-grid-hour-cell {
+  background: rgba(255,255,255,0.04) !important;
+  border-top: none !important;
+}
+#historyScreen .hs2-grid-hour-cell:hover {
+  background: rgba(255,255,255,0.08) !important;
+  filter: brightness(1.15);
+}
 
 /* Two-panel body */
 .hs2-layout {

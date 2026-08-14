@@ -1364,8 +1364,8 @@ function _renderSidebar(sidebar, dates) {
   fillBtn.addEventListener("click", () => _openPaintOverlay());
   actsHeader.appendChild(fillBtn);
   const addBtn = document.createElement("button");
-  addBtn.className = "hs2-sb-add-btn";
-  addBtn.textContent = "+";
+  addBtn.className = "hs2-sb-fill-btn";
+  addBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>활동 추가`;
   addBtn.addEventListener("click", () => _openActModal(null, () => renderHistoryScreen(_histDate)));
   actsHeader.appendChild(addBtn);
   sidebar.appendChild(actsHeader);
@@ -1428,7 +1428,7 @@ function _renderActSidebar(sidebar, dates) {
     card.dataset.actId = act.id;
     card.style.position = "relative";
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".hs2-act-dots") || e.target.closest(".hs2-act-dots-menu") || e.target.closest(".hs2-act-paint-btn")) return;
+      if (e.target.closest(".hs2-act-dots") || e.target.closest(".hs2-act-dots-menu")) return;
       _openAddBlockModal(act);
     });
 
@@ -1820,13 +1820,13 @@ function _openTaskPanel(date, block, act) {
 }
 
 // ── Inline paint mode (replaces grid panel content) ──
-function _openPaintOverlay() {
+function _openPaintOverlay(defaultActId) {
   const gridPanel = document.querySelector(".hs2-grid-panel");
   if (!gridPanel) return;
   const acts = loadActs();
   if (!acts.length) return;
 
-  let selectedActId = acts[0].id;
+  let selectedActId = defaultActId || acts[0].id;
 
   // Clear grid panel, replace with edit mode UI
   gridPanel.innerHTML = "";
@@ -1841,6 +1841,7 @@ function _openPaintOverlay() {
   acts.forEach(act => {
     const chip = document.createElement("button");
     chip.className = "hs2-pedit-chip" + (act.id === selectedActId ? " selected" : "");
+    if (act.id === selectedActId) chip.scrollIntoView({ block: "nearest", inline: "center" });
     chip.style.background = act.color || "#555";
     chip.textContent = (act.emoji ? act.emoji + " " : "") + act.name;
     chip.addEventListener("click", () => {
@@ -2095,9 +2096,10 @@ function _renderWeekGrid(gridPanel, dates) {
   });
   gridPanel.appendChild(dayHeaders);
 
-  // Calculate HOUR_H to fit all 24h without scroll
+  // Calculate HOUR_H to fit all 24h without scroll (account for 23 x 1px gaps)
+  const GAP = 1;
   const availableH = gridPanel.clientHeight - topbar.offsetHeight - dayHeaders.offsetHeight;
-  const HOUR_H = Math.max(Math.floor(availableH / 24), 20);
+  const HOUR_H = Math.max(Math.floor((availableH - 23 * GAP) / 24), 20);
 
   // Grid container (no scroll)
   const scroll = document.createElement("div");
@@ -2108,7 +2110,7 @@ function _renderWeekGrid(gridPanel, dates) {
 
   const body = document.createElement("div");
   body.className = "hs2-grid-body";
-  body.style.height = (HOUR_H * 24) + "px";
+  body.style.height = (HOUR_H * 24 + 23 * GAP) + "px";
   scroll.appendChild(body);
 
   const tlog = loadTlog();
@@ -2148,7 +2150,7 @@ function _renderWeekGrid(gridPanel, dates) {
       col.appendChild(cell);
     }
 
-    // Render time blocks
+    // Render time blocks (positions account for 1px row gaps)
     const blocks = tlog[dt] || [];
     blocks.forEach(block => {
       const act = acts.find(a => a.id === block.actId);
@@ -2156,8 +2158,8 @@ function _renderWeekGrid(gridPanel, dates) {
       const tb = document.createElement("div");
       tb.className = "hs2-time-block";
       tb.style.background = act.color || "#555";
-      tb.style.top = (block.startH * HOUR_H) + "px";
-      tb.style.height = Math.max((block.endH - block.startH) * HOUR_H - 2, 14) + "px";
+      tb.style.top = (block.startH * (HOUR_H + GAP)) + "px";
+      tb.style.height = Math.max((block.endH - block.startH) * (HOUR_H + GAP) - GAP, 14) + "px";
       const lbl = document.createElement("div");
       lbl.className = "hs2-time-block-label";
       lbl.textContent = act.name;
