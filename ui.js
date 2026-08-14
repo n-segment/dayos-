@@ -1302,11 +1302,7 @@ function renderHistoryScreen(dateStr, forceScrollTop) {
   layout.appendChild(gridPanel);
   _renderWeekGrid(gridPanel, dates);
 
-  // Restore scroll position synchronously (after DOM is created)
-  if (_restoreScrollTop) {
-    const newScroll = document.querySelector(".hs2-grid-scroll");
-    if (newScroll) newScroll.scrollTop = _restoreScrollTop;
-  }
+  // (scroll restoration no longer needed — grid shows all 24h without scrolling)
 }
 
 // ── Unified sidebar — Porto Rocha style ──
@@ -2099,13 +2095,20 @@ function _renderWeekGrid(gridPanel, dates) {
   });
   gridPanel.appendChild(dayHeaders);
 
-  // Scrollable grid
+  // Calculate HOUR_H to fit all 24h without scroll
+  const availableH = gridPanel.clientHeight - topbar.offsetHeight - dayHeaders.offsetHeight;
+  const HOUR_H = Math.max(Math.floor(availableH / 24), 20);
+
+  // Grid container (no scroll)
   const scroll = document.createElement("div");
   scroll.className = "hs2-grid-scroll";
+  scroll.style.overflow = "hidden";
+  scroll.style.flex = "1";
   gridPanel.appendChild(scroll);
 
   const body = document.createElement("div");
   body.className = "hs2-grid-body";
+  body.style.height = (HOUR_H * 24) + "px";
   scroll.appendChild(body);
 
   const tlog = loadTlog();
@@ -2117,27 +2120,28 @@ function _renderWeekGrid(gridPanel, dates) {
   for (let h = 0; h < 24; h++) {
     const lbl = document.createElement("div");
     lbl.className = "hs2-grid-hour-label";
-    lbl.textContent = h === 0 ? "" : `${h}:00`;
+    lbl.style.height = HOUR_H + "px";
+    lbl.textContent = h === 0 ? "" : `${h}`;
     timeCol.appendChild(lbl);
   }
   body.appendChild(timeCol);
 
   // Day columns
-  dates.forEach((dt, di) => {
+  dates.forEach((dt) => {
     const col = document.createElement("div");
     col.className = "hs2-grid-day-col";
     col.dataset.date = dt;
 
-    // Hour cells (paint mode)
     for (let h = 0; h < 24; h++) {
       const cell = document.createElement("div");
       cell.className = "hs2-grid-hour-cell";
+      cell.style.height = HOUR_H + "px";
       cell.dataset.date = dt;
       cell.dataset.hour = h;
       col.appendChild(cell);
     }
 
-    // Render existing time blocks for this day
+    // Render time blocks
     const blocks = tlog[dt] || [];
     blocks.forEach(block => {
       const act = acts.find(a => a.id === block.actId);
@@ -2145,14 +2149,12 @@ function _renderWeekGrid(gridPanel, dates) {
       const tb = document.createElement("div");
       tb.className = "hs2-time-block";
       tb.style.background = act.color || "#555";
-      tb.style.top = (block.startH * 44) + "px";
-      tb.style.height = Math.max((block.endH - block.startH) * 44 - 2, 20) + "px";
-      // name
+      tb.style.top = (block.startH * HOUR_H) + "px";
+      tb.style.height = Math.max((block.endH - block.startH) * HOUR_H - 2, 14) + "px";
       const lbl = document.createElement("div");
       lbl.className = "hs2-time-block-label";
       lbl.textContent = act.name;
       tb.appendChild(lbl);
-      // task count badge
       if (block.tasks && block.tasks.length > 0) {
         const done = block.tasks.filter(t => t.done).length;
         const badge = document.createElement("div");
@@ -2161,7 +2163,6 @@ function _renderWeekGrid(gridPanel, dates) {
         tb.appendChild(badge);
       }
       tb.addEventListener("click", (e) => {
-        if (_paintActId) return; // paint mode: ignore click on existing blocks
         e.stopPropagation();
         _openTaskPanel(dt, block, act);
       });
@@ -2170,9 +2171,6 @@ function _renderWeekGrid(gridPanel, dates) {
 
     body.appendChild(col);
   });
-
-  // Scroll to 7am
-  setTimeout(() => { scroll.scrollTop = 7 * 44; }, 0);
 }
 
 // ── Activity modal (add / edit) ──

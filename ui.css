@@ -4159,7 +4159,7 @@ html, body {
   flex-direction: column;
 }
 .hs2-grid-hour-label {
-  height: 44px;
+  height: auto; /* set dynamically by JS */
   font-size: 10px;
   color: rgba(0,0,0,0.28);
   display: flex;
@@ -4175,7 +4175,7 @@ html, body {
   position: relative;
 }
 .hs2-grid-hour-cell {
-  height: 44px;
+  height: auto; /* set dynamically by JS */
   border-top: 1px solid rgba(0,0,0,0.05);
   cursor: pointer;
   transition: background 0.1s;
