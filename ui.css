@@ -4189,9 +4189,9 @@ html, body {
 /* Time blocks (logged activities) */
 .hs2-time-block {
   position: absolute;
-  left: 2px;
-  right: 2px;
-  border-radius: 5px;
+  left: 0;
+  right: 0;
+  border-radius: 0;
   overflow: hidden;
   cursor: pointer;
   z-index: 2;
