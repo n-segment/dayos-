@@ -4112,8 +4112,7 @@ html, body {
 /* Paint grid */
 .hs2-pedit-body {
   display: flex;
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
   overflow: hidden;
 }
 .hs2-pedit-time-col {
@@ -4128,7 +4127,6 @@ html, body {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(24, 1fr);
   gap: 1px;
   padding: 0;
   background: rgba(255,255,255,0.07);
@@ -4137,7 +4135,7 @@ html, body {
   user-select: none;
 }
 .hs2-pedit-time-lbl {
-  flex: 1;
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;

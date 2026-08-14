@@ -1887,20 +1887,28 @@ function _openPaintOverlay(defaultActId) {
   gridPanel.appendChild(dayHdrs);
 
   // ── Grid body: separate time col (no gap lines) + 7-day CSS grid ──
+  // Use _cachedHourH so rows match normal mode exactly
+  const HOUR_H = _cachedHourH;
+  const GAP = 1;
+  const bodyH = HOUR_H * 24 + 23 * GAP;
+
   const bodyWrap = document.createElement("div");
   bodyWrap.className = "hs2-pedit-body";
+  bodyWrap.style.height = bodyH + "px";
 
   const timeColDiv = document.createElement("div");
   timeColDiv.className = "hs2-pedit-time-col";
 
   const gridBody = document.createElement("div");
   gridBody.className = "hs2-pedit-grid";
+  gridBody.style.gridTemplateRows = `repeat(24, ${HOUR_H}px)`;
   gridBody.style.touchAction = "none";
 
   const cellMap = {};
   for (let h = 0; h < 24; h++) {
     const timeLbl = document.createElement("div");
     timeLbl.className = "hs2-pedit-time-lbl";
+    timeLbl.style.height = (HOUR_H + 1) + "px";
     timeLbl.textContent = h === 0 ? "24" : `${h}`;
     timeColDiv.appendChild(timeLbl);
     dates.forEach(dt => {
