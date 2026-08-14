@@ -1841,7 +1841,7 @@ function _openPaintOverlay(defaultActId) {
     chip.className = "hs2-pedit-chip" + (act.id === selectedActId ? " selected" : "");
     if (act.id === selectedActId) chip.scrollIntoView({ block: "nearest", inline: "center" });
     chip.style.background = act.color || "#555";
-    chip.textContent = (act.emoji ? act.emoji + " " : "") + act.name;
+    chip.textContent = act.name;
     chip.addEventListener("click", () => {
       selectedActId = act.id;
       palette.querySelectorAll(".hs2-pedit-chip").forEach(c => c.classList.remove("selected"));
@@ -1929,7 +1929,8 @@ function _openPaintOverlay(defaultActId) {
         if (!cell) return;
         const blk = (tlog[dt] || []).find(b => b.startH <= h && b.endH > h);
         if (blk) {
-          cell.style.background = acts.find(a => a.id === blk.actId)?.color || "#555";
+          const act = acts.find(a => a.id === blk.actId);
+          cell.style.background = act ? (act.color || "#555") : "";
         } else {
           cell.style.background = "";
         }
@@ -1971,7 +1972,16 @@ function _openPaintOverlay(defaultActId) {
       }
       tlog[paintDt] = newBlocks;
     } else {
-      tlog[paintDt] = tlog[paintDt].filter(b => !(b.actId === selectedActId && b.startH < en && b.endH > s));
+      const newBlocks = [];
+      for (const b of tlog[paintDt]) {
+        if (b.endH <= s || b.startH >= en) {
+          newBlocks.push(b);
+        } else {
+          if (b.startH < s) newBlocks.push({ ...b, endH: s });
+          if (b.endH > en) newBlocks.push({ ...b, startH: en });
+        }
+      }
+      tlog[paintDt] = newBlocks;
       tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en });
       tlog[paintDt] = mergeBlocks(tlog[paintDt]);
     }
