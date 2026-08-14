@@ -225,30 +225,107 @@ function renderMemos() {
     el.className = "sticky-memo";
     el.style.left = (memo.x || 40 + idx * 20) + "px";
     el.style.top = (memo.y || 80 + idx * 20) + "px";
-    el.innerHTML = `<button class="sticky-memo-delete" data-idx="${idx}">×</button>${memo.text}`;
-    // 드래그
-    let dragging = false, ox = 0, oy = 0;
-    el.addEventListener("mousedown", e => {
-      if (e.target.classList.contains("sticky-memo-delete")) return;
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "sticky-memo-delete";
+    deleteBtn.type = "button";
+    deleteBtn.textContent = "×";
+    const textEl = document.createElement("div");
+    textEl.className = "sticky-memo__text";
+    textEl.textContent = memo.text || "";
+    el.append(deleteBtn, textEl);
+
+    let dragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let moved = false;
+    let activePointerId = null;
+
+    const moveMemo = (clientX, clientY) => {
+      const sectionRect = section.getBoundingClientRect();
+      const memoRect = el.getBoundingClientRect();
+      const maxX = Math.max(0, sectionRect.width - memoRect.width);
+      const maxY = Math.max(0, sectionRect.height - memoRect.height);
+      const nextX = Math.min(maxX, Math.max(0, clientX - sectionRect.left - dragOffsetX));
+      const nextY = Math.min(maxY, Math.max(0, clientY - sectionRect.top - dragOffsetY));
+      el.style.left = `${Math.round(nextX)}px`;
+      el.style.top = `${Math.round(nextY)}px`;
+    };
+
+    const startDrag = (clientX, clientY) => {
+      const memoRect = el.getBoundingClientRect();
       dragging = true;
-      ox = e.clientX - el.offsetLeft;
-      oy = e.clientY - el.offsetTop;
+      moved = false;
+      dragOffsetX = clientX - memoRect.left;
+      dragOffsetY = clientY - memoRect.top;
       el.style.transition = "none";
-      e.preventDefault();
-    });
-    document.addEventListener("mousemove", e => {
+      el.classList.add("is-dragging");
+    };
+
+    const handleDragMove = (clientX, clientY) => {
       if (!dragging) return;
-      el.style.left = (e.clientX - ox) + "px";
-      el.style.top = (e.clientY - oy) + "px";
-    });
-    document.addEventListener("mouseup", () => {
+      moved = true;
+      moveMemo(clientX, clientY);
+    };
+
+    const finishDrag = () => {
       if (!dragging) return;
       dragging = false;
-      memos[idx].x = parseInt(el.style.left);
-      memos[idx].y = parseInt(el.style.top);
+      el.classList.remove("is-dragging");
+      memos[idx].x = parseInt(el.style.left, 10) || 0;
+      memos[idx].y = parseInt(el.style.top, 10) || 0;
       saveMemos();
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerCancel);
+    };
+
+    const onMouseMove = e => handleDragMove(e.clientX, e.clientY);
+    const onMouseUp = () => finishDrag();
+    const onPointerMove = e => {
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      handleDragMove(e.clientX, e.clientY);
+    };
+    const onPointerUp = e => {
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      activePointerId = null;
+      el.releasePointerCapture?.(e.pointerId);
+      finishDrag();
+    };
+    const onPointerCancel = () => {
+      activePointerId = null;
+      finishDrag();
+    };
+
+    el.addEventListener("pointerdown", e => {
+      if (e.target.closest(".sticky-memo-delete")) return;
+      activePointerId = e.pointerId;
+      startDrag(e.clientX, e.clientY);
+      el.setPointerCapture?.(e.pointerId);
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
+      document.addEventListener("pointercancel", onPointerCancel);
+      e.preventDefault();
     });
-    el.querySelector(".sticky-memo-delete").addEventListener("click", () => {
+
+    el.addEventListener("mousedown", e => {
+      if (e.target.closest(".sticky-memo-delete")) return;
+      if (dragging) return;
+      startDrag(e.clientX, e.clientY);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+    });
+
+    el.addEventListener("click", e => {
+      if (!moved) return;
+      e.preventDefault();
+      e.stopPropagation();
+      moved = false;
+    });
+
+    deleteBtn.addEventListener("click", () => {
       memos.splice(idx, 1);
       saveMemos();
       renderMemos();

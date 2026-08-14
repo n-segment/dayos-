@@ -1119,6 +1119,16 @@ body.app-view-timetable .doodle-toolbar {
   word-break: break-word;
   cursor: move;
   user-select: none;
+  touch-action: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.sticky-memo.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.015);
+  box-shadow: 4px 8px 20px rgba(0,0,0,0.32);
+}
+.sticky-memo__text {
+  pointer-events: none;
 }
 .sticky-memo-delete {
   position: absolute;
