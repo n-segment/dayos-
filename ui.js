@@ -1939,7 +1939,7 @@ function _openPaintOverlay() {
     return merged;
   }
 
-  let painting = false, paintDt = null, paintStartH = null, paintEndH = null;
+  let painting = false, erasing = false, paintDt = null, paintStartH = null, paintEndH = null;
 
   function commitPaint() {
     if (!paintDt || paintStartH === null || paintEndH === null) return;
@@ -1947,9 +1947,23 @@ function _openPaintOverlay() {
     const en = Math.max(paintStartH, paintEndH) + 1;
     const tlog = loadTlog();
     if (!tlog[paintDt]) tlog[paintDt] = [];
-    tlog[paintDt] = tlog[paintDt].filter(b => !(b.actId === selectedActId && b.startH < en && b.endH > s));
-    tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en });
-    tlog[paintDt] = mergeBlocks(tlog[paintDt]);
+    if (erasing) {
+      // Split or trim blocks that overlap the erased range
+      const newBlocks = [];
+      for (const b of tlog[paintDt]) {
+        if (b.actId !== selectedActId || b.endH <= s || b.startH >= en) {
+          newBlocks.push(b); // no overlap, keep
+        } else {
+          if (b.startH < s) newBlocks.push({ ...b, endH: s }); // keep left part
+          if (b.endH > en) newBlocks.push({ ...b, startH: en }); // keep right part
+        }
+      }
+      tlog[paintDt] = newBlocks;
+    } else {
+      tlog[paintDt] = tlog[paintDt].filter(b => !(b.actId === selectedActId && b.startH < en && b.endH > s));
+      tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en });
+      tlog[paintDt] = mergeBlocks(tlog[paintDt]);
+    }
     localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
     refreshCells();
   }
@@ -1962,7 +1976,12 @@ function _openPaintOverlay() {
     paintDt = cell.dataset.dt;
     paintStartH = parseInt(cell.dataset.h);
     paintEndH = paintStartH;
+    // Check if this cell already has the selected activity → erase mode
+    const tlog = loadTlog();
+    const existingBlk = (tlog[paintDt] || []).find(b => b.actId === selectedActId && b.startH <= paintStartH && b.endH > paintStartH);
+    erasing = !!existingBlk;
     gridBody.setPointerCapture(e.pointerId);
+    if (erasing) cell.style.background = ""; // immediate visual feedback
   }, { passive: false });
 
   gridBody.addEventListener("pointermove", e => {
@@ -1978,7 +1997,8 @@ function _openPaintOverlay() {
     const actColor = acts.find(a => a.id === selectedActId)?.color || "#555";
     for (let hh = 0; hh < 24; hh++) {
       const c = cellMap[`${paintDt}_${hh}`];
-      if (c && hh >= s && hh <= en) c.style.background = actColor;
+      if (!c) continue;
+      if (hh >= s && hh <= en) c.style.background = erasing ? "" : actColor;
     }
   }, { passive: false });
 
