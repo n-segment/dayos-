@@ -3636,11 +3636,11 @@ html, body {
   border-left: none !important;
 }
 #historyScreen .hs2-grid-hour-cell {
-  background: rgba(255,255,255,0.04) !important;
+  background: rgba(255,255,255,0.04);
   border-top: none !important;
 }
 #historyScreen .hs2-grid-hour-cell:hover {
-  background: rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.08);
   filter: brightness(1.15);
 }
 

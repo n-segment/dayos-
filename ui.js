@@ -2146,11 +2146,13 @@ function _renderWeekGrid(gridPanel, dates) {
   }
   body.appendChild(timeCol);
 
-  // Day columns
+  // Day columns — cell-based rendering (like paint mode)
   dates.forEach((dt) => {
     const col = document.createElement("div");
     col.className = "hs2-grid-day-col";
     col.dataset.date = dt;
+
+    const blocks = tlog[dt] || [];
 
     for (let h = 0; h < 24; h++) {
       const cell = document.createElement("div");
@@ -2158,36 +2160,39 @@ function _renderWeekGrid(gridPanel, dates) {
       cell.style.height = HOUR_H + "px";
       cell.dataset.date = dt;
       cell.dataset.hour = h;
+
+      // Find logged block for this hour
+      const blk = blocks.find(b => b.startH <= h && b.endH > h);
+      if (blk) {
+        const act = acts.find(a => a.id === blk.actId);
+        const color = act?.color || "#555";
+
+        cell.style.background = color;
+
+        // Check adjacent hours for same activity
+        const prevBlk = h > 0 ? blocks.find(b => b.startH <= h - 1 && b.endH > h - 1) : null;
+        const nextBlk = h < 23 ? blocks.find(b => b.startH <= h + 1 && b.endH > h + 1) : null;
+        const prevSame = prevBlk?.actId === blk.actId;
+        const nextSame = nextBlk?.actId === blk.actId;
+
+        // Round only exposed corners
+        if (prevSame && nextSame) cell.style.borderRadius = "0";
+        else if (prevSame)        cell.style.borderRadius = "0 0 4px 4px";
+        else if (nextSame)        cell.style.borderRadius = "4px 4px 0 0";
+        else                      cell.style.borderRadius = "4px";
+
+        // Fill the 1px gap between consecutive same-activity cells
+        if (nextSame) cell.style.boxShadow = `0 2px 0 0 ${color}`;
+
+        cell.style.cursor = "pointer";
+        cell.addEventListener("click", (e) => {
+          e.stopPropagation();
+          _openTaskPanel(dt, blk, act);
+        });
+      }
+
       col.appendChild(cell);
     }
-
-    // Render time blocks (positions account for 1px row gaps)
-    const blocks = tlog[dt] || [];
-    blocks.forEach(block => {
-      const act = acts.find(a => a.id === block.actId);
-      if (!act) return;
-      const tb = document.createElement("div");
-      tb.className = "hs2-time-block";
-      tb.style.background = act.color || "#555";
-      tb.style.top = (block.startH * (HOUR_H + GAP)) + "px";
-      tb.style.height = Math.max((block.endH - block.startH) * (HOUR_H + GAP) - GAP, 14) + "px";
-      const lbl = document.createElement("div");
-      lbl.className = "hs2-time-block-label";
-      lbl.textContent = act.name;
-      tb.appendChild(lbl);
-      if (block.tasks && block.tasks.length > 0) {
-        const done = block.tasks.filter(t => t.done).length;
-        const badge = document.createElement("div");
-        badge.className = "hs2-block-badge";
-        badge.textContent = `${done}/${block.tasks.length}`;
-        tb.appendChild(badge);
-      }
-      tb.addEventListener("click", (e) => {
-        e.stopPropagation();
-        _openTaskPanel(dt, block, act);
-      });
-      col.appendChild(tb);
-    });
 
     body.appendChild(col);
   });
