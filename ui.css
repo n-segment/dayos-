@@ -3587,7 +3587,7 @@ html, body {
 /* Day headers */
 #historyScreen .hs2-grid-day-headers {
   background: #0d0d0d;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: none;
 }
 #historyScreen .hs2-grid-day-hdr {
   color: rgba(255,255,255,0.35);
@@ -3618,6 +3618,8 @@ html, body {
   font-size: 9px;
   box-sizing: border-box;
   border-top: none;
+  align-items: center;
+  padding: 0;
 }
 #historyScreen .hs2-grid-time-col {
   background: #1c1c1c;
@@ -4137,9 +4139,9 @@ html, body {
 .hs2-pedit-time-lbl {
   flex-shrink: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 2px;
+  padding: 0;
   font-size: 9px;
   color: rgba(255,255,255,0.4);
   line-height: 1;
