@@ -2165,7 +2165,8 @@ function _renderWeekGrid(gridPanel, dates) {
       const blk = blocks.find(b => b.startH <= h && b.endH > h);
       if (blk) {
         const act = acts.find(a => a.id === blk.actId);
-        const color = act?.color || "#555";
+        if (!act) { col.appendChild(cell); continue; } // skip orphaned blocks (like old code)
+        const color = act.color || "#555";
 
         cell.style.background = color;
 
