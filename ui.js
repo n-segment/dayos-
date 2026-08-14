@@ -1196,6 +1196,7 @@ let historyTab = "week";
 
 let _histDate = null;
 let _histWeekStart = null;
+let _cachedHourH = 20; // shared between normal view and paint overlay
 
 // Utility
 function getWeekStart(dateStr) {
@@ -1885,10 +1886,11 @@ function _openPaintOverlay(defaultActId) {
   });
   gridPanel.appendChild(dayHdrs);
 
-  // ── Grid body: 24h × 7 days, no scroll ──
+  // ── Grid body: 24h × 7 days, no scroll (use same HOUR_H as normal view) ──
   const gridBody = document.createElement("div");
   gridBody.className = "hs2-pedit-grid";
   gridBody.style.touchAction = "none";
+  gridBody.style.gridTemplateRows = `repeat(24, ${_cachedHourH}px)`;
 
   const cellMap = {};
   for (let h = 0; h < 24; h++) {
@@ -2100,6 +2102,7 @@ function _renderWeekGrid(gridPanel, dates) {
   const GAP = 1;
   const availableH = gridPanel.clientHeight - topbar.offsetHeight - dayHeaders.offsetHeight;
   const HOUR_H = Math.max(Math.floor((availableH - 23 * GAP) / 24), 20);
+  _cachedHourH = HOUR_H; // save for paint overlay to reuse
 
   // Grid container (no scroll)
   const scroll = document.createElement("div");
