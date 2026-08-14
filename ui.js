@@ -1480,22 +1480,35 @@ function _renderActSidebar(sidebar, dates) {
     dots.textContent = "⋯";
     dots.addEventListener("click", (e) => {
       e.stopPropagation();
-      // close any existing menu
+      const existingMenu = rightGroup.querySelector(".hs2-act-dots-menu");
       document.querySelectorAll(".hs2-act-dots-menu").forEach(m => m.remove());
+      if (existingMenu) return;
+
       const menu = document.createElement("div");
       menu.className = "hs2-act-dots-menu";
+      const closeMenu = () => {
+        menu.remove();
+        document.removeEventListener("pointerdown", outsideClose);
+      };
+      const outsideClose = (ev) => {
+        if (menu.contains(ev.target) || dots.contains(ev.target)) return;
+        closeMenu();
+      };
+      menu.addEventListener("pointerdown", ev => ev.stopPropagation());
+      menu.addEventListener("click", ev => ev.stopPropagation());
+
       const editBtn = document.createElement("button");
       editBtn.className = "hs2-act-dots-item";
       editBtn.textContent = "수정";
       editBtn.addEventListener("click", () => {
-        menu.remove();
+        closeMenu();
         _openActModal(act.id, () => renderHistoryScreen(_histDate));
       });
       const delBtn = document.createElement("button");
       delBtn.className = "hs2-act-dots-item hs2-act-dots-item--del";
       delBtn.textContent = "삭제";
       delBtn.addEventListener("click", () => {
-        menu.remove();
+        closeMenu();
         const acts2 = loadActs().filter(a => a.id !== act.id);
         saveActs(acts2);
         renderHistoryScreen(_histDate);
@@ -1503,7 +1516,7 @@ function _renderActSidebar(sidebar, dates) {
       menu.appendChild(editBtn);
       menu.appendChild(delBtn);
       rightGroup.appendChild(menu);
-      setTimeout(() => document.addEventListener("click", () => menu.remove(), { once: true }), 0);
+      setTimeout(() => document.addEventListener("pointerdown", outsideClose), 0);
     });
     rightGroup.appendChild(dots);
     card.appendChild(rightGroup);
@@ -2291,10 +2304,8 @@ function _openActModal(actId, onDone) {
   const existing = actId ? acts.find(a => a.id === actId) : null;
 
   const modal = document.getElementById("hsActModal");
-  const emojiEl = document.getElementById("hsActModalEmoji");
   const nameInput = document.getElementById("hsActNameInput");
   const goalInput = document.getElementById("hsActGoalInput");
-  const emojiInput = document.getElementById("hsActEmojiInput");
   const colorRow = document.getElementById("hsActColorRow");
   const cancelBtn = document.getElementById("hsActCancelBtn");
   const saveBtn = document.getElementById("hsActSaveBtn");
@@ -2326,7 +2337,7 @@ function _openActModal(actId, onDone) {
       endDisplay.style.color = "";
     } else {
       endDisplay.textContent = "—";
-      endDisplay.style.color = "var(--text-muted, rgba(0,0,0,0.25))";
+      endDisplay.style.color = "rgba(255,255,255,0.32)";
     }
   }
   startHSel.addEventListener("change", _updateEndDisplay);
@@ -2339,8 +2350,6 @@ function _openActModal(actId, onDone) {
   let selColor = existing ? existing.color : ACT_COLORS[0];
   nameInput.value = existing ? existing.name : "";
   goalInput.value = existing && existing.goalH ? String(existing.goalH) : "";
-  emojiInput.value = existing ? existing.emoji : "";
-  emojiEl.textContent = existing ? existing.emoji : "✏️";
   startHSel.value = existing?.defaultStartH ?? 22;
   durInput.value = existing?.defaultDuration ?? "";
   repeatSel.value = existing?.defaultRepeat ?? "none";
@@ -2358,12 +2367,6 @@ function _openActModal(actId, onDone) {
       selColor = c;
     });
     colorRow.appendChild(sw);
-  });
-
-  // Emoji input → update preview
-  emojiInput.addEventListener("input", () => {
-    const v = emojiInput.value.trim();
-    emojiEl.textContent = v || "✏️";
   });
 
   // Show delete button for existing
@@ -2389,7 +2392,7 @@ function _openActModal(actId, onDone) {
   saveBtn.onclick = () => {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
-    const emoji = emojiInput.value.trim() || "📌";
+    const emoji = existing?.emoji || "";
     const goalH = parseFloat(goalInput.value) || 0;
     const defaultStartH = parseInt(startHSel.value);
     const defaultDuration = Math.max(parseFloat(durInput.value) || 1, 0.5);
@@ -2482,7 +2485,7 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
     dot.style.background = act.color;
     const name = document.createElement("div");
     name.className = "hs2-block-act-name";
-    name.textContent = `${act.emoji} ${act.name}`;
+    name.textContent = act.name;
     item.appendChild(dot);
     item.appendChild(name);
     item.addEventListener("click", () => {

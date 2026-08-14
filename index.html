@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=132" />
+    <link rel="stylesheet" href="./ui.css?v=133" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -170,9 +170,6 @@
     <!-- 활동 추가/편집 모달 -->
     <div class="hs-act-modal hidden" id="hsActModal">
       <div class="hs-act-modal-box">
-        <div class="hs-act-modal-icon-area" id="hsActModalIcon">
-          <span class="hs-act-modal-emoji" id="hsActModalEmoji">✏️</span>
-        </div>
         <div class="hs-act-modal-form">
           <div class="hs-act-form-group">
             <label class="hs-act-form-label">활동 명</label>
@@ -185,10 +182,6 @@
           <div class="hs-act-form-group">
             <label class="hs-act-form-label">색깔</label>
             <div class="hs-act-color-row" id="hsActColorRow"></div>
-          </div>
-          <div class="hs-act-form-group">
-            <label class="hs-act-form-label">이모지</label>
-            <input class="hs-act-form-input" id="hsActEmojiInput" type="text" placeholder="예: 😴 💻 🍚" maxlength="4" autocomplete="off"/>
           </div>
           <div class="hs-act-form-group">
             <label class="hs-act-form-label">시작</label>
@@ -346,6 +339,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="./ui.js?v=132"></script>
+    <script src="./ui.js?v=133"></script>
 </body>
 </html>
