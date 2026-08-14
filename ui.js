@@ -2124,7 +2124,7 @@ function _renderWeekGrid(gridPanel, dates) {
   for (let h = 0; h < 24; h++) {
     const lbl = document.createElement("div");
     lbl.className = "hs2-grid-hour-label";
-    lbl.style.height = HOUR_H + "px";
+    lbl.style.height = (HOUR_H + 1) + "px";
     lbl.textContent = h === 0 ? "24" : `${h}`;
     timeCol.appendChild(lbl);
   }

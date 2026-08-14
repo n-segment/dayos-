@@ -3619,7 +3619,7 @@ html, body {
 }
 #historyScreen .hs2-grid-time-col {
   background: #1c1c1c;
-  gap: 1px;
+  gap: 0;
   display: flex;
   flex-direction: column;
 }
