@@ -4131,7 +4131,7 @@ html, body {
 }
 .hs2-pedit-cell {
   background: rgba(255,255,255,0.04);
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: crosshair;
   transition: background 0.08s;
   min-height: 0;
@@ -4226,7 +4226,7 @@ html, body {
   position: absolute;
   left: 0;
   right: 0;
-  border-radius: 0;
+  border-radius: 4px;
   overflow: hidden;
   cursor: pointer;
   z-index: 2;
