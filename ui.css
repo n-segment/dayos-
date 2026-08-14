@@ -4693,6 +4693,18 @@ html, body {
   flex-direction: column;
   gap: 7px;
 }
+.hs-act-custom-repeat {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 10px;
+}
+.hs-act-custom-repeat.hidden { display: none !important; }
+.hs2-abm-custom-repeat {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 8px;
+}
+.hs2-abm-custom-repeat.hidden { display: none !important; }
 .hs-act-form-label {
   font-size: 11px;
   color: rgba(255,255,255,0.42);

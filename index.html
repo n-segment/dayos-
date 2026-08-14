@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=135" />
+    <link rel="stylesheet" href="./ui.css?v=136" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -197,10 +197,29 @@
           <div class="hs-act-form-group">
             <label class="hs-act-form-label">반복</label>
             <select class="hs-act-form-select" id="hsActRepeat">
-              <option value="none">없음</option>
-              <option value="daily">매일 (이번 주)</option>
-              <option value="weekly">매주 (4주)</option>
+              <option value="none">안함</option>
+              <option value="daily">매일</option>
+              <option value="weekly">매주</option>
+              <option value="biweekly">2주마다</option>
+              <option value="monthly">매월</option>
+              <option value="yearly">매년</option>
+              <option value="custom">사용자화</option>
             </select>
+          </div>
+          <div class="hs-act-custom-repeat hidden" id="hsActCustomRepeat">
+            <div class="hs-act-form-group">
+              <label class="hs-act-form-label">반복 주기</label>
+              <select class="hs-act-form-select" id="hsActRepeatUnit">
+                <option value="daily">매일</option>
+                <option value="weekly">매주</option>
+                <option value="monthly">매월</option>
+                <option value="yearly">매년</option>
+              </select>
+            </div>
+            <div class="hs-act-form-group">
+              <label class="hs-act-form-label">반복</label>
+              <input class="hs-act-form-input" id="hsActRepeatEvery" type="number" min="1" max="365" step="1" value="1"/>
+            </div>
           </div>
           <div class="hs-act-modal-actions">
             <button class="hs-act-cancel-btn" id="hsActCancelBtn">취소</button>
@@ -335,6 +354,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="./ui.js?v=135"></script>
+    <script src="./ui.js?v=136"></script>
 </body>
 </html>

@@ -1282,6 +1282,46 @@ function pruneTlogForActs(tlog, acts) {
 
 function makeTblockId() { return "tb_" + Date.now() + "_" + Math.random().toString(36).slice(2,6); }
 
+function clampRepeatEvery(value) {
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(Math.max(n, 1), 365);
+}
+
+function _addRepeatStep(date, unit, every) {
+  const d = new Date(date.getTime());
+  if (unit === "daily") d.setDate(d.getDate() + every);
+  else if (unit === "weekly") d.setDate(d.getDate() + every * 7);
+  else if (unit === "monthly") d.setMonth(d.getMonth() + every);
+  else if (unit === "yearly") d.setFullYear(d.getFullYear() + every);
+  return d;
+}
+
+function getRepeatConfig(repeat, customUnit, customEvery) {
+  if (repeat === "daily") return { unit: "daily", every: 1 };
+  if (repeat === "weekly") return { unit: "weekly", every: 1 };
+  if (repeat === "biweekly") return { unit: "weekly", every: 2 };
+  if (repeat === "monthly") return { unit: "monthly", every: 1 };
+  if (repeat === "yearly") return { unit: "yearly", every: 1 };
+  if (repeat === "custom") return { unit: customUnit || "daily", every: clampRepeatEvery(customEvery) };
+  return null;
+}
+
+function buildRepeatDates(startDateStr, repeat, customUnit, customEvery) {
+  const cfg = getRepeatConfig(repeat, customUnit, customEvery);
+  if (!cfg) return [startDateStr];
+  const dates = [];
+  const start = new Date(startDateStr + "T00:00:00");
+  const limit = new Date(start.getTime());
+  limit.setDate(limit.getDate() + 365);
+  let cursor = new Date(start.getTime());
+  while (cursor <= limit && dates.length < 366) {
+    dates.push(toDateStr(cursor.getTime()));
+    cursor = _addRepeatStep(cursor, cfg.unit, cfg.every);
+  }
+  return dates;
+}
+
 // ── Main render ──
 let _restoreScrollTop = 0;
 
@@ -1608,11 +1648,36 @@ function _openAddBlockModal(act) {
   // Repeat
   const repeatSel = document.createElement("select");
   repeatSel.className = "hs2-abm-input";
-  [["none","반복 없음"], ["daily","매일 (이번 주)"], ["weekly","매주 (4주)"]].forEach(([v, t]) => {
+  [["none","안함"], ["daily","매일"], ["weekly","매주"], ["biweekly","2주마다"], ["monthly","매월"], ["yearly","매년"], ["custom","사용자화"]].forEach(([v, t]) => {
     const o = document.createElement("option"); o.value = v; o.textContent = t;
     repeatSel.appendChild(o);
   });
   fields.appendChild(_row("반복", repeatSel));
+
+  const customRepeatWrap = document.createElement("div");
+  customRepeatWrap.className = "hs2-abm-custom-repeat hidden";
+  const repeatUnitSel = document.createElement("select");
+  repeatUnitSel.className = "hs2-abm-input";
+  [["daily","매일"], ["weekly","매주"], ["monthly","매월"], ["yearly","매년"]].forEach(([v, t]) => {
+    const o = document.createElement("option"); o.value = v; o.textContent = t;
+    repeatUnitSel.appendChild(o);
+  });
+  const repeatEveryInput = document.createElement("input");
+  repeatEveryInput.type = "number";
+  repeatEveryInput.min = "1";
+  repeatEveryInput.max = "365";
+  repeatEveryInput.step = "1";
+  repeatEveryInput.value = "1";
+  repeatEveryInput.className = "hs2-abm-input";
+  customRepeatWrap.appendChild(_row("반복 주기", repeatUnitSel));
+  customRepeatWrap.appendChild(_row("반복", repeatEveryInput));
+  fields.appendChild(customRepeatWrap);
+  repeatSel.addEventListener("change", () => {
+    customRepeatWrap.classList.toggle("hidden", repeatSel.value !== "custom");
+  });
+  repeatEveryInput.addEventListener("input", () => {
+    repeatEveryInput.value = clampRepeatEvery(repeatEveryInput.value);
+  });
 
   modal.appendChild(fields);
 
@@ -1633,24 +1698,7 @@ function _openAddBlockModal(act) {
     const repeat = repeatSel.value;
     if (!date) return;
 
-    // Build list of dates
-    let dates = [date];
-    if (repeat === "daily") {
-      // all 7 days of current week
-      const ws = new Date(_histWeekStart + "T00:00:00");
-      dates = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(ws); d.setDate(d.getDate() + i);
-        dates.push(toDateStr(d.getTime()));
-      }
-    } else if (repeat === "weekly") {
-      const base = new Date(date + "T00:00:00");
-      dates = [];
-      for (let w = 0; w < 4; w++) {
-        const d = new Date(base); d.setDate(d.getDate() + w * 7);
-        dates.push(toDateStr(d.getTime()));
-      }
-    }
+    const dates = buildRepeatDates(date, repeat, repeatUnitSel.value, repeatEveryInput.value);
 
     const tlog = loadTlog();
     for (const dt of dates) {
@@ -2312,6 +2360,9 @@ function _openActModal(actId, onDone) {
   const durInput = document.getElementById("hsActDuration");
   const endDisplay = document.getElementById("hsActEndDisplay");
   const repeatSel = document.getElementById("hsActRepeat");
+  const customRepeat = document.getElementById("hsActCustomRepeat");
+  const repeatUnitSel = document.getElementById("hsActRepeatUnit");
+  const repeatEveryInput = document.getElementById("hsActRepeatEvery");
 
   // Populate start time select (only once)
   if (!startHSel.options.length) {
@@ -2341,6 +2392,13 @@ function _openActModal(actId, onDone) {
   }
   startHSel.addEventListener("change", _updateEndDisplay);
   durInput.addEventListener("input", _updateEndDisplay);
+  function _updateCustomRepeat() {
+    customRepeat?.classList.toggle("hidden", repeatSel.value !== "custom");
+  }
+  repeatSel.addEventListener("change", _updateCustomRepeat);
+  repeatEveryInput?.addEventListener("input", () => {
+    repeatEveryInput.value = clampRepeatEvery(repeatEveryInput.value);
+  });
 
   // Remove old delete button if any
   document.getElementById("hsActDelBtn")?.remove();
@@ -2351,7 +2409,10 @@ function _openActModal(actId, onDone) {
   startHSel.value = existing?.defaultStartH ?? 22;
   durInput.value = existing?.defaultDuration ?? "";
   repeatSel.value = existing?.defaultRepeat ?? "none";
+  repeatUnitSel.value = existing?.defaultRepeatUnit ?? "daily";
+  repeatEveryInput.value = existing?.defaultRepeatEvery ?? 1;
   _updateEndDisplay();
+  _updateCustomRepeat();
 
   // Color swatches
   colorRow.innerHTML = "";
@@ -2395,16 +2456,18 @@ function _openActModal(actId, onDone) {
     const defaultDuration = Math.max(parseFloat(durInput.value) || 1, 0.5);
     const defaultEndH = Math.round((defaultStartH + defaultDuration) * 2) / 2; // keep 0.5h precision
     const defaultRepeat = repeatSel.value;
+    const defaultRepeatUnit = repeatUnitSel.value;
+    const defaultRepeatEvery = clampRepeatEvery(repeatEveryInput.value);
 
     let savedActId;
     if (existing) {
-      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, defaultStartH, defaultDuration, defaultEndH, defaultRepeat } : a);
+      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, defaultStartH, defaultDuration, defaultEndH, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery } : a);
       saveActs(acts2);
       savedActId = actId;
     } else {
       savedActId = "act_" + Date.now();
       const acts2 = loadActs();
-      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH: 0, defaultStartH, defaultDuration, defaultEndH, defaultRepeat });
+      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH: 0, defaultStartH, defaultDuration, defaultEndH, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery });
       saveActs(acts2);
     }
 
@@ -2412,20 +2475,7 @@ function _openActModal(actId, onDone) {
     if (defaultRepeat !== "none") {
       const today = toDateStr(Date.now());
       const ws = _histWeekStart || getWeekStart(today);
-      let dates = [];
-      if (defaultRepeat === "daily") {
-        const wsD = new Date(ws + "T00:00:00");
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(wsD); d.setDate(d.getDate() + i);
-          dates.push(toDateStr(d.getTime()));
-        }
-      } else if (defaultRepeat === "weekly") {
-        const baseD = new Date(ws + "T00:00:00");
-        for (let w = 0; w < 4; w++) {
-          const d = new Date(baseD); d.setDate(d.getDate() + w * 7);
-          dates.push(toDateStr(d.getTime()));
-        }
-      }
+      const dates = buildRepeatDates(ws, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery);
       const tlog = loadTlog();
       for (const dt of dates) {
         if (!tlog[dt]) tlog[dt] = [];
