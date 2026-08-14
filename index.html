@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DayOS</title>
     <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="stylesheet" href="./ui.css?v=229" />
+    <link rel="stylesheet" href="./ui.css?v=230" />
     <style>
       /* 외부 CSS 없이도 반드시 작동해야 하는 규칙 */
       .hidden { display: none !important; }
@@ -64,8 +64,16 @@
 
 <script>
 (function(){
+  const h = new Date().getHours();
+  const isNight = h >= 18 || h < 6;
   const splash = document.getElementById('dayos-splash');
-  // 스플래시 끝나면서 로그인 화면 페이드인
+  if (isNight) {
+    const nightGrad = 'linear-gradient(152deg,#3a4fa8 0%,#4a52b8 30%,#6b5cc0 58%,#b05888 85%,#d07878 100%)';
+    splash.style.background = nightGrad;
+    const blobs = splash.querySelectorAll('.sp-blob');
+    const nightBlobs = ['radial-gradient(closest-side,#4a5fc8,#4a5fc800 72%)','radial-gradient(closest-side,#6b5cc0,#6b5cc000 72%)','radial-gradient(closest-side,#b05888,#b0588800 72%)','radial-gradient(closest-side,#9060c8,#9060c800 72%)','radial-gradient(closest-side,#d070a0,#d070a000 72%)'];
+    blobs.forEach((b,i)=>{ if(nightBlobs[i]) b.style.background = nightBlobs[i]; });
+  }
   setTimeout(()=>{
     splash.style.opacity='0';
     setTimeout(()=>{ splash.style.display='none'; }, 700);
@@ -139,10 +147,6 @@
       <div class="mesh-blob" style="left:40%;top:34%;width:46%;height:44%;background:radial-gradient(closest-side,#fff,#fff0 72%);opacity:.3;animation:spBlob5 6s ease-in-out infinite;"></div>
     </div>
     <div class="login-panel">
-      <div class="login-brand">
-        <img src="./logo.png" style="width:28px;height:28px;object-fit:contain;border-radius:6px;" />
-        <span>DayOs</span>
-      </div>
       <h2 class="login-title">오늘 하루도<br>기록해봐요.</h2>
       <p class="login-error hidden" id="loginErrorMessage" role="alert"></p>
       <button class="button button--start" id="googleLoginBtn">Google로 시작하기 →</button>
@@ -439,6 +443,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="./ui.js?v=229"></script>
+  <script src="./ui.js?v=230"></script>
 </body>
 </html>

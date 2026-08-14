@@ -4722,6 +4722,10 @@ function init() {
 
   initMusicSystemV2();
 
+  // 시간대별 배경 팔레트
+  const _h = new Date().getHours();
+  if (_h >= 18 || _h < 6) document.body.classList.add("palette-night");
+
   // 피드백 버튼
   const feedbackBtn = document.getElementById("feedbackBtn");
   const feedbackModal = document.getElementById("feedbackModal");

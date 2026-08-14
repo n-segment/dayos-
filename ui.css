@@ -1202,6 +1202,22 @@ body.app-view-timetable .doodle-toolbar {
   filter: blur(6px);
   pointer-events: none;
 }
+
+/* 야간 팔레트 (18시~06시) — 파랑/보라 중심 */
+body.palette-night .mesh-bg,
+body.palette-night #dayos-splash,
+body.palette-night .home-section,
+body.palette-night .login-overlay {
+  background: linear-gradient(152deg,#3a4fa8 0%,#4a52b8 30%,#6b5cc0 58%,#b05888 85%,#d07878 100%) !important;
+}
+body.palette-night #dayos-splash {
+  background: linear-gradient(152deg,#3a4fa8 0%,#4a52b8 30%,#6b5cc0 58%,#b05888 85%,#d07878 100%);
+}
+body.palette-night .mesh-blob:nth-child(1) { background: radial-gradient(closest-side,#4a5fc8,#4a5fc800 72%) !important; }
+body.palette-night .mesh-blob:nth-child(2) { background: radial-gradient(closest-side,#6b5cc0,#6b5cc000 72%) !important; }
+body.palette-night .mesh-blob:nth-child(3) { background: radial-gradient(closest-side,#b05888,#b0588800 72%) !important; }
+body.palette-night .mesh-blob:nth-child(4) { background: radial-gradient(closest-side,#9060c8,#9060c800 72%) !important; }
+body.palette-night .mesh-blob:nth-child(5) { background: radial-gradient(closest-side,#d070a0,#d070a000 72%) !important; }
 .dayos-app:has(.login-overlay.is-active) .app-header { display: none; }
 
 .login-error {
