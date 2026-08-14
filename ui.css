@@ -3589,17 +3589,28 @@ html, body {
   background: #0d0d0d;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-#historyScreen .hs2-grid-day-hdr { color: rgba(255,255,255,0.3); }
-#historyScreen .hs2-grid-day-num { color: rgba(255,255,255,0.6); }
+#historyScreen .hs2-grid-day-hdr {
+  color: rgba(255,255,255,0.35);
+  font-size: 10px;
+  gap: 4px;
+  padding: 6px 2px 4px;
+}
+#historyScreen .hs2-grid-day-num {
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  font-weight: 600;
+}
+#historyScreen .hs2-grid-day-hdr.is-today { color: rgba(255,255,255,0.35); }
 #historyScreen .hs2-grid-day-hdr.is-today .hs2-grid-day-num {
   background: #fff;
   color: #000;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 13px;
 }
 /* Hour cells — gap-based grid matching paint mode */
 #historyScreen .hs2-grid-hour-label { color: rgba(255,255,255,0.22); }
@@ -4069,7 +4080,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 .hs2-pedit-day-name {
   font-size: 10px;
