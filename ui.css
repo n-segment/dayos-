@@ -3593,7 +3593,7 @@ html, body {
   color: rgba(255,255,255,0.35);
   font-size: 10px;
   gap: 4px;
-  padding: 6px 2px 4px;
+  padding: 6px 0 4px;
 }
 #historyScreen .hs2-grid-day-num {
   color: rgba(255,255,255,0.7);
@@ -3613,7 +3613,13 @@ html, body {
   font-size: 13px;
 }
 /* Hour cells — gap-based grid matching paint mode */
-#historyScreen .hs2-grid-hour-label { color: rgba(255,255,255,0.22); }
+#historyScreen .hs2-grid-hour-label {
+  color: rgba(255,255,255,0.25);
+  font-size: 9px;
+}
+#historyScreen .hs2-grid-time-col {
+  background: #1c1c1c; /* same as panel bg, hides gap color bleeding through */
+}
 #historyScreen .hs2-grid-body {
   background: rgba(255,255,255,0.07) !important; /* gap line color */
   gap: 1px !important;

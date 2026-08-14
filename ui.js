@@ -1896,7 +1896,7 @@ function _openPaintOverlay(defaultActId) {
   for (let h = 0; h < 24; h++) {
     const timeLbl = document.createElement("div");
     timeLbl.className = "hs2-pedit-time-lbl";
-    timeLbl.textContent = h === 0 ? "0" : `${h}`;
+    timeLbl.textContent = h === 0 ? "" : `${h}`;
     gridBody.appendChild(timeLbl);
     dates.forEach(dt => {
       const cell = document.createElement("div");
