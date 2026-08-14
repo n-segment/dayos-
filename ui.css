@@ -3616,6 +3616,8 @@ html, body {
 #historyScreen .hs2-grid-hour-label {
   color: rgba(255,255,255,0.4);
   font-size: 9px;
+  box-sizing: border-box;
+  border-top: none;
 }
 #historyScreen .hs2-grid-time-col {
   background: #1c1c1c;
@@ -4129,8 +4131,17 @@ html, body {
   color: rgba(255,255,255,0.4);
   line-height: 1;
   background: #1c1c1c;
-  margin-bottom: 1px; /* extend over row gap to hide horizontal lines */
+  position: relative;
   z-index: 1;
+}
+.hs2-pedit-time-lbl::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #1c1c1c;
 }
 .hs2-pedit-cell {
   background: rgba(255,255,255,0.04);
