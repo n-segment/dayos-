@@ -3222,6 +3222,7 @@ body.app-view-timetable .app-floating-nav:focus-within {
   padding: 2px 0;
   outline: none;
   flex: 1;
+  color-scheme: dark;
 }
 .goal-start-input::placeholder { color: rgba(255,255,255,0.22); }
 
@@ -5493,6 +5494,7 @@ body.app-view-timetable .app-floating-nav:focus-within {
   padding: 10px 12px;
   outline: none;
   width: 100%;
+  color-scheme: dark;
 }
 .hs-act-form-input::placeholder { color: rgba(255,255,255,0.28); }
 .hs-act-form-input:focus {

@@ -1224,20 +1224,11 @@ function updateGoalTotal() {
   const durationStr = h > 0 && m > 0 ? `${h}시간 ${m}분` : h > 0 ? `${h}시간` : `${m}분`;
 
   // 시작 시간 파싱해서 종료 시간 계산
-  const startInput = ($("goalStartTime")?.value || "").trim();
+  const startH = parseTime24($("goalStartTime")?.value || "");
   let endStr = "";
-  const match = startInput.match(/([오전오후]+)\s*(\d+):(\d+)/);
-  if (match) {
-    let hour = parseInt(match[2]);
-    const min = parseInt(match[3]);
-    if (match[1] === "오후" && hour !== 12) hour += 12;
-    if (match[1] === "오전" && hour === 12) hour = 0;
-    const totalMin = hour * 60 + min + Math.round(total * 60);
-    const endH24 = Math.floor(totalMin / 60) % 24;
-    const endM = totalMin % 60;
-    const ampm = endH24 < 12 ? "오전" : "오후";
-    const endH12 = endH24 % 12 === 0 ? 12 : endH24 % 12;
-    endStr = `${ampm} ${endH12}:${String(endM).padStart(2, "0")} (${durationStr})`;
+  if (startH !== null) {
+    const endH = startH + total;
+    endStr = `${formatTime24(Math.min(endH, 24))} (${durationStr})`;
   }
 
   el.textContent = endStr || durationStr;
@@ -3302,7 +3293,7 @@ function _openActModal(actId, onDone) {
   }
 
   function _clampDurationValue(value) {
-    const start = parseTimeInput(startHSel.value) ?? 0;
+    const start = parseTime24(startHSel.value) ?? 0;
     const raw = parseDurationInput(value);
     const max = Math.max(1 / 60, 24 - start);
     return Math.min(Math.max(Number.isFinite(raw) ? raw : 1, 1 / 60), max);
@@ -3311,26 +3302,21 @@ function _openActModal(actId, onDone) {
   function _syncEndFromDuration() {
     if (!endHSel) return;
     if (durInput.value.trim() === "") return;
-    const start = parseTimeInput(startHSel.value);
+    const start = parseTime24(startHSel.value);
     if (start === null) return;
     const duration = _clampDurationValue(durInput.value);
     const end = Math.min(start + duration, 24);
-    endHSel.value = formatTimeInput(end);
+    endHSel.value = formatTime24(end);
   }
 
   function _syncDurationFromEnd() {
     if (!endHSel) return;
-    const start = parseTimeInput(startHSel.value);
-    const end = parseTimeInput(endHSel.value);
+    const start = parseTime24(startHSel.value);
+    const end = parseTime24(endHSel.value);
     if (start === null || end === null || end <= start) return;
     durInput.value = formatDurationHours(end - start);
   }
   startHSel.onchange = _syncEndFromDuration;
-  startHSel.onblur = () => {
-    const parsed = parseTimeInput(startHSel.value);
-    if (parsed !== null) startHSel.value = formatTimeInput(parsed);
-    _syncEndFromDuration();
-  };
   durInput.oninput = _syncEndFromDuration;
   durInput.onblur = () => {
     if (durInput.value.trim() === "") _syncDurationFromEnd();
@@ -3341,12 +3327,7 @@ function _openActModal(actId, onDone) {
     }
   };
   if (endHSel) {
-    endHSel.oninput = _syncDurationFromEnd;
-    endHSel.onblur = () => {
-      const parsed = parseTimeInput(endHSel.value);
-      if (parsed !== null) endHSel.value = formatTimeInput(parsed);
-      _syncDurationFromEnd();
-    };
+    endHSel.onchange = _syncDurationFromEnd;
   };
   function _updateCustomRepeat() {
     const selectedBlockType = typeToggle?.value || existing?.defaultBlockType || "plan";
@@ -3367,13 +3348,13 @@ function _openActModal(actId, onDone) {
   let selColor = existing ? existing.color : ACT_COLORS[0];
   const defaultType = existing?.defaultBlockType || "plan";
   nameInput.value = existing ? existing.name : "";
-  startHSel.value = formatTimeInput(existing?.defaultStartH ?? 22);
+  startHSel.value = formatTime24(existing?.defaultStartH ?? 22);
   durInput.value = formatDurationHours(existing?.defaultDuration ?? 1);
   if (endHSel) {
-    const start = parseTimeInput(startHSel.value) ?? 0;
+    const start = parseTime24(startHSel.value) ?? 0;
     const savedEnd = roundTimeHour(existing?.defaultEndH);
     const fallbackEnd = start + _clampDurationValue(durInput.value);
-    endHSel.value = formatTimeInput(Math.min(Math.max(Number.isFinite(savedEnd) ? savedEnd : fallbackEnd, start + 1 / 60), 24));
+    endHSel.value = formatTime24(Math.min(Math.max(Number.isFinite(savedEnd) ? savedEnd : fallbackEnd, start + 1 / 60), 24));
   }
   repeatSel.value = existing?.defaultRepeat ?? "none";
   repeatUnitSel.value = existing?.defaultRepeatUnit ?? "daily";
@@ -3441,9 +3422,9 @@ function _openActModal(actId, onDone) {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
     const emoji = existing?.emoji || "";
-    const defaultStartH = parseTimeInput(startHSel.value);
+    const defaultStartH = parseTime24(startHSel.value);
     if (durInput.value.trim() === "") _syncDurationFromEnd();
-    const defaultEndH = parseTimeInput(endHSel?.value);
+    const defaultEndH = parseTime24(endHSel?.value);
     if (!Number.isFinite(defaultStartH) || !Number.isFinite(defaultEndH) || defaultEndH <= defaultStartH) {
       setFormError("시간을 확인해주세요.");
       return;
