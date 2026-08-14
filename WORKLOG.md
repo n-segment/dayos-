@@ -21,8 +21,8 @@
 
 ## 현재 버전
 
-- `ui.css?v=136`
-- `ui.js?v=136`
+- `ui.css?v=137`
+- `ui.js?v=137`
 
 ---
 
@@ -77,10 +77,8 @@ for (let h = 0; h < 24; h++) {
     const color = act.color || "#555";
     cell.style.background = color;
 
-    // 앞뒤 같은 활동이면 모서리 처리
-    const prevSame = /* h-1도 같은 act? */;
-    const nextSame = /* h+1도 같은 act? */;
-    // borderRadius: prevSame && nextSame → "0", prevSame → "0 0 4px 4px", nextSame → "4px 4px 0 0", else → "4px"
+    // v137부터 타임테이블 활동 블록은 각진 사각형으로 표시
+    cell.style.borderRadius = "0";
 
     // 연속 셀 사이 1px gap을 같은 색으로 채워서 하나의 블록처럼 보이게
     if (nextSame) cell.style.boxShadow = `0 2px 0 0 ${color}`;
@@ -239,6 +237,7 @@ for (let h = 0; h < 24; h++) {
 | v134 | GitHub Pages는 v133을 배포했지만 브라우저에 이전 모달 DOM/CSS가 남는 사례가 있어 CSS/JS 캐시 버전을 한 번 더 갱신 |
 | v135 | 활동 추가/수정 모달에서 목표 시간 필드 제거. 기존 활동의 goalH는 유지하되 모달에서는 더 이상 수정하지 않음 |
 | v136 | 반복 선택지를 안함/매일/매주/2주마다/매월/매년/사용자화로 확장. 사용자화 선택 시 반복 주기와 1~365 반복 간격 입력 추가 |
+| v137 | 노멀 모드 타임테이블 활동 블록의 border radius 제거. 우상단 편집 버튼을 파란색 아이콘 버튼으로 강조 |
 
 ---
 

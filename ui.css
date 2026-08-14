@@ -3685,8 +3685,9 @@ html, body {
   justify-content: center !important;
   padding: 0 !important;
   border-radius: 50% !important;
-  color: rgba(255,255,255,0.8) !important;
-  background: rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+  background: #2A4A7A !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset !important;
 }
 #historyScreen .hs2-grid-edit-btn svg {
   display: block;
@@ -3695,7 +3696,7 @@ html, body {
   fill: currentColor;
 }
 #historyScreen .hs2-grid-edit-btn:hover {
-  background: rgba(255,255,255,0.18) !important;
+  background: #365b94 !important;
   color: #fff !important;
 }
 

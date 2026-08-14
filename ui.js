@@ -2298,11 +2298,7 @@ function _renderWeekGrid(gridPanel, dates) {
         const prevSame = prevBlk?.actId === blk.actId;
         const nextSame = nextBlk?.actId === blk.actId;
 
-        // Round only exposed corners
-        if (prevSame && nextSame) cell.style.borderRadius = "0";
-        else if (prevSame)        cell.style.borderRadius = "0 0 4px 4px";
-        else if (nextSame)        cell.style.borderRadius = "4px 4px 0 0";
-        else                      cell.style.borderRadius = "4px";
+        cell.style.borderRadius = "0";
 
         // Fill the 1px gap between consecutive same-activity cells
         if (nextSame) cell.style.boxShadow = `0 2px 0 0 ${color}`;
