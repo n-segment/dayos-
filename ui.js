@@ -1886,11 +1886,10 @@ function _openPaintOverlay(defaultActId) {
   });
   gridPanel.appendChild(dayHdrs);
 
-  // ── Grid body: 24h × 7 days, no scroll (use same HOUR_H as normal view) ──
+  // ── Grid body: 24h × 7 days, no scroll (1fr fills available height) ──
   const gridBody = document.createElement("div");
   gridBody.className = "hs2-pedit-grid";
   gridBody.style.touchAction = "none";
-  gridBody.style.gridTemplateRows = `repeat(24, ${_cachedHourH}px)`;
 
   const cellMap = {};
   for (let h = 0; h < 24; h++) {
