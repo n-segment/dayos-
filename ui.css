@@ -3643,7 +3643,7 @@ html, body {
   display: flex;
   flex: 1;
   overflow: hidden;
-  padding: 12px 16px 16px 16px;
+  padding: 12px 20px 20px 16px;
   gap: 12px;
 }
 
@@ -4070,10 +4070,10 @@ html, body {
 /* Day headers */
 .hs2-pedit-day-hdrs {
   display: grid;
-  grid-template-columns: 32px repeat(7, 1fr);
+  grid-template-columns: 44px repeat(7, 1fr);
   flex-shrink: 0;
-  padding: 8px 16px 4px;
-  height: 44px;
+  padding: 6px 0 4px;
+  height: 50px;
   box-sizing: border-box;
 }
 .hs2-pedit-day-hdr {
@@ -4108,23 +4108,23 @@ html, body {
 .hs2-pedit-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 32px repeat(7, 1fr);
+  grid-template-columns: 44px repeat(7, 1fr);
   grid-template-rows: repeat(24, 1fr);
   gap: 1px;
-  padding: 0 16px 16px;
-  background: #1c1c1c;
+  padding: 0;
+  background: rgba(255,255,255,0.07);
   min-height: 0;
   user-select: none;
 }
 .hs2-pedit-time-lbl {
   display: flex;
   align-items: flex-start;
-  justify-content: flex-end;
-  padding-right: 6px;
+  justify-content: center;
   padding-top: 2px;
   font-size: 9px;
   color: rgba(255,255,255,0.25);
   line-height: 1;
+  background: #1c1c1c;
 }
 .hs2-pedit-cell {
   background: rgba(255,255,255,0.04);
@@ -4142,7 +4142,7 @@ html, body {
   border-bottom: 1px solid rgba(0,0,0,0.07);
   background: #f7f5f1;
   flex-shrink: 0;
-  height: 44px;
+  height: 50px;
   box-sizing: border-box;
 }
 .hs2-grid-day-hdr {
