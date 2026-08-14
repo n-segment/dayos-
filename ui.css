@@ -3614,7 +3614,7 @@ html, body {
 }
 /* Hour cells — gap-based grid matching paint mode */
 #historyScreen .hs2-grid-hour-label {
-  color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.4);
   font-size: 9px;
 }
 #historyScreen .hs2-grid-time-col {
@@ -4125,7 +4125,7 @@ html, body {
   justify-content: center;
   padding-top: 2px;
   font-size: 9px;
-  color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.4);
   line-height: 1;
   background: #1c1c1c;
 }
