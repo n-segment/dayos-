@@ -13,15 +13,27 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
+const ONBOARDING_KEY = "dayos_onboarding_seen_v1";
 
 const els = {
   loginScreen: $("loginScreen"),
+  loginErrorMessage: $("loginErrorMessage"),
   googleLoginBtn: $("googleLoginBtn"),
+  localLoginBtn: $("localLoginBtn"),
+  homeEditToggle: $("homeEditToggle"),
+  homeBgBtn: $("homeBgBtn"),
+  homeBgInput: $("homeBgInput"),
+  onboardingOverlay: $("onboardingOverlay"),
+  onboardingCloseBtn: $("onboardingCloseBtn"),
+  profileBtn: $("profileBtn"),
+  profileMenu: $("profileMenu"),
+  profileName: $("profileName"),
+  profileEmail: $("profileEmail"),
+  logoutBtn: $("logoutBtn"),
   welcomeScreen: $("welcomeScreen"),
   goalModal: $("goalModal"),
   focusScreen: $("focusScreen"),
   summaryScreen: $("summaryScreen"),
-  startButton: $("startButton"),
   endButton: $("endButton"),
   pauseButton: $("pauseButton"),
   viewRecordButton: $("viewRecordButton"),
@@ -51,7 +63,8 @@ const els = {
   timelineWrap: $("timelineWrap"),
   historyScreen: $("historyScreen"),
   historyBackButton: $("historyBackButton"),
-  historyLinkButton: $("historyLinkButton"),
+  appFloatingNav: $("appFloatingNav"),
+  appFloatingNavHitarea: $("appFloatingNavHitarea"),
   historyWeekTotal: $("historyWeekTotal"),
   historyList: $("historyList"),
 };
@@ -73,8 +86,126 @@ let trackerAvailable = false;
 let trackerMinutes = 0;
 let lastSessionMs = 0;
 let lastTrackerSegments = [];
+let localDevMode = false;
+let homeEditMode = false;
 
 const segmentMemos = {};
+
+// ── 홈 배경 미디어 ──
+const HOME_BG_DB = "dayos_home_bg_v1";
+const HOME_BG_STORE = "background";
+const HOME_BG_KEY = "current";
+let homeBgObjectUrl = null;
+let homeBgInitialized = false;
+
+function openHomeBgDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HOME_BG_DB, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(HOME_BG_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getHomeBgRecord() {
+  const dbi = await openHomeBgDb();
+  return new Promise((resolve, reject) => {
+    const tx = dbi.transaction(HOME_BG_STORE, "readonly");
+    const req = tx.objectStore(HOME_BG_STORE).get(HOME_BG_KEY);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveHomeBgRecord(file) {
+  const dbi = await openHomeBgDb();
+  const record = {
+    blob: file,
+    type: file.type,
+    name: file.name,
+    updatedAt: Date.now(),
+  };
+  return new Promise((resolve, reject) => {
+    const tx = dbi.transaction(HOME_BG_STORE, "readwrite");
+    tx.objectStore(HOME_BG_STORE).put(record, HOME_BG_KEY);
+    tx.oncomplete = () => resolve(record);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function getDefaultHomeBgSrc() {
+  const hour = new Date().getHours();
+  return hour >= 0 && hour < 6 ? "./dawn-drive.mp4" : "./bg.MOV";
+}
+
+function applyHomeBackground(record) {
+  const section = document.getElementById("homeSection");
+  if (!section) return;
+  const video = section.querySelector(".welcome-bg-video");
+  section.querySelectorAll(".home-custom-bg").forEach(el => el.remove());
+  if (homeBgObjectUrl) URL.revokeObjectURL(homeBgObjectUrl);
+  homeBgObjectUrl = null;
+
+  if (!record?.blob) {
+    if (video) {
+      video.src = getDefaultHomeBgSrc();
+      video.style.display = "";
+      video.load();
+      video.play().catch(() => {});
+    }
+    return;
+  }
+
+  homeBgObjectUrl = URL.createObjectURL(record.blob);
+  if (record.type?.startsWith("image/")) {
+    if (video) video.style.display = "none";
+    const img = document.createElement("img");
+    img.className = "home-custom-bg";
+    img.src = homeBgObjectUrl;
+    img.alt = "";
+    img.setAttribute("aria-hidden", "true");
+    section.insertBefore(img, section.firstChild);
+    return;
+  }
+
+  if (record.type?.startsWith("video/") && video) {
+    video.style.display = "";
+    video.src = homeBgObjectUrl;
+    video.load();
+    video.play().catch(() => {});
+  }
+}
+
+async function initHomeBackgroundSystem() {
+  if (!homeBgInitialized) {
+    homeBgInitialized = true;
+    els.homeBgBtn?.addEventListener("click", () => els.homeBgInput?.click());
+    els.homeBgInput?.addEventListener("change", async () => {
+      const file = els.homeBgInput.files?.[0];
+      els.homeBgInput.value = "";
+      if (!file) return;
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        alert("이미지나 영상 파일만 배경으로 사용할 수 있어요.");
+        return;
+      }
+      try {
+        const record = await saveHomeBgRecord(file);
+        applyHomeBackground(record);
+      } catch (err) {
+        console.error("배경 저장 실패:", err);
+        alert("배경 파일을 저장하지 못했어요. 파일 용량을 줄여서 다시 시도해주세요.");
+      }
+    });
+  }
+
+  try {
+    applyHomeBackground(await getHomeBgRecord());
+  } catch (err) {
+    console.error("배경 불러오기 실패:", err);
+  }
+}
 
 // ── 스티키 메모 시스템 ──
 const MEMO_KEY = "dayos_memos_v1";
@@ -397,6 +528,16 @@ function initDoodleSystem() {
   let penColor = "#ffffff";
   let penSize = 3;
   let lastX = 0, lastY = 0;
+  const toolbarEraserBtn = document.getElementById("doodleEraserBtn");
+
+  function setEraserMode(active) {
+    isEraser = !!active;
+    canvas.classList.toggle("is-eraser", isEraser);
+    toolbarEraserBtn?.classList.toggle("active", isEraser);
+    if (isEraser) {
+      toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
+    }
+  }
 
   function resizeCanvas() {
     const img = canvas.toDataURL();
@@ -479,16 +620,19 @@ function initDoodleSystem() {
   canvas.style.pointerEvents = "none";
 
   function toggleDoodle() {
+    if (currentAppView !== "home") return;
     doodleActive = !doodleActive;
     if (doodleActive) {
       canvas.style.pointerEvents = "auto";
       toolbar.classList.remove("hidden");
       btn.classList.add("active");
+      document.body.classList.add("doodle-active");
       document.body.style.userSelect = "none";
     } else {
       canvas.style.pointerEvents = "none";
       toolbar.classList.add("hidden");
       btn.classList.remove("active");
+      document.body.classList.remove("doodle-active");
       document.body.style.userSelect = "";
     }
   }
@@ -508,10 +652,9 @@ function initDoodleSystem() {
   toolbar.querySelectorAll(".doodle-tool-color").forEach(b => {
     b.addEventListener("click", () => {
       penColor = b.dataset.color;
-      isEraser = false;
+      setEraserMode(false);
       toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
       b.classList.add("active");
-      document.getElementById("doodleEraserBtn")?.classList.remove("active");
     });
   });
 
@@ -525,12 +668,8 @@ function initDoodleSystem() {
   });
 
   // 지우개
-  document.getElementById("doodleEraserBtn")?.addEventListener("click", function() {
-    isEraser = !isEraser;
-    this.classList.toggle("active", isEraser);
-    if (isEraser) {
-      toolbar.querySelectorAll(".doodle-tool-color").forEach(x => x.classList.remove("active"));
-    }
+  toolbarEraserBtn?.addEventListener("click", function() {
+    setEraserMode(!isEraser);
   });
 
   // 전체 지우기
@@ -679,10 +818,9 @@ function formatDate(date = new Date()) {
 function formatClock(date = new Date()) {
   const hour24 = date.getHours();
   const minute = String(date.getMinutes()).padStart(2, "0");
-  const second = String(date.getSeconds()).padStart(2, "0");
   const ampm = hour24 < 12 ? "오전" : "오후";
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${ampm} ${hour12}:${minute}:${second}`;
+  return `${ampm} ${hour12}:${minute}`;
 }
 
 function formatDuration(ms) {
@@ -947,6 +1085,55 @@ function restoreState() {
 function _showEl(el) { if (el) { el.classList.remove("hidden"); el.style.display = ""; } }
 function _hideEl(el) { if (el) { el.classList.add("hidden"); el.style.display = "none"; } }
 
+let currentAppView = "home";
+let _floatingNavTimer = null;
+
+function setFloatingNavPeek(visible, autoHideMs = 0) {
+  document.body.classList.toggle("app-floating-nav-peek", !!visible);
+  if (_floatingNavTimer) {
+    clearTimeout(_floatingNavTimer);
+    _floatingNavTimer = null;
+  }
+  if (visible && autoHideMs > 0) {
+    _floatingNavTimer = setTimeout(() => {
+      if (currentAppView === "timetable") {
+        document.body.classList.remove("app-floating-nav-peek");
+      }
+    }, autoHideMs);
+  }
+}
+
+function handleFloatingNavPointer(event) {
+  if (currentAppView !== "timetable") {
+    setFloatingNavPeek(true);
+    return;
+  }
+  const nearBottom = event.clientY > window.innerHeight - 10;
+  const nearCenter = Math.abs(event.clientX - window.innerWidth / 2) < 140;
+  setFloatingNavPeek(nearBottom && nearCenter);
+}
+
+function setAppView(view) {
+  currentAppView = view === "timetable" ? "timetable" : "home";
+  document.body.classList.toggle("app-view-home", currentAppView === "home");
+  document.body.classList.toggle("app-view-timetable", currentAppView === "timetable");
+  document.querySelectorAll(".app-floating-nav__btn").forEach(btn => {
+    btn.classList.toggle("is-active", btn.dataset.view === currentAppView);
+  });
+
+  if (currentAppView === "timetable") {
+    setHomeEditMode(false);
+    setFloatingNavPeek(true, 1400);
+    renderHistoryScreen(_histDate || toDateStr(Date.now()));
+    return;
+  }
+
+  setFloatingNavPeek(true);
+  _hideEl(document.getElementById("historyScreen"));
+  document.getElementById("homeSection")
+    ?.scrollIntoView({ behavior: "smooth" });
+}
+
 function showScreen(screen) {
   const loginOverlay = document.getElementById("loginScreen");
   const appMain = document.getElementById("appMain");
@@ -976,11 +1163,10 @@ function showScreen(screen) {
       _hideEl(wsActiveState);
     }
     _hideEl(summaryOverlay);
-    // Always show the merged record screen
-    renderHistoryScreen();
+    setAppView("home");
   } else if (screen === "history") {
     _hideEl(summaryOverlay);
-    renderHistoryScreen();
+    setAppView("timetable");
   } else if (screen === "summary") {
     _showEl(summaryOverlay);
   }
@@ -1078,16 +1264,97 @@ function closeGoalModal() {
   if (els.goalModal) els.goalModal.classList.add("hidden");
 }
 
-// ── Google 로그인 ──
+function showLoginError(err) {
+  const message = err?.code === "auth/unauthorized-domain"
+    ? "Firebase 콘솔의 Authorized domains에 localhost 또는 127.0.0.1을 추가해야 로컬 로그인이 됩니다."
+    : "로그인 실패: " + (err?.message || err?.code || "다시 시도해주세요.");
+
+  if (els.loginErrorMessage) {
+    els.loginErrorMessage.textContent = message;
+    els.loginErrorMessage.classList.remove("hidden");
+  } else {
+    alert(message);
+  }
+}
+
+function isLocalHost() {
+  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
 function signInWithGoogle() {
+  els.loginErrorMessage?.classList.add("hidden");
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch((err) => {
     console.error("로그인 실패:", err);
+    showLoginError(err);
   });
 }
 
 function signOut() {
-  auth.signOut();
+  setHomeEditMode(false);
+  els.profileMenu?.classList.add("hidden");
+  els.profileBtn?.setAttribute("aria-expanded", "false");
+  localDevMode = false;
+  currentUser = null;
+  _hideEl(document.getElementById("appMain"));
+  showScreen("login");
+  if (auth.currentUser) auth.signOut();
+}
+
+function canUseCloud() {
+  return currentUser && !currentUser.isLocalDev;
+}
+
+function setHomeEditMode(active) {
+  homeEditMode = !!active;
+  document.body.classList.toggle("home-edit-mode", homeEditMode);
+  els.homeEditToggle?.classList.toggle("is-active", homeEditMode);
+  els.homeEditToggle?.setAttribute("aria-pressed", String(homeEditMode));
+  if (!homeEditMode) {
+    document.getElementById("memoInputPanel")?.classList.remove("open");
+    document.getElementById("embedInputPanel")?.classList.remove("open");
+  }
+}
+
+function hasSeenOnboarding() {
+  try {
+    return localStorage.getItem(ONBOARDING_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+function shouldForceOnboardingPreview() {
+  return isLocalHost() && new URLSearchParams(window.location.search).has("onboarding");
+}
+
+function showOnboardingIfNeeded() {
+  if (!els.onboardingOverlay) return;
+  if (hasSeenOnboarding() && !shouldForceOnboardingPreview()) return;
+  els.onboardingOverlay.classList.remove("hidden");
+}
+
+function closeOnboarding() {
+  try {
+    localStorage.setItem(ONBOARDING_KEY, "1");
+  } catch (error) {
+    // localStorage가 막혀도 이번 화면에서는 닫히게 둔다.
+  }
+  els.onboardingOverlay?.classList.add("hidden");
+}
+
+function getProfileInitial(user) {
+  const source = user?.displayName || user?.email || "D";
+  return (source.trim().charAt(0) || "D").toUpperCase();
+}
+
+function updateProfileMenu(user) {
+  if (!user) return;
+  const name = user.isLocalDev ? "로컬 모드" : (user.displayName || "DayOS");
+  const email = user.isLocalDev ? "브라우저에만 저장돼요" : (user.email || "Google 계정");
+  if (els.profileBtn) els.profileBtn.textContent = getProfileInitial(user);
+  if (els.profileName) els.profileName.textContent = name;
+  if (els.profileEmail) els.profileEmail.textContent = email;
 }
 
 // ── 히스토리 저장/조회 (Firestore + localStorage fallback) ──
@@ -1124,7 +1391,7 @@ async function saveSessionToHistory() {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(localHistory));
 
   // Firestore 저장 (로그인 시)
-  if (currentUser) {
+  if (canUseCloud()) {
     try {
       await db.collection("users").doc(currentUser.uid)
         .collection("history").add(record);
@@ -1135,7 +1402,7 @@ async function saveSessionToHistory() {
 }
 
 async function getHistory() {
-  if (currentUser) {
+  if (canUseCloud()) {
     try {
       const snapshot = await db.collection("users").doc(currentUser.uid)
         .collection("history").orderBy("startMs", "asc").get();
@@ -1148,7 +1415,7 @@ async function getHistory() {
 }
 
 async function updateRecord(id, fields) {
-  if (currentUser && id) {
+  if (canUseCloud() && id) {
     try {
       await db.collection("users").doc(currentUser.uid)
         .collection("history").doc(id).update(fields);
@@ -1168,7 +1435,7 @@ async function updateRecord(id, fields) {
 }
 
 async function deleteRecord(id) {
-  if (currentUser && id) {
+  if (canUseCloud() && id) {
     try {
       await db.collection("users").doc(currentUser.uid)
         .collection("history").doc(id).delete();
@@ -1197,6 +1464,15 @@ let historyTab = "week";
 let _histDate = null;
 let _histWeekStart = null;
 let _cachedHourH = 20; // shared between normal view and paint overlay
+const TLOG_VIEW_KEY = "dayos_timetable_view_v1";
+let _timetableView = (() => {
+  try {
+    const saved = localStorage.getItem(TLOG_VIEW_KEY);
+    return ["plan", "actual", "both"].includes(saved) ? saved : "plan";
+  } catch(e) {
+    return "plan";
+  }
+})();
 
 // Utility
 function getWeekStart(dateStr) {
@@ -1231,6 +1507,30 @@ const DEFAULT_ACTS = [
   { id:"act_work",  name:"작업", emoji:"💻", icon:"./icon_work.svg",  color:"#5A2A7A", goalH:0 },
   { id:"act_food",  name:"밥",   emoji:"🍚", icon:"./icon_food.svg",  color:"#2A6A6A", goalH:0 },
 ];
+
+const BLOCK_TYPES = [
+  { value: "plan", label: "계획" },
+  { value: "actual", label: "실행" },
+];
+
+function normalizeBlockType(type) {
+  return type === "plan" ? "plan" : "actual";
+}
+
+function getBlockTypeLabel(type) {
+  return normalizeBlockType(type) === "plan" ? "계획" : "실행";
+}
+
+function shouldShowBlockType(type) {
+  const normalized = normalizeBlockType(type);
+  return _timetableView === "both" || _timetableView === normalized;
+}
+
+function setTimetableView(type) {
+  const nextView = ["plan", "actual", "both"].includes(type) ? type : "plan";
+  _timetableView = nextView;
+  try { localStorage.setItem(TLOG_VIEW_KEY, _timetableView); } catch(e) {}
+}
 
 function loadActs() {
   try {
@@ -1267,12 +1567,14 @@ function pruneTlogForActs(tlog, acts) {
     if (!Array.isArray(blocks)) { changed = true; return; }
     const validBlocks = [];
     blocks.forEach(b => {
-      const startH = Number(b.startH);
-      const endH = Number(b.endH);
-      const keep = validActIds.has(b.actId) && Number.isInteger(startH) && Number.isInteger(endH) && startH >= 0 && endH <= 24 && startH < endH;
+      const startH = roundTimeHour(b.startH);
+      const endH = roundTimeHour(b.endH);
+      const keep = validActIds.has(b.actId) && Number.isFinite(startH) && Number.isFinite(endH) && startH >= 0 && endH <= 24 && startH < endH;
       if (!keep) { changed = true; return; }
       if (startH !== b.startH || endH !== b.endH) changed = true;
-      validBlocks.push({ ...b, startH, endH });
+      const type = normalizeBlockType(b.type);
+      if (type !== b.type) changed = true;
+      validBlocks.push({ ...b, startH, endH, type });
     });
     if (validBlocks.length) next[dt] = validBlocks;
   });
@@ -1320,6 +1622,430 @@ function buildRepeatDates(startDateStr, repeat, customUnit, customEvery) {
     cursor = _addRepeatStep(cursor, cfg.unit, cfg.every);
   }
   return dates;
+}
+
+function formatKoreanHour(hour) {
+  const h = ((Number(hour) % 24) + 24) % 24;
+  const whole = Math.floor(h);
+  const minutes = Math.round((h - whole) * 60);
+  const ap = whole < 12 ? "오전" : "오후";
+  const h12 = whole === 0 ? 12 : whole > 12 ? whole - 12 : whole;
+  return `${ap} ${h12}:${String(minutes).padStart(2, "0")}`;
+}
+
+function roundTimeHour(value) {
+  return Math.round(Number(value) * 60) / 60;
+}
+
+function parseTimeInput(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return null;
+  const compact = raw.replace(/\s+/g, "");
+  const meridiem = compact.includes("오후") || compact.includes("pm") ? "pm" : compact.includes("오전") || compact.includes("am") ? "am" : "";
+  const cleaned = compact
+    .replace(/오전|오후|am|pm/g, "")
+    .replace(/시/g, ":")
+    .replace(/분/g, "");
+  const match = cleaned.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = match[2] === undefined || match[2] === "" ? 0 : Number(match[2]);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || minute < 0 || minute > 59) return null;
+  if (meridiem === "pm" && hour < 12) hour += 12;
+  if (meridiem === "am" && hour === 12) hour = 0;
+  if (hour < 0 || hour > 24) return null;
+  if (hour === 24 && minute > 0) return null;
+  return roundTimeHour(hour + minute / 60);
+}
+
+function formatTimeInput(hour) {
+  if (!Number.isFinite(Number(hour))) return "";
+  const totalMinutes = Math.round(Number(hour) * 60);
+  if (totalMinutes === 1440) return "24:00";
+  const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  const ap = h < 12 ? "오전" : "오후";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${ap} ${h12}:${String(m).padStart(2, "0")}`;
+}
+
+function parseDurationInput(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return null;
+  const compact = raw.replace(/\s+/g, "");
+  let totalMinutes = 0;
+  const hourMatch = compact.match(/(\d+(?:\.\d+)?)시간/);
+  const minuteMatch = compact.match(/(\d+)분/);
+  if (hourMatch) totalMinutes += Number(hourMatch[1]) * 60;
+  if (minuteMatch) totalMinutes += Number(minuteMatch[1]);
+  if (!hourMatch && !minuteMatch) {
+    const n = Number(compact.replace(/h/g, ""));
+    if (!Number.isFinite(n)) return null;
+    totalMinutes = n * 60;
+  }
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return null;
+  return roundTimeHour(totalMinutes / 60);
+}
+
+function formatDurationHours(hours) {
+  const minutes = Math.max(0, Math.round(Number(hours || 0) * 60));
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h && m) return `${h}시간 ${m}분`;
+  if (h) return `${h}시간`;
+  return `${m}분`;
+}
+
+function lightenHexColor(hex, amount = 0.18) {
+  const normalized = String(hex || "").replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return hex;
+  const value = parseInt(normalized, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  const mix = channel => Math.round(channel + (255 - channel) * amount);
+  return `#${[mix(r), mix(g), mix(b)].map(v => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function formatDateKo(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+function formatCalendarDateLabel(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return dateStr || "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}. ${month}. ${day}.`;
+}
+
+function createDesignDateInput(initialValue) {
+  const state = {
+    value: initialValue || toDateStr(Date.now()),
+    visibleMonth: new Date((initialValue || toDateStr(Date.now())) + "T00:00:00")
+  };
+  state.visibleMonth.setDate(1);
+
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  const wrap = document.createElement("div");
+  wrap.className = "hs2-date-picker";
+
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.value = state.value;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "hs2-date-picker__button";
+
+  const menu = document.createElement("div");
+  menu.className = "hs2-date-picker__menu hidden";
+
+  function syncButton() {
+    button.textContent = formatCalendarDateLabel(state.value);
+  }
+
+  function selectDate(dateStr) {
+    state.value = dateStr;
+    input.value = dateStr;
+    syncButton();
+    menu.classList.add("hidden");
+    wrap.classList.remove("open");
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function renderCalendar() {
+    const year = state.visibleMonth.getFullYear();
+    const month = state.visibleMonth.getMonth();
+    const today = toDateStr(Date.now());
+    const selected = state.value;
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    menu.innerHTML = "";
+
+    const header = document.createElement("div");
+    header.className = "hs2-date-picker__header";
+
+    const prev = document.createElement("button");
+    prev.type = "button";
+    prev.className = "hs2-date-picker__nav";
+    prev.textContent = "‹";
+    prev.setAttribute("aria-label", "이전 달");
+    prev.addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.visibleMonth.setMonth(state.visibleMonth.getMonth() - 1);
+      renderCalendar();
+    });
+
+    const title = document.createElement("div");
+    title.className = "hs2-date-picker__title";
+    title.textContent = `${year}. ${String(month + 1).padStart(2, "0")}`;
+
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "hs2-date-picker__nav";
+    next.textContent = "›";
+    next.setAttribute("aria-label", "다음 달");
+    next.addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.visibleMonth.setMonth(state.visibleMonth.getMonth() + 1);
+      renderCalendar();
+    });
+
+    header.appendChild(prev);
+    header.appendChild(title);
+    header.appendChild(next);
+    menu.appendChild(header);
+
+    const grid = document.createElement("div");
+    grid.className = "hs2-date-picker__grid";
+    weekdays.forEach(day => {
+      const weekday = document.createElement("div");
+      weekday.className = "hs2-date-picker__weekday";
+      weekday.textContent = day;
+      grid.appendChild(weekday);
+    });
+    for (let i = 0; i < firstDay; i++) {
+      grid.appendChild(Object.assign(document.createElement("div"), { className: "hs2-date-picker__empty" }));
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const dayBtn = document.createElement("button");
+      dayBtn.type = "button";
+      dayBtn.className = "hs2-date-picker__day";
+      dayBtn.textContent = String(day);
+      dayBtn.classList.toggle("selected", dateStr === selected);
+      dayBtn.classList.toggle("today", dateStr === today);
+      dayBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectDate(dateStr);
+      });
+      grid.appendChild(dayBtn);
+    }
+    menu.appendChild(grid);
+  }
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = menu.classList.contains("hidden");
+    menu.classList.toggle("hidden", !willOpen);
+    wrap.classList.toggle("open", willOpen);
+    if (willOpen) renderCalendar();
+  });
+  menu.addEventListener("pointerdown", event => event.stopPropagation());
+  document.addEventListener("pointerdown", (event) => {
+    if (!wrap.contains(event.target)) {
+      menu.classList.add("hidden");
+      wrap.classList.remove("open");
+    }
+  });
+
+  syncButton();
+  renderCalendar();
+  wrap.appendChild(input);
+  wrap.appendChild(button);
+  wrap.appendChild(menu);
+  return { el: wrap, input };
+}
+
+function isSameTblock(block, target) {
+  if (!target) return false;
+  if (target.id && block.id === target.id) return true;
+  return !target.id && block.actId === target.actId && normalizeBlockType(block.type) === normalizeBlockType(target.type) && block.startH === target.startH && block.endH === target.endH;
+}
+
+function findOverlappingBlock(tlog, dateStr, startH, endH, options = {}) {
+  const blocks = Array.isArray(tlog?.[dateStr]) ? tlog[dateStr] : [];
+  return blocks.find(block => {
+    if (options.ignoreBlock && isSameTblock(block, options.ignoreBlock)) return false;
+    if (options.ignoreActId && block.actId === options.ignoreActId) return false;
+    if (options.type && normalizeBlockType(block.type) !== normalizeBlockType(options.type)) return false;
+    return Number(block.startH) < endH && Number(block.endH) > startH;
+  }) || null;
+}
+
+function getOverlapMessage(overlap, dateStr) {
+  const act = loadActs().find(a => a.id === overlap?.actId);
+  const name = act?.name || "다른 활동";
+  return `${formatDateKo(dateStr)} ${formatKoreanHour(overlap.startH)}에 ${name}과 겹쳐요.`;
+}
+
+function findFirstOverlapForDates(tlog, dates, startH, endH, options = {}) {
+  for (const dt of dates) {
+    const overlap = findOverlappingBlock(tlog, dt, startH, endH, options);
+    if (overlap) return { date: dt, block: overlap };
+  }
+  return null;
+}
+
+function updateTlogBlockTime(dateStr, block, startH, endH) {
+  const nextStart = roundTimeHour(startH);
+  const nextEnd = roundTimeHour(endH);
+  if (!Number.isFinite(nextStart) || !Number.isFinite(nextEnd) || nextStart < 0 || nextEnd > 24 || nextStart >= nextEnd) return false;
+
+  const tlog = loadTlog();
+  const overlap = findOverlappingBlock(tlog, dateStr, nextStart, nextEnd, {
+    ignoreBlock: block,
+    type: normalizeBlockType(block.type)
+  });
+  if (overlap) {
+    alert("시간이 겹쳐요.");
+    return false;
+  }
+
+  const blocks = Array.isArray(tlog[dateStr]) ? tlog[dateStr] : [];
+  let changed = false;
+  tlog[dateStr] = blocks.map(item => {
+    if (!isSameTblock(item, block)) return item;
+    changed = true;
+    return { ...item, startH: nextStart, endH: nextEnd };
+  });
+  if (!changed) return false;
+  tlog[dateStr].sort((a, b) => a.startH - b.startH);
+  saveTlog(tlog);
+  return true;
+}
+
+function createBlockTypeToggle(initialType = "plan", onChange) {
+  let selectedType = normalizeBlockType(initialType);
+  const wrap = document.createElement("div");
+  wrap.className = "hs2-type-toggle";
+  BLOCK_TYPES.forEach(type => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "hs2-type-toggle__btn";
+    btn.dataset.type = type.value;
+    btn.textContent = type.label;
+    btn.setAttribute("aria-pressed", String(type.value === selectedType));
+    btn.addEventListener("click", () => {
+      selectedType = type.value;
+      wrap.querySelectorAll(".hs2-type-toggle__btn").forEach(item => {
+        const selected = item.dataset.type === selectedType;
+        item.classList.toggle("selected", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
+      onChange?.(selectedType);
+    });
+    wrap.appendChild(btn);
+  });
+  wrap.querySelector(`[data-type="${selectedType}"]`)?.classList.add("selected");
+  return {
+    el: wrap,
+    get value() { return selectedType; },
+    set value(type) {
+      selectedType = normalizeBlockType(type);
+      wrap.querySelectorAll(".hs2-type-toggle__btn").forEach(item => {
+        const selected = item.dataset.type === selectedType;
+        item.classList.toggle("selected", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
+    },
+  };
+}
+
+function createTimetableViewToggle() {
+  const options = [
+    { value: "plan", label: "계획" },
+    { value: "actual", label: "실행" },
+    { value: "both", label: "둘 다" },
+  ];
+  const wrap = document.createElement("div");
+  wrap.className = "hs2-view-toggle";
+  options.forEach(option => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "hs2-view-toggle__btn";
+    btn.dataset.view = option.value;
+    btn.textContent = option.label;
+    const selected = option.value === _timetableView;
+    btn.classList.toggle("selected", selected);
+    btn.setAttribute("aria-pressed", String(selected));
+    btn.addEventListener("click", () => {
+      setTimetableView(option.value);
+      renderHistoryScreen(_histDate);
+    });
+    wrap.appendChild(btn);
+  });
+  return wrap;
+}
+
+function closeTimetableContextMenu() {
+  document.querySelector(".hs2-context-menu")?.remove();
+}
+
+function openTimetableContextMenu(event, dateStr, block, act) {
+  event.preventDefault();
+  event.stopPropagation();
+  closeTimetableContextMenu();
+
+  const menu = document.createElement("div");
+  menu.className = "hs2-context-menu";
+  menu.style.left = `${event.clientX}px`;
+  menu.style.top = `${event.clientY}px`;
+
+  const title = document.createElement("div");
+  title.className = "hs2-context-menu__title";
+  title.textContent = `${act.name} · ${getBlockTypeLabel(block.type)}`;
+  menu.appendChild(title);
+
+  const addItem = (label, className, onClick) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "hs2-context-menu__item" + (className ? ` ${className}` : "");
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      closeTimetableContextMenu();
+      onClick();
+    });
+    menu.appendChild(btn);
+  };
+
+  addItem("할 일 보기", "", () => _openTaskPanel(dateStr, block, act));
+  addItem("시간 수정", "", () => _openBlockModal(dateStr, block.startH, block, () => renderHistoryScreen(_histDate)));
+  addItem("삭제", "hs2-context-menu__item--danger", () => {
+    const tlog = loadTlog();
+    tlog[dateStr] = (tlog[dateStr] || []).filter(b => !isSameTblock(b, block));
+    saveTlog(tlog);
+    renderHistoryScreen(_histDate);
+  });
+
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  const x = Math.min(event.clientX, window.innerWidth - rect.width - 8);
+  const y = Math.min(event.clientY, window.innerHeight - rect.height - 8);
+  menu.style.left = `${Math.max(8, x)}px`;
+  menu.style.top = `${Math.max(8, y)}px`;
+
+  const closeOnOutside = (ev) => {
+    if (menu.contains(ev.target)) return;
+    closeTimetableContextMenu();
+    document.removeEventListener("pointerdown", closeOnOutside);
+    document.removeEventListener("keydown", closeOnEsc);
+    document.removeEventListener("scroll", closeOnScroll, true);
+  };
+  const closeOnEsc = (ev) => {
+    if (ev.key !== "Escape") return;
+    closeTimetableContextMenu();
+    document.removeEventListener("pointerdown", closeOnOutside);
+    document.removeEventListener("keydown", closeOnEsc);
+    document.removeEventListener("scroll", closeOnScroll, true);
+  };
+  const closeOnScroll = () => {
+    closeTimetableContextMenu();
+    document.removeEventListener("pointerdown", closeOnOutside);
+    document.removeEventListener("keydown", closeOnEsc);
+    document.removeEventListener("scroll", closeOnScroll, true);
+  };
+  setTimeout(() => {
+    document.addEventListener("pointerdown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEsc);
+    document.addEventListener("scroll", closeOnScroll, true);
+  }, 0);
 }
 
 // ── Main render ──
@@ -1401,13 +2127,6 @@ function _renderSidebar(sidebar, dates) {
     dateEl.textContent = `${d.getMonth()+1}월 ${d.getDate()}일 · ${DAYS_KO[d.getDay()]}요일`;
   }, 1000);
 
-  // ── TIMER row ──
-  const timerBox = document.createElement("div");
-  timerBox.className = "hs2-sb-timer";
-  timerBox.id = "hs2SbTimerBox";
-  _renderSbTimerBox(timerBox);
-  sidebar.appendChild(timerBox);
-
   // ── SPACER ──
   const spacer = document.createElement("div");
   spacer.className = "hs2-sb-spacer";
@@ -1420,45 +2139,18 @@ function _renderSidebar(sidebar, dates) {
   actsLabel.className = "hs2-sb-acts-label";
   actsLabel.textContent = "활동";
   actsHeader.appendChild(actsLabel);
+  const addActBtn = document.createElement("button");
+  addActBtn.className = "hs2-sb-add-btn";
+  addActBtn.type = "button";
+  addActBtn.title = "활동 추가";
+  addActBtn.setAttribute("aria-label", "활동 추가");
+  addActBtn.textContent = "+";
+  addActBtn.addEventListener("click", () => _openActModal(null, () => renderHistoryScreen(_histDate)));
+  actsHeader.appendChild(addActBtn);
   sidebar.appendChild(actsHeader);
 
   // ── ACTIVITY list ──
   _renderActSidebar(sidebar, dates);
-}
-
-// ── Sidebar timer widget ──
-function _renderSbTimerBox(box) {
-  box.innerHTML = "";
-  if (startedAtMs) {
-    const elapsedEl = document.createElement("div");
-    elapsedEl.className = "hs2-sb-timer-elapsed";
-    const updateEl = () => {
-      const pausedMs = totalPausedMs + (isPaused && pausedAt ? Date.now() - pausedAt : 0);
-      elapsedEl.textContent = formatDuration(Date.now() - startedAtMs - pausedMs);
-    };
-    updateEl();
-    if (window._hs2SbTimerId) clearInterval(window._hs2SbTimerId);
-    window._hs2SbTimerId = setInterval(updateEl, 1000);
-    box.appendChild(elapsedEl);
-
-    const stopBtn = document.createElement("button");
-    stopBtn.className = "hs2-sb-timer-stop";
-    stopBtn.textContent = "종료";
-    stopBtn.addEventListener("click", () => {
-      if (window._hs2SbTimerId) { clearInterval(window._hs2SbTimerId); window._hs2SbTimerId = null; }
-      endSession();
-    });
-    box.appendChild(stopBtn);
-  } else {
-    const startBtn = document.createElement("button");
-    startBtn.className = "hs2-sb-timer-start";
-    startBtn.textContent = "시작하기 →";
-    startBtn.addEventListener("click", () => {
-      startSession();
-      _renderSbTimerBox(box);
-    });
-    box.appendChild(startBtn);
-  }
 }
 
 // ── Activity cards (appended into sidebar, no innerHTML reset) ──
@@ -1467,13 +2159,18 @@ function _renderActSidebar(sidebar, dates) {
   const tlog = loadTlog();
 
   acts.forEach(act => {
-    // calculate this week's total hours for this activity
-    let totalMs = 0;
-    dates.forEach(dt => {
-      const blocks = (tlog[dt] || []).filter(b => b.actId === act.id);
-      blocks.forEach(b => { totalMs += (b.endH - b.startH) * 3600000; });
+    // Sidebar chips show the selected day's total, not the whole week.
+    const selectedDate = _histDate || toDateStr(Date.now());
+    let planMs = 0;
+    let actualMs = 0;
+    const blocks = (tlog[selectedDate] || []).filter(b => b.actId === act.id);
+    blocks.forEach(b => {
+      const ms = (b.endH - b.startH) * 3600000;
+      if (normalizeBlockType(b.type) === "plan") planMs += ms;
+      else actualMs += ms;
     });
-    const totalH = Math.round(totalMs / 3600000 * 10) / 10;
+    const visibleMs = planMs > 0 ? planMs : actualMs;
+    const totalH = Math.round(visibleMs / 3600000 * 10) / 10;
 
     const card = document.createElement("div");
     card.className = "hs2-act-card";
@@ -1521,13 +2218,16 @@ function _renderActSidebar(sidebar, dates) {
     dots.addEventListener("click", (e) => {
       e.stopPropagation();
       const existingMenu = rightGroup.querySelector(".hs2-act-dots-menu");
+      document.querySelectorAll(".hs2-act-card--menu-open").forEach(c => c.classList.remove("hs2-act-card--menu-open"));
       document.querySelectorAll(".hs2-act-dots-menu").forEach(m => m.remove());
       if (existingMenu) return;
 
       const menu = document.createElement("div");
       menu.className = "hs2-act-dots-menu";
+      card.classList.add("hs2-act-card--menu-open");
       const closeMenu = () => {
         menu.remove();
+        card.classList.remove("hs2-act-card--menu-open");
         document.removeEventListener("pointerdown", outsideClose);
       };
       const outsideClose = (ev) => {
@@ -1564,12 +2264,6 @@ function _renderActSidebar(sidebar, dates) {
     sidebar.appendChild(card);
   });
 
-  // "+ 활동 추가" inline at bottom of list
-  const addActRow = document.createElement("div");
-  addActRow.className = "hs2-act-add-row";
-  addActRow.innerHTML = `<span class="hs2-act-add-plus">+</span><span class="hs2-act-add-label">활동 추가</span>`;
-  addActRow.addEventListener("click", () => _openActModal(null, () => renderHistoryScreen(_histDate)));
-  sidebar.appendChild(addActRow);
 }
 
 // ── Add block modal ──
@@ -1614,36 +2308,43 @@ function _openAddBlockModal(act) {
   }
 
   // Date input
-  const dateInput = document.createElement("input");
-  dateInput.type = "date";
-  dateInput.className = "hs2-abm-input";
-  dateInput.value = _histDate || toDateStr(Date.now());
-  fields.appendChild(_row("날짜", dateInput));
+  const datePicker = createDesignDateInput(_histDate || toDateStr(Date.now()));
+  const dateInput = datePicker.input;
+  fields.appendChild(_row("날짜", datePicker.el));
 
-  // Start time
-  const startSel = document.createElement("select");
-  startSel.className = "hs2-abm-input";
-  // End time
-  const endSel = document.createElement("select");
-  endSel.className = "hs2-abm-input";
-  for (let h = 0; h < 24; h++) {
-    const ap = h < 12 ? "오전" : "오후";
-    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    const label = `${ap} ${h12}:00`;
-    const os = document.createElement("option"); os.value = h; os.textContent = label;
-    const oe = document.createElement("option"); oe.value = h; oe.textContent = label;
-    startSel.appendChild(os);
-    endSel.appendChild(oe);
-  }
-  startSel.value = 22;
-  endSel.value = 23;
-  startSel.addEventListener("change", () => {
-    if (parseInt(endSel.value) <= parseInt(startSel.value)) {
-      endSel.value = Math.min(parseInt(startSel.value) + 1, 23);
-    }
-  });
-  fields.appendChild(_row("시작", startSel));
-  fields.appendChild(_row("종료", endSel));
+  let repeatRow;
+  const syncRepeatVisibility = (type) => {
+    const isActual = normalizeBlockType(type) === "actual";
+    repeatRow?.classList.toggle("hidden", isActual);
+    customRepeatWrap?.classList.toggle("hidden", isActual || repeatSel.value !== "custom");
+    if (isActual) repeatSel.value = "none";
+  };
+
+  const typeToggle = createBlockTypeToggle("plan", syncRepeatVisibility);
+  fields.appendChild(_row("구분", typeToggle.el));
+
+  const startInput = document.createElement("input");
+  startInput.className = "hs2-abm-input";
+  startInput.type = "text";
+  startInput.placeholder = "오전 9:30";
+  startInput.autocomplete = "off";
+  startInput.value = formatTimeInput(act.defaultStartH ?? 22);
+
+  const endInput = document.createElement("input");
+  endInput.className = "hs2-abm-input";
+  endInput.type = "text";
+  endInput.placeholder = "오후 6:00";
+  endInput.autocomplete = "off";
+  endInput.value = formatTimeInput(act.defaultEndH ?? Math.min((act.defaultStartH ?? 22) + (act.defaultDuration ?? 1), 24));
+
+  const normalizeTimeInput = (input) => {
+    const parsed = parseTimeInput(input.value);
+    if (parsed !== null) input.value = formatTimeInput(parsed);
+  };
+  startInput.addEventListener("blur", () => normalizeTimeInput(startInput));
+  endInput.addEventListener("blur", () => normalizeTimeInput(endInput));
+  fields.appendChild(_row("시작", startInput));
+  fields.appendChild(_row("종료", endInput));
 
   // Repeat
   const repeatSel = document.createElement("select");
@@ -1652,7 +2353,8 @@ function _openAddBlockModal(act) {
     const o = document.createElement("option"); o.value = v; o.textContent = t;
     repeatSel.appendChild(o);
   });
-  fields.appendChild(_row("반복", repeatSel));
+  repeatRow = _row("반복", repeatSel);
+  fields.appendChild(repeatRow);
 
   const customRepeatWrap = document.createElement("div");
   customRepeatWrap.className = "hs2-abm-custom-repeat hidden";
@@ -1673,13 +2375,23 @@ function _openAddBlockModal(act) {
   customRepeatWrap.appendChild(_row("반복", repeatEveryInput));
   fields.appendChild(customRepeatWrap);
   repeatSel.addEventListener("change", () => {
-    customRepeatWrap.classList.toggle("hidden", repeatSel.value !== "custom");
+    syncRepeatVisibility(typeToggle.value);
   });
   repeatEveryInput.addEventListener("input", () => {
     repeatEveryInput.value = clampRepeatEvery(repeatEveryInput.value);
   });
 
   modal.appendChild(fields);
+  syncRepeatVisibility(typeToggle.value);
+
+  const errorMsg = document.createElement("div");
+  errorMsg.className = "hs2-modal-error hidden";
+  modal.appendChild(errorMsg);
+
+  const setError = (message) => {
+    errorMsg.textContent = message || "";
+    errorMsg.classList.toggle("hidden", !message);
+  };
 
   // Buttons
   const btns = document.createElement("div");
@@ -1693,30 +2405,42 @@ function _openAddBlockModal(act) {
   saveBtn.textContent = "추가";
   saveBtn.addEventListener("click", () => {
     const date = dateInput.value;
-    const s = parseInt(startSel.value);
-    const en = Math.max(parseInt(endSel.value), s + 1);
-    const repeat = repeatSel.value;
+    const s = parseTimeInput(startInput.value);
+    const en = parseTimeInput(endInput.value);
+    const type = typeToggle.value;
+    const repeat = type === "actual" ? "none" : repeatSel.value;
     if (!date) return;
+    if (s === null || en === null || en <= s) {
+      setError("시간을 확인해주세요.");
+      return;
+    }
 
     const dates = buildRepeatDates(date, repeat, repeatUnitSel.value, repeatEveryInput.value);
 
     const tlog = loadTlog();
+    const conflict = findFirstOverlapForDates(tlog, dates, s, en, { ignoreActId: act.id, type });
+    if (conflict) {
+      setError(getOverlapMessage(conflict.block, conflict.date));
+      return;
+    }
+
     for (const dt of dates) {
       if (!tlog[dt]) tlog[dt] = [];
-      tlog[dt] = tlog[dt].filter(b => !(b.actId === act.id && b.startH < en && b.endH > s));
-      tlog[dt].push({ actId: act.id, startH: s, endH: en });
+      tlog[dt] = tlog[dt].filter(b => !(b.actId === act.id && normalizeBlockType(b.type) === type && b.startH < en && b.endH > s));
+      tlog[dt].push({ actId: act.id, startH: s, endH: en, type });
       // merge adjacent
       tlog[dt].sort((a, b) => a.startH - b.startH);
       const merged = [];
       for (const blk of tlog[dt]) {
         const last = merged[merged.length - 1];
-        if (last && last.actId === blk.actId && last.endH >= blk.startH) {
+        if (last && last.actId === blk.actId && normalizeBlockType(last.type) === normalizeBlockType(blk.type) && last.endH >= blk.startH) {
           last.endH = Math.max(last.endH, blk.endH);
         } else { merged.push({ ...blk }); }
       }
       tlog[dt] = merged;
     }
     localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+    setTimetableView(type);
     overlay.remove();
     renderHistoryScreen(_histDate);
   });
@@ -1748,7 +2472,7 @@ function _openTaskPanel(date, block, act) {
   dot.style.background = act.color || "#555";
   const title = document.createElement("div");
   title.className = "hs2-tp-title";
-  title.textContent = act.name;
+  title.textContent = `${act.name} · ${getBlockTypeLabel(block.type)}`;
   const closeBtn = document.createElement("button");
   closeBtn.className = "hs2-tp-close";
   closeBtn.textContent = "×";
@@ -1762,14 +2486,8 @@ function _openTaskPanel(date, block, act) {
   const d = new Date(date + "T00:00:00");
   const dayNames = ["일","월","화","수","목","금","토"];
   const dateStr = `${d.getMonth()+1}월 ${d.getDate()}일 (${dayNames[d.getDay()]})`;
-  function _fmtH(h) {
-    if (h === 0) return "오전 12:00";
-    if (h === 12) return "오후 12:00";
-    const ap = h < 12 ? "오전" : "오후";
-    return `${ap} ${h > 12 ? h - 12 : h}:00`;
-  }
   const dur = block.endH - block.startH;
-  const durStr = dur >= 1 ? `${dur}시간` : `${dur * 60}분`;
+  const durStr = formatDurationHours(dur);
   const meta = document.createElement("div");
   meta.className = "hs2-tp-meta";
   const metaDate = document.createElement("div");
@@ -1777,7 +2495,7 @@ function _openTaskPanel(date, block, act) {
   metaDate.textContent = dateStr;
   const metaTime = document.createElement("div");
   metaTime.className = "hs2-tp-meta-time";
-  metaTime.textContent = `${_fmtH(block.startH)} – ${_fmtH(block.endH)} · ${durStr}`;
+  metaTime.textContent = `${formatTimeInput(block.startH)} - ${formatTimeInput(block.endH)} · ${durStr}`;
   meta.appendChild(metaDate);
   meta.appendChild(metaTime);
   header.appendChild(meta);
@@ -1793,7 +2511,7 @@ function _openTaskPanel(date, block, act) {
   function _saveTasks() {
     const tlog = loadTlog();
     const blocks = tlog[date] || [];
-    const idx = blocks.findIndex(b => b.startH === block.startH && b.actId === block.actId);
+    const idx = blocks.findIndex(b => isSameTblock(b, block));
     if (idx !== -1) {
       blocks[idx].tasks = block.tasks;
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
@@ -1877,7 +2595,7 @@ function _openTaskPanel(date, block, act) {
   delBlock.addEventListener("click", () => {
     const tlog = loadTlog();
     if (tlog[date]) {
-      tlog[date] = tlog[date].filter(b => !(b.startH === block.startH && b.actId === block.actId));
+      tlog[date] = tlog[date].filter(b => !isSameTblock(b, block));
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
     }
     panel.remove();
@@ -1909,6 +2627,7 @@ function _openPaintOverlay(defaultActId) {
   pruneTlogForActs(loadTlog(), acts);
 
   let selectedActId = acts.some(a => a.id === defaultActId) ? defaultActId : acts[0].id;
+  let selectedBlockType = "plan";
 
   // Clear grid panel, replace with edit mode UI
   gridPanel.innerHTML = "";
@@ -1948,6 +2667,12 @@ function _openPaintOverlay(defaultActId) {
     palette.appendChild(chip);
   });
   topbar.appendChild(palette);
+
+  const typeToggle = createBlockTypeToggle(selectedBlockType, type => {
+    selectedBlockType = type;
+    refreshCells();
+  });
+  topbar.appendChild(typeToggle.el);
 
   const doneBtn = document.createElement("button");
   doneBtn.className = "hs2-pedit-done";
@@ -2025,7 +2750,7 @@ function _openPaintOverlay(defaultActId) {
       dates.forEach(dt => {
         const cell = cellMap[`${dt}_${h}`];
         if (!cell) return;
-        const blk = (tlog[dt] || []).find(b => b.startH <= h && b.endH > h);
+        const blk = (tlog[dt] || []).find(b => normalizeBlockType(b.type) === selectedBlockType && b.startH <= h && b.endH > h);
         if (blk) {
           const act = acts.find(a => a.id === blk.actId);
           cell.style.background = act ? (act.color || "#555") : "transparent";
@@ -2042,7 +2767,7 @@ function _openPaintOverlay(defaultActId) {
     const merged = [];
     for (const blk of blocks) {
       const last = merged[merged.length - 1];
-      if (last && last.actId === blk.actId && last.endH >= blk.startH) {
+        if (last && last.actId === blk.actId && normalizeBlockType(last.type) === normalizeBlockType(blk.type) && last.endH >= blk.startH) {
         last.endH = Math.max(last.endH, blk.endH);
       } else { merged.push({ ...blk }); }
     }
@@ -2077,7 +2802,7 @@ function _openPaintOverlay(defaultActId) {
       // Split or trim blocks that overlap the erased range
       const newBlocks = [];
       for (const b of tlog[paintDt]) {
-        if (b.actId !== selectedActId || b.endH <= s || b.startH >= en) {
+        if (b.actId !== selectedActId || normalizeBlockType(b.type) !== selectedBlockType || b.endH <= s || b.startH >= en) {
           newBlocks.push(b); // no overlap, keep
         } else {
           if (b.startH < s) newBlocks.push({ ...b, endH: s }); // keep left part
@@ -2088,7 +2813,7 @@ function _openPaintOverlay(defaultActId) {
     } else {
       const newBlocks = [];
       for (const b of tlog[paintDt]) {
-        if (b.endH <= s || b.startH >= en) {
+        if (normalizeBlockType(b.type) !== selectedBlockType || b.endH <= s || b.startH >= en) {
           newBlocks.push(b);
         } else {
           if (b.startH < s) newBlocks.push({ ...b, endH: s });
@@ -2096,7 +2821,7 @@ function _openPaintOverlay(defaultActId) {
         }
       }
       tlog[paintDt] = newBlocks;
-      tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en });
+      tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en, type: selectedBlockType });
       tlog[paintDt] = mergeBlocks(tlog[paintDt]);
     }
     localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
@@ -2113,7 +2838,7 @@ function _openPaintOverlay(defaultActId) {
     paintEndH = paintStartH;
     // Check if this cell already has the selected activity → erase mode
     const tlog = loadTlog();
-    const existingBlk = (tlog[paintDt] || []).find(b => b.actId === selectedActId && b.startH <= paintStartH && b.endH > paintStartH);
+    const existingBlk = (tlog[paintDt] || []).find(b => b.actId === selectedActId && normalizeBlockType(b.type) === selectedBlockType && b.startH <= paintStartH && b.endH > paintStartH);
     erasing = !!existingBlk;
     gridBody.setPointerCapture(e.pointerId);
     paintPreview();
@@ -2152,6 +2877,89 @@ function _openPaintOverlay(defaultActId) {
 function _renderWeekGrid(gridPanel, dates) {
   const todayStr = toDateStr(Date.now());
   const DAYS_EN = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+  const acts = loadActs();
+  const tlog = pruneTlogForActs(loadTlog(), acts);
+  const MOVE_STEP = 0.25;
+
+  function startBlockMove(event, dateStr, block, hourH) {
+    const blockType = normalizeBlockType(block.type);
+    if (!["plan", "actual"].includes(blockType) || _timetableView !== blockType) return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeTimetableContextMenu();
+
+    const startY = event.clientY;
+    const initialStart = Number(block.startH);
+    const initialEnd = Number(block.endH);
+    const duration = initialEnd - initialStart;
+    const target = event.currentTarget.closest(".hs2-block-hover-zone");
+    const blockItems = [...gridPanel.querySelectorAll(".hs2-cell-segment")].filter(item => item.dataset.blockKey === target?.dataset.blockKey);
+    target?.setPointerCapture?.(event.pointerId);
+    target?.classList.add("is-moving");
+    target.dataset.dragged = "false";
+    const originalTimeLabel = target.dataset.timeLabel || "";
+    const moveTooltip = document.createElement("div");
+    moveTooltip.className = "hs2-drag-time-tooltip";
+    document.body.appendChild(moveTooltip);
+    const updateMoveTooltip = (clientX, clientY, startH, endH) => {
+      moveTooltip.textContent = `${formatTimeInput(startH)} - ${formatTimeInput(endH)}`;
+      moveTooltip.style.left = `${clientX}px`;
+      moveTooltip.style.top = `${Math.max(8, clientY - 34)}px`;
+    };
+    updateMoveTooltip(event.clientX, event.clientY, initialStart, initialEnd);
+
+    const onMove = moveEvent => {
+      moveEvent.preventDefault();
+      const rawDelta = moveEvent.clientY - startY;
+      if (Math.abs(rawDelta) > 3) target.dataset.dragged = "true";
+      const delta = Math.round(rawDelta / (hourH * MOVE_STEP)) * MOVE_STEP;
+      const nextStart = Math.min(24 - duration, Math.max(0, initialStart + delta));
+      const nextEnd = nextStart + duration;
+      const transform = `translateY(${(nextStart - initialStart) * hourH}px)`;
+      target.style.transform = transform;
+      updateMoveTooltip(moveEvent.clientX, moveEvent.clientY, nextStart, nextEnd);
+      blockItems.forEach(item => { item.style.transform = transform; });
+    };
+
+    const onUp = upEvent => {
+      target?.releasePointerCapture?.(upEvent.pointerId);
+      target?.classList.remove("is-moving");
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+
+      const delta = Math.round((upEvent.clientY - startY) / (hourH * MOVE_STEP)) * MOVE_STEP;
+      const nextStart = Math.min(24 - duration, Math.max(0, initialStart + delta));
+      const nextEnd = nextStart + duration;
+
+      if (target.dataset.dragged === "true" && nextStart !== initialStart) {
+        target.dataset.suppressClick = "true";
+        setTimeout(() => { delete target.dataset.suppressClick; }, 0);
+        updateTlogBlockTime(dateStr, block, nextStart, nextEnd);
+      }
+      delete target.dataset.dragged;
+      target.dataset.timeLabel = originalTimeLabel;
+      moveTooltip.remove();
+      renderHistoryScreen(_histDate);
+    };
+
+    document.addEventListener("pointermove", onMove, { passive: false });
+    document.addEventListener("pointerup", onUp, { once: true });
+  }
+
+  if (_timetableView !== "both") {
+    const currentType = _timetableView;
+    const otherType = currentType === "plan" ? "actual" : "plan";
+    let currentCount = 0;
+    let otherCount = 0;
+    dates.forEach(dt => {
+      (tlog[dt] || []).forEach(block => {
+        const type = normalizeBlockType(block.type);
+        if (type === currentType) currentCount++;
+        if (type === otherType) otherCount++;
+      });
+    });
+    if (currentCount === 0 && otherCount > 0) setTimetableView(otherType);
+  }
 
   // Topbar (week nav)
   const topbar = document.createElement("div");
@@ -2163,14 +2971,10 @@ function _renderWeekGrid(gridPanel, dates) {
   const label = document.createElement("span");
   label.className = "hs2-grid-date-label";
   label.textContent = sameMonth
-    ? `${wsD.getMonth()+1}월 ${wsD.getDate()}일 — ${weD.getDate()}일`
-    : `${wsD.getMonth()+1}/${wsD.getDate()} — ${weD.getMonth()+1}/${weD.getDate()}`;
-  topbar.appendChild(label);
-
-  const todayBtn = document.createElement("button");
-  todayBtn.className = "hs2-grid-nav-btn";
-  todayBtn.textContent = "오늘";
-  todayBtn.addEventListener("click", () => {
+    ? `${wsD.getMonth()+1}월 ${wsD.getDate()}일 - ${weD.getDate()}일`
+    : `${wsD.getMonth()+1}월 ${wsD.getDate()}일 - ${weD.getMonth()+1}월 ${weD.getDate()}일`;
+  label.title = "오늘 주로 이동";
+  label.addEventListener("click", () => {
     _histDate = toDateStr(Date.now());
     _histWeekStart = getWeekStart(_histDate);
     renderHistoryScreen(_histDate);
@@ -2198,17 +3002,13 @@ function _renderWeekGrid(gridPanel, dates) {
     renderHistoryScreen(_histDate);
   });
 
-  const editBtn = document.createElement("button");
-  editBtn.className = "hs2-grid-nav-btn hs2-grid-edit-btn";
-  editBtn.title = "블록 채우기";
-  editBtn.setAttribute("aria-label", "블록 채우기");
-  editBtn.innerHTML = `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.2 5.2l3.6 3.6L8.7 18.9l-4.1.5.5-4.1L15.2 5.2z"/><path d="M17.1 3.3c.7-.7 1.9-.7 2.6 0l1 1c.7.7.7 1.9 0 2.6l-.9.9-3.6-3.6.9-.9z"/></svg>`;
-  editBtn.addEventListener("click", () => _openPaintOverlay());
-
-  topbar.appendChild(prevBtn);
-  topbar.appendChild(todayBtn);
-  topbar.appendChild(nextBtn);
-  topbar.appendChild(editBtn);
+  const weekNav = document.createElement("div");
+  weekNav.className = "hs2-week-nav";
+  weekNav.appendChild(prevBtn);
+  weekNav.appendChild(label);
+  weekNav.appendChild(nextBtn);
+  topbar.appendChild(weekNav);
+  topbar.appendChild(createTimetableViewToggle());
 
   gridPanel.appendChild(topbar);
 
@@ -2251,10 +3051,12 @@ function _renderWeekGrid(gridPanel, dates) {
   const body = document.createElement("div");
   body.className = "hs2-grid-body";
   body.style.height = (HOUR_H * 24 + 23 * GAP) + "px";
+  body.addEventListener("contextmenu", (event) => {
+    if (event.target.closest(".hs2-cell-segment")) return;
+    event.preventDefault();
+    closeTimetableContextMenu();
+  });
   scroll.appendChild(body);
-
-  const acts = loadActs();
-  const tlog = pruneTlogForActs(loadTlog(), acts);
 
   // Time labels column
   const timeCol = document.createElement("div");
@@ -2283,39 +3085,71 @@ function _renderWeekGrid(gridPanel, dates) {
       cell.dataset.date = dt;
       cell.dataset.hour = h;
 
-      // Find logged block for this hour
-      const blk = blocks.find(b => b.startH <= h && b.endH > h);
-      if (blk) {
+      // Plan and actual can coexist in the same hour.
+      const hourBlocks = blocks.filter(b => b.startH < h + 1 && b.endH > h);
+      const planBlk = shouldShowBlockType("plan") ? hourBlocks.find(b => normalizeBlockType(b.type) === "plan") : null;
+      const actualBlk = shouldShowBlockType("actual") ? hourBlocks.find(b => normalizeBlockType(b.type) === "actual") : null;
+
+      function renderCellSegment(blk, type) {
+        if (!blk) return;
         const act = acts.find(a => a.id === blk.actId);
-        if (!act) { col.appendChild(cell); continue; } // skip orphaned blocks (like old code)
+        if (!act) return;
         const color = act.color || "#555";
+        const fillColor = type === "plan" ? lightenHexColor(color, 0.2) : color;
+        const blockKey = `${dt}_${blk.actId}_${type}_${blk.startH}_${blk.endH}`;
+        const segment = document.createElement("div");
+        segment.className = `hs2-cell-segment hs2-cell-segment--${type}`;
+        segment.dataset.blockKey = blockKey;
+        if (_timetableView !== "both") segment.classList.add("hs2-cell-segment--full");
+        segment.style.background = fillColor;
+        const timeLabel = formatDurationHours(blk.endH - blk.startH);
 
-        cell.style.background = color;
+        const startsInCell = blk.startH >= h && blk.startH < h + 1;
+        const endsInCell = blk.endH > h && blk.endH < h + 1;
+        if (startsInCell) segment.style.top = `${Math.max(0, blk.startH - h) * HOUR_H}px`;
+        if (endsInCell) segment.style.bottom = `${Math.max(0, h + 1 - blk.endH) * HOUR_H}px`;
 
-        // Check adjacent hours for same activity
-        const prevBlk = h > 0 ? blocks.find(b => b.startH <= h - 1 && b.endH > h - 1) : null;
-        const nextBlk = h < 23 ? blocks.find(b => b.startH <= h + 1 && b.endH > h + 1) : null;
-        const prevSame = prevBlk?.actId === blk.actId;
+        const nextBlk = h < 23 ? blocks.find(b => normalizeBlockType(b.type) === type && b.startH < h + 2 && b.endH > h + 1) : null;
         const nextSame = nextBlk?.actId === blk.actId;
+        if (nextSame) segment.style.boxShadow = `0 2px 0 0 ${fillColor}`;
 
-        cell.style.borderRadius = "0";
+        const blockMid = (blk.startH + blk.endH) / 2;
+        const labelInCell = _timetableView === "both"
+          ? blockMid >= h && blockMid < h + 1
+          : startsInCell;
+        const blockHours = Math.max(1 / 60, blk.endH - blk.startH);
+        const blockHeight = Math.max(18, blockHours * HOUR_H + Math.max(0, Math.ceil(blockHours) - 1) * GAP);
 
-        // Fill the 1px gap between consecutive same-activity cells
-        if (nextSame) cell.style.boxShadow = `0 2px 0 0 ${color}`;
-
-        if (h === blk.startH) {
-          const blockHours = Math.max(1, blk.endH - blk.startH);
-          const blockHeight = blockHours * HOUR_H + Math.max(0, blockHours - 1) * GAP;
+        if (labelInCell) {
           const content = document.createElement("div");
-          content.className = "hs2-time-block-content hs2-time-block-content--cell";
-          content.style.height = blockHeight + "px";
+          content.className = `hs2-time-block-content hs2-time-block-content--cell hs2-time-block-content--${type}`;
+          if (_timetableView === "both") content.classList.add("hs2-time-block-content--split");
+          content.style.height = (_timetableView === "both" ? HOUR_H : blockHeight) + "px";
           cell.style.zIndex = "2";
 
-          const label = document.createElement("div");
-          label.className = "hs2-time-block-label hs2-time-block-label--cell";
-          label.textContent = act.name;
-          label.title = act.name;
-          content.appendChild(label);
+          if (_timetableView === "both") {
+            const compactLabel = document.createElement("div");
+            compactLabel.className = "hs2-time-block-compact-label";
+            compactLabel.title = `${getBlockTypeLabel(type)} ${act.name}`;
+
+            const nameText = document.createElement("span");
+            nameText.className = "hs2-time-block-compact-name";
+            nameText.textContent = act.name;
+
+            compactLabel.appendChild(nameText);
+            content.appendChild(compactLabel);
+          } else {
+            const typeTag = document.createElement("div");
+            typeTag.className = "hs2-time-block-type";
+            typeTag.textContent = getBlockTypeLabel(type);
+            content.appendChild(typeTag);
+
+            const label = document.createElement("div");
+            label.className = "hs2-time-block-label hs2-time-block-label--cell";
+            label.textContent = act.name;
+            label.title = act.name;
+            content.appendChild(label);
+          }
 
           const taskCount = Array.isArray(blk.tasks) ? blk.tasks.length : 0;
           if (taskCount > 0 && blockHeight >= 34) {
@@ -2325,15 +3159,47 @@ function _renderWeekGrid(gridPanel, dates) {
             content.appendChild(badge);
           }
 
-          cell.appendChild(content);
+          segment.appendChild(content);
         }
 
-        cell.style.cursor = "pointer";
-        cell.addEventListener("click", (e) => {
-          e.stopPropagation();
-          _openTaskPanel(dt, blk, act);
-        });
+        if (startsInCell) {
+          const hoverZone = document.createElement("div");
+          hoverZone.className = `hs2-block-hover-zone hs2-block-hover-zone--${type}`;
+          if (_timetableView !== "both") hoverZone.classList.add("hs2-block-hover-zone--full");
+          const canMoveBlock = _timetableView === type && (type === "plan" || type === "actual");
+          if (canMoveBlock) hoverZone.classList.add("hs2-block-hover-zone--movable");
+          hoverZone.style.top = segment.style.top || "0px";
+          hoverZone.style.height = blockHeight + "px";
+          hoverZone.dataset.timeLabel = timeLabel;
+          hoverZone.dataset.blockKey = blockKey;
+          hoverZone.title = timeLabel;
+          const setBlockHover = (on) => {
+            col.querySelectorAll(".hs2-cell-segment").forEach(item => {
+              if (item.dataset.blockKey === blockKey) {
+                item.classList.toggle("is-hovered", on);
+              }
+            });
+          };
+          hoverZone.addEventListener("pointerenter", () => setBlockHover(true));
+          hoverZone.addEventListener("pointerleave", () => setBlockHover(false));
+          if (canMoveBlock) {
+            hoverZone.addEventListener("pointerdown", e => startBlockMove(e, dt, blk, HOUR_H));
+          }
+          hoverZone.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (hoverZone.dataset.dragged === "true" || hoverZone.dataset.suppressClick === "true") return;
+            _openTaskPanel(dt, blk, act);
+          });
+          hoverZone.addEventListener("contextmenu", (e) => {
+            openTimetableContextMenu(e, dt, blk, act);
+          });
+          cell.appendChild(hoverZone);
+        }
+        cell.appendChild(segment);
       }
+
+      renderCellSegment(planBlk, "plan");
+      renderCellSegment(actualBlk, "actual");
 
       col.appendChild(cell);
     }
@@ -2353,43 +3219,147 @@ function _openActModal(actId, onDone) {
   const cancelBtn = document.getElementById("hsActCancelBtn");
   const saveBtn = document.getElementById("hsActSaveBtn");
   const startHSel = document.getElementById("hsActStartH");
+  const endHSel = document.getElementById("hsActEndH");
   const durInput = document.getElementById("hsActDuration");
-  const endDisplay = document.getElementById("hsActEndDisplay");
   const repeatSel = document.getElementById("hsActRepeat");
+  const repeatGroup = repeatSel?.closest(".hs-act-form-group");
   const customRepeat = document.getElementById("hsActCustomRepeat");
   const repeatUnitSel = document.getElementById("hsActRepeatUnit");
   const repeatEveryInput = document.getElementById("hsActRepeatEvery");
-
-  // Populate start time select (only once)
-  if (!startHSel.options.length) {
-    for (let h = 0; h < 24; h++) {
-      const ap = h < 12 ? "오전" : "오후";
-      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      startHSel.appendChild(Object.assign(document.createElement("option"), { value: h, textContent: `${ap} ${h12}:00` }));
-    }
+  let formError = document.getElementById("hsActFormError");
+  if (!formError) {
+    formError = document.createElement("div");
+    formError.id = "hsActFormError";
+    formError.className = "hs2-modal-error hidden";
+    document.querySelector(".hs-act-modal-actions")?.before(formError);
   }
 
-  function _fmtHour(h) {
-    const hh = ((h % 24) + 24) % 24;
-    const ap = hh < 12 ? "오전" : "오후";
-    const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
-    return `${ap} ${h12}:00`;
+  const setFormError = (message) => {
+    formError.textContent = message || "";
+    formError.classList.toggle("hidden", !message);
+  };
+  let typeToggle;
+
+  function closeActSelectMenus(exceptWrap) {
+    document.querySelectorAll(".hs-act-select").forEach(wrap => {
+      if (wrap === exceptWrap) return;
+      wrap.classList.remove("open");
+      wrap.querySelector(".hs-act-select__menu")?.classList.add("hidden");
+    });
   }
-  function _updateEndDisplay() {
-    const s = parseInt(startHSel.value) || 0;
-    const dur = parseFloat(durInput.value) || 0;
-    if (dur > 0) {
-      endDisplay.textContent = _fmtHour(s + dur);
-      endDisplay.style.color = "";
-    } else {
-      endDisplay.textContent = "—";
-      endDisplay.style.color = "rgba(255,255,255,0.32)";
+
+  function setupActCustomSelect(selectEl) {
+    if (!selectEl) return;
+    let wrap = selectEl.nextElementSibling;
+    if (!wrap || !wrap.classList?.contains("hs-act-select")) {
+      wrap = document.createElement("div");
+      wrap.className = "hs-act-select";
+      wrap.innerHTML = `
+        <button class="hs-act-select__button" type="button"></button>
+        <div class="hs-act-select__menu hidden"></div>
+      `;
+      selectEl.insertAdjacentElement("afterend", wrap);
     }
+
+    const button = wrap.querySelector(".hs-act-select__button");
+    const menu = wrap.querySelector(".hs-act-select__menu");
+    const syncButton = () => {
+      const selected = selectEl.options[selectEl.selectedIndex];
+      button.textContent = selected?.textContent || "";
+    };
+
+    menu.innerHTML = "";
+    [...selectEl.options].forEach(option => {
+      const item = document.createElement("button");
+      item.className = "hs-act-select__option";
+      item.type = "button";
+      item.dataset.value = option.value;
+      item.textContent = option.textContent;
+      item.classList.toggle("selected", option.value === selectEl.value);
+      item.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectEl.value = option.value;
+        selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+        closeActSelectMenus();
+      });
+      menu.appendChild(item);
+    });
+
+    button.onclick = (event) => {
+      event.stopPropagation();
+      const willOpen = menu.classList.contains("hidden");
+      closeActSelectMenus(wrap);
+      wrap.classList.toggle("open", willOpen);
+      menu.classList.toggle("hidden", !willOpen);
+      if (willOpen) {
+        setTimeout(() => {
+          document.addEventListener("pointerdown", () => closeActSelectMenus(), { once: true });
+        }, 0);
+      }
+    };
+    menu.addEventListener("pointerdown", event => event.stopPropagation());
+    selectEl.addEventListener("change", () => {
+      syncButton();
+      menu.querySelectorAll(".hs-act-select__option").forEach(item => {
+        item.classList.toggle("selected", item.dataset.value === selectEl.value);
+      });
+    });
+    syncButton();
   }
-  startHSel.addEventListener("change", _updateEndDisplay);
-  durInput.addEventListener("input", _updateEndDisplay);
+
+  function _clampDurationValue(value) {
+    const start = parseTimeInput(startHSel.value) ?? 0;
+    const raw = parseDurationInput(value);
+    const max = Math.max(1 / 60, 24 - start);
+    return Math.min(Math.max(Number.isFinite(raw) ? raw : 1, 1 / 60), max);
+  }
+
+  function _syncEndFromDuration() {
+    if (!endHSel) return;
+    if (durInput.value.trim() === "") return;
+    const start = parseTimeInput(startHSel.value);
+    if (start === null) return;
+    const duration = _clampDurationValue(durInput.value);
+    const end = Math.min(start + duration, 24);
+    endHSel.value = formatTimeInput(end);
+  }
+
+  function _syncDurationFromEnd() {
+    if (!endHSel) return;
+    const start = parseTimeInput(startHSel.value);
+    const end = parseTimeInput(endHSel.value);
+    if (start === null || end === null || end <= start) return;
+    durInput.value = formatDurationHours(end - start);
+  }
+  startHSel.onchange = _syncEndFromDuration;
+  startHSel.onblur = () => {
+    const parsed = parseTimeInput(startHSel.value);
+    if (parsed !== null) startHSel.value = formatTimeInput(parsed);
+    _syncEndFromDuration();
+  };
+  durInput.oninput = _syncEndFromDuration;
+  durInput.onblur = () => {
+    if (durInput.value.trim() === "") _syncDurationFromEnd();
+    else {
+      const parsed = _clampDurationValue(durInput.value);
+      durInput.value = formatDurationHours(parsed);
+      _syncEndFromDuration();
+    }
+  };
+  if (endHSel) {
+    endHSel.oninput = _syncDurationFromEnd;
+    endHSel.onblur = () => {
+      const parsed = parseTimeInput(endHSel.value);
+      if (parsed !== null) endHSel.value = formatTimeInput(parsed);
+      _syncDurationFromEnd();
+    };
+  };
   function _updateCustomRepeat() {
-    customRepeat?.classList.toggle("hidden", repeatSel.value !== "custom");
+    const selectedBlockType = typeToggle?.value || existing?.defaultBlockType || "plan";
+    const isActual = selectedBlockType === "actual";
+    repeatGroup?.classList.toggle("hidden", isActual);
+    customRepeat?.classList.toggle("hidden", isActual || repeatSel.value !== "custom");
+    if (isActual) repeatSel.value = "none";
   }
   repeatSel.addEventListener("change", _updateCustomRepeat);
   repeatEveryInput?.addEventListener("input", () => {
@@ -2401,24 +3371,53 @@ function _openActModal(actId, onDone) {
 
   // Pre-fill
   let selColor = existing ? existing.color : ACT_COLORS[0];
+  const defaultType = existing?.defaultBlockType || "plan";
   nameInput.value = existing ? existing.name : "";
-  startHSel.value = existing?.defaultStartH ?? 22;
-  durInput.value = existing?.defaultDuration ?? "";
+  startHSel.value = formatTimeInput(existing?.defaultStartH ?? 22);
+  durInput.value = formatDurationHours(existing?.defaultDuration ?? 1);
+  if (endHSel) {
+    const start = parseTimeInput(startHSel.value) ?? 0;
+    const savedEnd = roundTimeHour(existing?.defaultEndH);
+    const fallbackEnd = start + _clampDurationValue(durInput.value);
+    endHSel.value = formatTimeInput(Math.min(Math.max(Number.isFinite(savedEnd) ? savedEnd : fallbackEnd, start + 1 / 60), 24));
+  }
   repeatSel.value = existing?.defaultRepeat ?? "none";
   repeatUnitSel.value = existing?.defaultRepeatUnit ?? "daily";
   repeatEveryInput.value = existing?.defaultRepeatEvery ?? 1;
-  _updateEndDisplay();
+  setFormError("");
+  _syncDurationFromEnd();
+  _updateCustomRepeat();
+  setupActCustomSelect(repeatSel);
+  setupActCustomSelect(repeatUnitSel);
+
+  document.getElementById("hsActTypeGroup")?.remove();
+  const typeGroup = document.createElement("div");
+  typeGroup.id = "hsActTypeGroup";
+  typeGroup.className = "hs-act-form-group";
+  const typeLabel = document.createElement("label");
+  typeLabel.className = "hs-act-form-label";
+  typeLabel.textContent = "구분";
+  typeToggle = createBlockTypeToggle(defaultType, _updateCustomRepeat);
+  typeGroup.appendChild(typeLabel);
+  typeGroup.appendChild(typeToggle.el);
+  colorRow.closest(".hs-act-form-group")?.after(typeGroup);
   _updateCustomRepeat();
 
   // Color swatches
   colorRow.innerHTML = "";
-  ACT_COLORS.forEach(c => {
-    const sw = document.createElement("div");
+  ACT_COLORS.forEach((c, index) => {
+    const sw = document.createElement("button");
+    sw.type = "button";
     sw.className = "hs-act-color-swatch" + (c === selColor ? " selected" : "");
+    sw.title = `색상 ${index + 1}`;
+    sw.setAttribute("aria-label", `색상 ${index + 1}`);
+    sw.setAttribute("aria-pressed", String(c === selColor));
     sw.style.background = c;
     sw.addEventListener("click", () => {
       colorRow.querySelectorAll(".hs-act-color-swatch").forEach(s => s.classList.remove("selected"));
+      colorRow.querySelectorAll(".hs-act-color-swatch").forEach(s => s.setAttribute("aria-pressed", "false"));
       sw.classList.add("selected");
+      sw.setAttribute("aria-pressed", "true");
       selColor = c;
     });
     colorRow.appendChild(sw);
@@ -2448,22 +3447,39 @@ function _openActModal(actId, onDone) {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
     const emoji = existing?.emoji || "";
-    const defaultStartH = parseInt(startHSel.value);
-    const defaultDuration = Math.max(parseFloat(durInput.value) || 1, 0.5);
-    const defaultEndH = Math.round((defaultStartH + defaultDuration) * 2) / 2; // keep 0.5h precision
-    const defaultRepeat = repeatSel.value;
-    const defaultRepeatUnit = repeatUnitSel.value;
-    const defaultRepeatEvery = clampRepeatEvery(repeatEveryInput.value);
+    const defaultStartH = parseTimeInput(startHSel.value);
+    if (durInput.value.trim() === "") _syncDurationFromEnd();
+    const defaultEndH = parseTimeInput(endHSel?.value);
+    if (!Number.isFinite(defaultStartH) || !Number.isFinite(defaultEndH) || defaultEndH <= defaultStartH) {
+      setFormError("시간을 확인해주세요.");
+      return;
+    }
+    const defaultDuration = defaultEndH - defaultStartH;
+    const defaultBlockType = typeToggle.value;
+    const defaultRepeat = defaultBlockType === "actual" ? "none" : repeatSel.value;
+    const defaultRepeatUnit = defaultBlockType === "actual" ? "daily" : repeatUnitSel.value;
+    const defaultRepeatEvery = defaultBlockType === "actual" ? 1 : clampRepeatEvery(repeatEveryInput.value);
+
+    if (defaultRepeat !== "none") {
+      const today = toDateStr(Date.now());
+      const ws = _histWeekStart || getWeekStart(today);
+      const dates = buildRepeatDates(ws, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery);
+      const conflict = findFirstOverlapForDates(loadTlog(), dates, defaultStartH, defaultEndH, existing ? { ignoreActId: actId, type: defaultBlockType } : { type: defaultBlockType });
+      if (conflict) {
+        setFormError(getOverlapMessage(conflict.block, conflict.date));
+        return;
+      }
+    }
 
     let savedActId;
     if (existing) {
-      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, defaultStartH, defaultDuration, defaultEndH, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery } : a);
+      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, defaultStartH, defaultDuration, defaultEndH, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery, defaultBlockType } : a);
       saveActs(acts2);
       savedActId = actId;
     } else {
       savedActId = "act_" + Date.now();
       const acts2 = loadActs();
-      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH: 0, defaultStartH, defaultDuration, defaultEndH, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery });
+      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH: 0, defaultStartH, defaultDuration, defaultEndH, defaultRepeat, defaultRepeatUnit, defaultRepeatEvery, defaultBlockType });
       saveActs(acts2);
     }
 
@@ -2475,18 +3491,19 @@ function _openActModal(actId, onDone) {
       const tlog = loadTlog();
       for (const dt of dates) {
         if (!tlog[dt]) tlog[dt] = [];
-        tlog[dt] = tlog[dt].filter(b => !(b.actId === savedActId && b.startH < defaultEndH && b.endH > defaultStartH));
-        tlog[dt].push({ actId: savedActId, startH: defaultStartH, endH: defaultEndH });
+        tlog[dt] = tlog[dt].filter(b => !(b.actId === savedActId && normalizeBlockType(b.type) === defaultBlockType && b.startH < defaultEndH && b.endH > defaultStartH));
+        tlog[dt].push({ actId: savedActId, startH: defaultStartH, endH: defaultEndH, type: defaultBlockType });
         tlog[dt].sort((a, b) => a.startH - b.startH);
         const merged = [];
         for (const blk of tlog[dt]) {
           const last = merged[merged.length - 1];
-          if (last && last.actId === blk.actId && last.endH >= blk.startH) { last.endH = Math.max(last.endH, blk.endH); }
+          if (last && last.actId === blk.actId && normalizeBlockType(last.type) === normalizeBlockType(blk.type) && last.endH >= blk.startH) { last.endH = Math.max(last.endH, blk.endH); }
           else merged.push({ ...blk });
         }
         tlog[dt] = merged;
       }
       localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+      setTimetableView(defaultBlockType);
     }
 
     close();
@@ -2540,15 +3557,20 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
   });
   box.appendChild(actList);
 
+  const blockTypeToggle = createBlockTypeToggle(existingBlock?.type || "plan");
+  const typeRow = document.createElement("div");
+  typeRow.className = "hs2-block-type-row";
+  typeRow.appendChild(blockTypeToggle.el);
+  box.appendChild(typeRow);
+
   // Time range inputs
   const timeRow = document.createElement("div");
   timeRow.className = "hs2-block-time-row";
 
-  const fmt = h => `${String(h).padStart(2,"0")}:00`;
   const startInput = document.createElement("input");
   startInput.className = "hs2-block-time-input";
   startInput.type = "text";
-  startInput.value = existingBlock ? fmt(existingBlock.startH) : fmt(hintH);
+  startInput.value = existingBlock ? formatTimeInput(existingBlock.startH) : formatTimeInput(hintH);
   startInput.placeholder = "시작";
 
   const sep = document.createElement("span");
@@ -2558,7 +3580,7 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
   const endInput = document.createElement("input");
   endInput.className = "hs2-block-time-input";
   endInput.type = "text";
-  endInput.value = existingBlock ? fmt(existingBlock.endH) : fmt(Math.min(hintH + 1, 24));
+  endInput.value = existingBlock ? formatTimeInput(existingBlock.endH) : formatTimeInput(Math.min(hintH + 1, 24));
   endInput.placeholder = "종료";
 
   timeRow.appendChild(startInput);
@@ -2566,15 +3588,66 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
   timeRow.appendChild(endInput);
   box.appendChild(timeRow);
 
+  const durationRow = document.createElement("div");
+  durationRow.className = "hs2-block-duration-row";
+  const durationLabel = document.createElement("label");
+  durationLabel.className = "hs2-block-duration-label";
+  durationLabel.textContent = "얼마나";
+  const durationInput = document.createElement("input");
+  durationInput.className = "hs2-block-duration-input";
+  durationInput.type = "text";
+  durationInput.placeholder = "1시간 30분";
+  durationInput.autocomplete = "off";
+  durationInput.value = formatDurationHours((existingBlock ? existingBlock.endH - existingBlock.startH : 1));
+  durationRow.appendChild(durationLabel);
+  durationRow.appendChild(durationInput);
+  box.appendChild(durationRow);
+
+  const errorMsg = document.createElement("div");
+  errorMsg.className = "hs2-modal-error hs2-modal-error--light hidden";
+  box.appendChild(errorMsg);
+
+  const setError = (message) => {
+    errorMsg.textContent = message || "";
+    errorMsg.classList.toggle("hidden", !message);
+  };
+
   // Actions
   const actions = document.createElement("div");
   actions.className = "hs2-block-modal-actions";
 
-  const parseHr = str => {
-    str = str.trim().replace(/[시:h]/g, "").replace(/\s/g,"");
-    const n = parseFloat(str);
-    return isNaN(n) ? null : Math.min(Math.max(Math.round(n * 2) / 2, 0), 24);
+  const normalizeTimeField = (input) => {
+    const parsed = parseTimeInput(input.value);
+    if (parsed !== null) input.value = formatTimeInput(parsed);
   };
+  const syncBlockEndFromDuration = () => {
+    if (!durationInput.value.trim()) return;
+    const start = parseTimeInput(startInput.value);
+    const duration = parseDurationInput(durationInput.value);
+    if (start === null || duration === null) return;
+    endInput.value = formatTimeInput(Math.min(start + duration, 24));
+  };
+  const syncBlockDurationFromEnd = () => {
+    const start = parseTimeInput(startInput.value);
+    const end = parseTimeInput(endInput.value);
+    if (start === null || end === null || end <= start) return;
+    durationInput.value = formatDurationHours(end - start);
+  };
+  startInput.addEventListener("blur", () => {
+    normalizeTimeField(startInput);
+    syncBlockEndFromDuration();
+  });
+  endInput.addEventListener("input", syncBlockDurationFromEnd);
+  endInput.addEventListener("blur", () => {
+    normalizeTimeField(endInput);
+    syncBlockDurationFromEnd();
+  });
+  durationInput.addEventListener("input", syncBlockEndFromDuration);
+  durationInput.addEventListener("blur", () => {
+    const parsed = parseDurationInput(durationInput.value);
+    if (parsed !== null) durationInput.value = formatDurationHours(parsed);
+    syncBlockEndFromDuration();
+  });
 
   if (existingBlock) {
     const delBtn = document.createElement("button");
@@ -2582,7 +3655,7 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
     delBtn.textContent = "삭제";
     delBtn.addEventListener("click", () => {
       const log = loadTlog();
-      log[dateStr] = (log[dateStr] || []).filter(b => b.id !== existingBlock.id);
+      log[dateStr] = (log[dateStr] || []).filter(b => !isSameTblock(b, existingBlock));
       saveTlog(log);
       modal.remove();
       onDone?.();
@@ -2600,22 +3673,30 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
   saveBtn.className = "hs2-block-save";
   saveBtn.textContent = "저장";
   saveBtn.addEventListener("click", () => {
-    const startH = parseHr(startInput.value);
-    const endH = parseHr(endInput.value);
+    const startH = parseTimeInput(startInput.value);
+    const endH = parseTimeInput(endInput.value);
     if (startH === null || endH === null || endH <= startH) {
       startInput.style.borderColor = "#E64040";
       endInput.style.borderColor = "#E64040";
+      setError("시작 시간보다 종료 시간이 늦어야 해요.");
       return;
     }
     const log = loadTlog();
     log[dateStr] = log[dateStr] || [];
+    const blockType = blockTypeToggle.value;
+    const conflict = findOverlappingBlock(log, dateStr, startH, endH, { ignoreBlock: existingBlock, type: blockType });
+    if (conflict) {
+      setError(getOverlapMessage(conflict, dateStr));
+      return;
+    }
     if (existingBlock) {
-      const idx = log[dateStr].findIndex(b => b.id === existingBlock.id);
-      if (idx >= 0) log[dateStr][idx] = { ...existingBlock, actId: selActId, startH, endH };
+      const idx = log[dateStr].findIndex(b => isSameTblock(b, existingBlock));
+      if (idx >= 0) log[dateStr][idx] = { ...existingBlock, actId: selActId, startH, endH, type: blockType };
     } else {
-      log[dateStr].push({ id: makeTblockId(), actId: selActId, startH, endH });
+      log[dateStr].push({ id: makeTblockId(), actId: selActId, startH, endH, type: blockType });
     }
     saveTlog(log);
+    setTimetableView(blockType);
     modal.remove();
     onDone?.();
   });
@@ -2635,7 +3716,7 @@ async function loadHistoryWeek(weekStart, container) {
   const dates = getWeekDates(weekStart);
   const recordsByDate = {};
   dates.forEach(d => { recordsByDate[d] = []; });
-  if (currentUser) {
+  if (canUseCloud()) {
     try {
       const snaps = await Promise.all(dates.map(dt =>
         db.collection("users").doc(currentUser.uid)
@@ -2754,7 +3835,7 @@ async function loadHistoryMonth(year, month, container) {
   }
   const recordsByDate = {};
   dates.forEach(d => { recordsByDate[d] = []; });
-  if (currentUser) {
+  if (canUseCloud()) {
     try {
       const snaps = await Promise.all(dates.map(dt =>
         db.collection("users").doc(currentUser.uid)
@@ -2839,7 +3920,7 @@ function renderMonthView(container, recordsByDate, year, month) {
 async function loadHistoryDay(dateStr, container) {
   container.innerHTML = `<div class="hs-loading">불러오는 중...</div>`;
   let records = [];
-  if (currentUser) {
+  if (canUseCloud()) {
     try {
       const snap = await db.collection("users").doc(currentUser.uid)
         .collection("history").where("date","==",dateStr).get();
@@ -3180,7 +4261,7 @@ function showAddRecordModal(records, dateStr, container) {
     if (endP) { const d = new Date(dayStart); d.setHours(endP.h, endP.min, 0, 0); endMs = d.getTime(); durationMs = endMs - timeMs; }
     const newEntry = { label: formatClock(new Date(timeMs)), text, timeMs, endMs, durationMs, tags: [...selectedTagIds], isLive: false };
     let targetRecord = records[records.length - 1];
-    if (!targetRecord && currentUser) {
+    if (!targetRecord && canUseCloud()) {
       const newRecord = { date: dateStr, startMs: timeMs, endMs: endMs || timeMs, durationMs: durationMs || 0, checkIns: [newEntry], retro: "" };
       const ref = await db.collection("users").doc(currentUser.uid).collection("history").add(newRecord);
       newRecord._id = ref.id;
@@ -3523,45 +4604,46 @@ function openSummaryScreen() {
   showScreen("summary");
 }
 
+function enterApp(user) {
+  currentUser = user;
+  restoreState();
+  if (els.todayText) els.todayText.textContent = formatDate();
+  updateProfileMenu(user);
+
+  document.getElementById("loginScreen")?.classList.remove("is-active");
+  const _appMain = document.getElementById("appMain");
+  _showEl(_appMain);
+
+  _hideEl(document.getElementById("wsIdleState"));
+  _hideEl(document.getElementById("wsActiveState"));
+  if (timerId) { clearInterval(timerId); timerId = null; }
+  els.sessionBadge.textContent = "";
+
+  updateWelcomeScreen();
+  initHomeBackgroundSystem();
+  initMemoSystem();
+  initEmbedSystem();
+  initDoodleSystem();
+  setAppView(currentAppView);
+  showOnboardingIfNeeded();
+}
+
 function init() {
   loadTags();
+  if (isLocalHost()) {
+    els.localLoginBtn?.classList.remove("hidden");
+  }
+
   // Firebase 인증 상태 감지
   auth.onAuthStateChanged((user) => {
-    currentUser = user;
-
     if (!user) {
+      if (localDevMode) return;
       // 로그인 안 됨 → 로그인 화면
       showScreen("login");
       return;
     }
 
-    // 로그인 됨 → 기존 초기화
-    restoreState();
-    if (els.todayText) els.todayText.textContent = formatDate();
-
-    // 앱 메인 표시
-    document.getElementById("loginScreen")?.classList.remove("is-active");
-    const _appMain = document.getElementById("appMain");
-    if (_appMain) _appMain.style.display = "";
-
-    if (startedAtMs) {
-      _hideEl(document.getElementById("wsIdleState"));
-      _showEl(document.getElementById("wsActiveState"));
-      els.sessionBadge.textContent = "작업 기록 중";
-      updateFocusScreen();
-      timerId = setInterval(updateFocusScreen, 1000);
-    } else {
-      _showEl(document.getElementById("wsIdleState"));
-      _hideEl(document.getElementById("wsActiveState"));
-      els.sessionBadge.textContent = "대기";
-    }
-
-    updateWelcomeScreen();
-    initMemoSystem();
-    initEmbedSystem();
-    initDoodleSystem();
-    // 우측 패널에 기록 자동 로드
-    renderHistoryScreen();
+    enterApp(user);
   });
 
   setInterval(() => {
@@ -3571,8 +4653,29 @@ function init() {
 
   // Google 로그인 버튼
   els.googleLoginBtn?.addEventListener("click", signInWithGoogle);
+  els.localLoginBtn?.addEventListener("click", () => {
+    localDevMode = true;
+    enterApp({ uid: "local-dev", email: "local@dayos.dev", isLocalDev: true });
+  });
+  els.homeEditToggle?.addEventListener("click", () => setHomeEditMode(!homeEditMode));
+  els.onboardingCloseBtn?.addEventListener("click", closeOnboarding);
+  els.onboardingOverlay?.addEventListener("click", (event) => {
+    if (event.target === els.onboardingOverlay) closeOnboarding();
+  });
+  els.profileBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = els.profileMenu?.classList.contains("hidden");
+    els.profileMenu?.classList.toggle("hidden", !willOpen);
+    els.profileBtn?.setAttribute("aria-expanded", String(!!willOpen));
+  });
+  els.logoutBtn?.addEventListener("click", signOut);
+  document.addEventListener("click", (event) => {
+    if (!els.profileMenu || els.profileMenu.classList.contains("hidden")) return;
+    if (event.target.closest(".profile-menu-wrap")) return;
+    els.profileMenu.classList.add("hidden");
+    els.profileBtn?.setAttribute("aria-expanded", "false");
+  });
 
-  els.startButton?.addEventListener("click", startSession);
   $("goalAddBtn")?.addEventListener("click", addGoalTask);
   $("goalStartTime")?.addEventListener("input", updateGoalTotal);
   $("goalModalClose")?.addEventListener("click", closeGoalModal);
@@ -3632,20 +4735,23 @@ function init() {
     }
   });
 
-  els.historyLinkButton?.addEventListener("click", () => {
-    if (startedAtMs) {
-      document.getElementById("workspaceSection")
-        ?.scrollIntoView({ behavior: "smooth" });
-    } else {
-      startSession();
-    }
-  });
-
   // historyBackButton removed from new layout — no-op
 
-  // 기록 화면 열기 버튼 (헤더)
-  document.getElementById("recordNavBtn")?.addEventListener("click", () => {
-    renderHistoryScreen();
+  els.appFloatingNav?.addEventListener("click", (event) => {
+    const btn = event.target.closest(".app-floating-nav__btn");
+    if (!btn) return;
+    setAppView(btn.dataset.view);
+  });
+  document.addEventListener("pointermove", handleFloatingNavPointer);
+  els.appFloatingNav?.addEventListener("pointerenter", () => setFloatingNavPeek(true));
+  els.appFloatingNav?.addEventListener("pointerleave", () => {
+    if (currentAppView === "timetable") setFloatingNavPeek(false);
+  });
+  els.appFloatingNavHitarea?.addEventListener("pointerenter", () => {
+    if (currentAppView === "timetable") setFloatingNavPeek(true);
+  });
+  els.appFloatingNavHitarea?.addEventListener("pointerleave", () => {
+    if (currentAppView === "timetable") setFloatingNavPeek(false, 450);
   });
 
   // 새벽: 배경 영상 교체
