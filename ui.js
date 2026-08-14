@@ -2189,6 +2189,30 @@ function _renderWeekGrid(gridPanel, dates) {
         // Fill the 1px gap between consecutive same-activity cells
         if (nextSame) cell.style.boxShadow = `0 2px 0 0 ${color}`;
 
+        if (h === blk.startH) {
+          const blockHours = Math.max(1, blk.endH - blk.startH);
+          const blockHeight = blockHours * HOUR_H + Math.max(0, blockHours - 1) * GAP;
+          const content = document.createElement("div");
+          content.className = "hs2-time-block-content hs2-time-block-content--cell";
+          content.style.height = blockHeight + "px";
+
+          const label = document.createElement("div");
+          label.className = "hs2-time-block-label hs2-time-block-label--cell";
+          label.textContent = `${act.emoji || ""} ${act.name}`.trim();
+          label.title = act.name;
+          content.appendChild(label);
+
+          const taskCount = Array.isArray(blk.tasks) ? blk.tasks.length : 0;
+          if (taskCount > 0 && blockHeight >= 34) {
+            const badge = document.createElement("div");
+            badge.className = "hs2-block-badge hs2-block-badge--cell";
+            badge.textContent = `${taskCount}개`;
+            content.appendChild(badge);
+          }
+
+          cell.appendChild(content);
+        }
+
         cell.style.cursor = "pointer";
         cell.addEventListener("click", (e) => {
           e.stopPropagation();

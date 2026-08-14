@@ -3640,10 +3640,40 @@ html, body {
 #historyScreen .hs2-grid-hour-cell {
   background: rgba(255,255,255,0.04);
   border-top: none !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  overflow: visible;
 }
 #historyScreen .hs2-grid-hour-cell:hover {
   background: rgba(255,255,255,0.08);
   filter: brightness(1.15);
+}
+#historyScreen .hs2-time-block-content--cell {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 5px;
+  pointer-events: none;
+}
+#historyScreen .hs2-time-block-label--cell {
+  width: 100%;
+  font-size: 10px;
+  line-height: 1.15;
+  color: rgba(255,255,255,0.94);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.28);
+  pointer-events: none;
+}
+#historyScreen .hs2-block-badge--cell {
+  color: rgba(255,255,255,0.62);
+  line-height: 1.1;
+  pointer-events: none;
 }
 
 /* Two-panel body */
