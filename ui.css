@@ -4163,6 +4163,9 @@ html, body {
   font-size: 10px;
   color: rgba(0,0,0,0.28);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  display: flex;
   align-items: flex-start;
   justify-content: flex-end;
   padding: 2px 6px 0 0;
