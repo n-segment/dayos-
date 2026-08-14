@@ -2121,9 +2121,16 @@ function _renderWeekGrid(gridPanel, dates) {
     const lbl = document.createElement("div");
     lbl.className = "hs2-grid-hour-label";
     lbl.style.height = HOUR_H + "px";
-    lbl.textContent = h === 0 ? "" : `${h}`;
+    lbl.textContent = `${h}`;
     timeCol.appendChild(lbl);
   }
+  // 24 marker at bottom
+  const lbl24 = document.createElement("div");
+  lbl24.className = "hs2-grid-hour-label";
+  lbl24.style.height = "0";
+  lbl24.style.overflow = "visible";
+  lbl24.textContent = "24";
+  timeCol.appendChild(lbl24);
   body.appendChild(timeCol);
 
   // Day columns
