@@ -4110,10 +4110,24 @@ html, body {
 }
 
 /* Paint grid */
+.hs2-pedit-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.hs2-pedit-time-col {
+  width: 44px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #1c1c1c; /* gap color = bg = invisible lines */
+}
 .hs2-pedit-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 44px repeat(7, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   grid-template-rows: repeat(24, 1fr);
   gap: 1px;
   padding: 0;
@@ -4123,6 +4137,7 @@ html, body {
   user-select: none;
 }
 .hs2-pedit-time-lbl {
+  flex: 1;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -4130,17 +4145,6 @@ html, body {
   font-size: 9px;
   color: rgba(255,255,255,0.4);
   line-height: 1;
-  background: #1c1c1c;
-  position: relative;
-  z-index: 1;
-}
-.hs2-pedit-time-lbl::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
   background: #1c1c1c;
 }
 .hs2-pedit-cell {

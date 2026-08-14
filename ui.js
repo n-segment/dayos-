@@ -1886,7 +1886,13 @@ function _openPaintOverlay(defaultActId) {
   });
   gridPanel.appendChild(dayHdrs);
 
-  // ── Grid body: 24h × 7 days, no scroll (1fr fills available height) ──
+  // ── Grid body: separate time col (no gap lines) + 7-day CSS grid ──
+  const bodyWrap = document.createElement("div");
+  bodyWrap.className = "hs2-pedit-body";
+
+  const timeColDiv = document.createElement("div");
+  timeColDiv.className = "hs2-pedit-time-col";
+
   const gridBody = document.createElement("div");
   gridBody.className = "hs2-pedit-grid";
   gridBody.style.touchAction = "none";
@@ -1896,7 +1902,7 @@ function _openPaintOverlay(defaultActId) {
     const timeLbl = document.createElement("div");
     timeLbl.className = "hs2-pedit-time-lbl";
     timeLbl.textContent = h === 0 ? "24" : `${h}`;
-    gridBody.appendChild(timeLbl);
+    timeColDiv.appendChild(timeLbl);
     dates.forEach(dt => {
       const cell = document.createElement("div");
       cell.className = "hs2-pedit-cell";
@@ -1906,7 +1912,9 @@ function _openPaintOverlay(defaultActId) {
       gridBody.appendChild(cell);
     });
   }
-  gridPanel.appendChild(gridBody);
+  bodyWrap.appendChild(timeColDiv);
+  bodyWrap.appendChild(gridBody);
+  gridPanel.appendChild(bodyWrap);
 
   function refreshCells() {
     const tlog = loadTlog();
