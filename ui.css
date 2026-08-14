@@ -1346,6 +1346,11 @@ body.app-view-timetable .app-floating-nav:focus-within {
   -webkit-backdrop-filter: blur(22px) saturate(112%);
   z-index: 1;
 }
+body.palette-night .home-section__overlay {
+  background: rgba(0,0,0,.28);
+  backdrop-filter: blur(22px) saturate(108%);
+  -webkit-backdrop-filter: blur(22px) saturate(108%);
+}
 .home-section__content {
   position: relative;
   z-index: 2;
