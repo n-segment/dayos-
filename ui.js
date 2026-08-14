@@ -1457,19 +1457,9 @@ function _renderActSidebar(sidebar, dates) {
       card.appendChild(timeChip);
     }
 
-    // paint mode toggle button
-    const paintBtn = document.createElement("button");
-    paintBtn.className = "hs2-act-paint-btn";
-    paintBtn.title = "드래그로 칠하기";
-    paintBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M 21.7573 2.5747 c -1.0533 -1.052 -2.888 -1.0533 -3.9427 0 l -6.86 6.86 c 0.8973 0.3333 1.7253 0.8413 2.4227 1.5413 0.7 0.7027 1.196 1.5267 1.52 2.4027 l 6.8613 -6.8613 c 1.0867 -1.0867 1.0867 -2.856 0 -3.944 Z" fill="currentColor"></path><path d="M 11.96 12.388 c -0.892 -0.8947 -2.072 -1.388 -3.3253 -1.388 h -0.008 c -1.248 0.0027 -2.4227 0.496 -3.3067 1.3907 -1.2693 1.2827 -1.492 2.5773 -1.6693 3.616 -0.1987 1.1587 -0.3293 1.9227 -1.796 2.724 -0.3547 0.1933 -0.5573 0.58 -0.516 0.9813 0.0427 0.4013 0.3213 0.7387 0.7067 0.8547 1.4107 0.424 2.9133 0.7733 4.408 0.7733 1.9173 0 3.8227 -0.5733 5.5067 -2.2987 1.828 -1.8333 1.828 -4.8187 0 -6.652 Z" fill="currentColor"></path></svg>`;
-    paintBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      _setPaintAct(act.id);
-    });
-    // right-side action group (paint + dots aligned together)
+    // right-side action group
     const rightGroup = document.createElement("div");
     rightGroup.className = "hs2-act-right";
-    rightGroup.appendChild(paintBtn);
 
     // three-dot menu
     const dots = document.createElement("button");
@@ -1828,44 +1818,203 @@ function _openTaskPanel(date, block, act) {
   setTimeout(() => document.addEventListener("pointerdown", outsideClose), 100);
 }
 
-// ── Paint mode state ──
-let _paintActId = null;   // currently selected activity for painting
+// ── Full-screen paint overlay ──
+function _openPaintOverlay() {
+  const histScreen = document.getElementById("historyScreen");
+  const acts = loadActs();
+  if (!acts.length) return;
 
-function _setPaintAct(actId) {
-  _paintActId = (actId !== null && _paintActId === actId) ? null : actId;
-  // update sidebar card highlight
-  document.querySelectorAll(".hs2-act-card").forEach(el => {
-    el.classList.toggle("hs2-act-card--active", el.dataset.actId === _paintActId);
+  let selectedActId = acts[0].id;
+
+  const overlay = document.createElement("div");
+  overlay.className = "hs2-pedit-overlay";
+
+  // ── Topbar: week label + activity palette + done ──
+  const topbar = document.createElement("div");
+  topbar.className = "hs2-pedit-topbar";
+
+  const wsD = new Date(_histWeekStart + "T00:00:00");
+  const weD = new Date(_histWeekStart + "T00:00:00"); weD.setDate(weD.getDate() + 6);
+  const weekLbl = document.createElement("span");
+  weekLbl.className = "hs2-pedit-week-lbl";
+  weekLbl.textContent = `${wsD.getMonth()+1}월 ${wsD.getDate()}일 — ${weD.getDate()}일`;
+  topbar.appendChild(weekLbl);
+
+  const palette = document.createElement("div");
+  palette.className = "hs2-pedit-palette";
+  acts.forEach(act => {
+    const chip = document.createElement("button");
+    chip.className = "hs2-pedit-chip" + (act.id === selectedActId ? " selected" : "");
+    chip.style.background = act.color || "#555";
+    chip.textContent = (act.emoji ? act.emoji + " " : "") + act.name;
+    chip.addEventListener("click", () => {
+      selectedActId = act.id;
+      palette.querySelectorAll(".hs2-pedit-chip").forEach(c => c.classList.remove("selected"));
+      chip.classList.add("selected");
+    });
+    palette.appendChild(chip);
   });
-  // update grid cursor
-  const body = document.querySelector(".hs2-grid-body");
-  if (body) body.classList.toggle("hs2-paint-cursor", !!_paintActId);
-  // lock/unlock scroll on the grid while paint mode is active
-  const gridScroll = document.querySelector(".hs2-grid-scroll");
-  if (gridScroll) {
-    if (_paintActId) {
-      gridScroll.style.overflowY = "hidden";
-      gridScroll.style.touchAction = "none";
-    } else {
-      gridScroll.style.overflowY = "";
-      gridScroll.style.touchAction = "";
+  topbar.appendChild(palette);
+
+  const doneBtn = document.createElement("button");
+  doneBtn.className = "hs2-pedit-done";
+  doneBtn.textContent = "완료";
+  doneBtn.addEventListener("click", () => { overlay.remove(); renderHistoryScreen(_histDate); });
+  topbar.appendChild(doneBtn);
+  overlay.appendChild(topbar);
+
+  // ── Grid: day headers + 24h rows ──
+  const DAYS_EN = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+  const todayStr = toDateStr(Date.now());
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(_histWeekStart + "T00:00:00");
+    d.setDate(d.getDate() + i);
+    dates.push(toDateStr(d.getTime()));
+  }
+
+  const dayHdrs = document.createElement("div");
+  dayHdrs.className = "hs2-pedit-day-hdrs";
+  dayHdrs.appendChild(document.createElement("div")); // corner
+  dates.forEach((dt, i) => {
+    const d = new Date(dt + "T00:00:00");
+    const hdr = document.createElement("div");
+    hdr.className = "hs2-pedit-day-hdr" + (dt === todayStr ? " is-today" : "");
+    hdr.innerHTML = `<span class="hs2-pedit-day-name">${DAYS_EN[i]}</span><span class="hs2-pedit-day-num">${d.getDate()}</span>`;
+    dayHdrs.appendChild(hdr);
+  });
+  overlay.appendChild(dayHdrs);
+
+  // Grid body (no scroll — all 24h visible)
+  const gridBody = document.createElement("div");
+  gridBody.className = "hs2-pedit-grid";
+  gridBody.style.touchAction = "none";
+
+  // Build cells
+  const cellMap = {}; // "dt_h" → cell element
+  for (let h = 0; h < 24; h++) {
+    const timeLbl = document.createElement("div");
+    timeLbl.className = "hs2-pedit-time-lbl";
+    timeLbl.textContent = h === 0 ? "0" : `${h}`;
+    gridBody.appendChild(timeLbl);
+    dates.forEach(dt => {
+      const cell = document.createElement("div");
+      cell.className = "hs2-pedit-cell";
+      cell.dataset.dt = dt;
+      cell.dataset.h = h;
+      cellMap[`${dt}_${h}`] = cell;
+      gridBody.appendChild(cell);
+    });
+  }
+  overlay.appendChild(gridBody);
+
+  // Render current tlog into cells
+  function refreshCells() {
+    const tlog = loadTlog();
+    for (let h = 0; h < 24; h++) {
+      dates.forEach(dt => {
+        const cell = cellMap[`${dt}_${h}`];
+        if (!cell) return;
+        const blocks = tlog[dt] || [];
+        const blk = blocks.find(b => b.startH <= h && b.endH > h);
+        if (blk) {
+          const act = acts.find(a => a.id === blk.actId);
+          cell.style.background = act?.color || "#555";
+          cell.dataset.actId = blk.actId;
+        } else {
+          cell.style.background = "";
+          cell.dataset.actId = "";
+        }
+      });
     }
   }
-  // update paint banner
-  const banner = document.querySelector(".hs2-paint-banner");
-  if (banner) {
-    if (_paintActId) {
-      const act = loadActs().find(a => a.id === _paintActId);
-      banner.querySelector(".hs2-paint-banner-dot").style.background = act?.color || "#555";
-      banner.querySelector(".hs2-paint-banner-text").textContent = `${act?.name || ""} 칠하는 중`;
-      banner.style.display = "flex";
-    } else {
-      banner.style.display = "none";
+  refreshCells();
+
+  // Merge helper
+  function mergeBlocks(blocks) {
+    blocks.sort((a, b) => a.startH - b.startH);
+    const merged = [];
+    for (const blk of blocks) {
+      const last = merged[merged.length - 1];
+      if (last && last.actId === blk.actId && last.endH >= blk.startH) {
+        last.endH = Math.max(last.endH, blk.endH);
+        if (blk.tasks) last.tasks = [...(last.tasks || []), ...blk.tasks];
+      } else { merged.push({ ...blk }); }
     }
+    return merged;
   }
+
+  // Drag-paint logic
+  let painting = false;
+  let paintDt = null;
+  let paintStartH = null;
+  let paintEndH = null;
+
+  function commitPaint() {
+    if (!paintDt || paintStartH === null || paintEndH === null) return;
+    const s = Math.min(paintStartH, paintEndH);
+    const en = Math.max(paintStartH, paintEndH) + 1;
+    const tlog = loadTlog();
+    if (!tlog[paintDt]) tlog[paintDt] = [];
+    // Remove overlapping blocks of same activity
+    tlog[paintDt] = tlog[paintDt].filter(b => !(b.actId === selectedActId && b.startH < en && b.endH > s));
+    // Remove any other activity blocks that are fully covered (to allow overpainting)
+    tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en });
+    tlog[paintDt] = mergeBlocks(tlog[paintDt]);
+    localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
+    refreshCells();
+  }
+
+  gridBody.addEventListener("pointerdown", e => {
+    const cell = e.target.closest(".hs2-pedit-cell");
+    if (!cell) return;
+    e.preventDefault();
+    painting = true;
+    paintDt = cell.dataset.dt;
+    paintStartH = parseInt(cell.dataset.h);
+    paintEndH = paintStartH;
+    gridBody.setPointerCapture(e.pointerId);
+    cell.style.background = acts.find(a => a.id === selectedActId)?.color || "#555";
+  }, { passive: false });
+
+  gridBody.addEventListener("pointermove", e => {
+    if (!painting) return;
+    e.preventDefault();
+    const cell = e.target.closest(".hs2-pedit-cell");
+    if (!cell || cell.dataset.dt !== paintDt) return;
+    const h = parseInt(cell.dataset.h);
+    if (h === paintEndH) return;
+    paintEndH = h;
+    // Preview: highlight range
+    const s = Math.min(paintStartH, paintEndH);
+    const en = Math.max(paintStartH, paintEndH);
+    const actColor = acts.find(a => a.id === selectedActId)?.color || "#555";
+    dates.forEach(dt => {
+      for (let hh = 0; hh < 24; hh++) {
+        const c = cellMap[`${dt}_${hh}`];
+        if (!c) continue;
+        if (dt === paintDt && hh >= s && hh <= en) {
+          c.style.background = actColor;
+        }
+      }
+    });
+  }, { passive: false });
+
+  gridBody.addEventListener("pointerup", e => {
+    if (!painting) return;
+    painting = false;
+    commitPaint();
+    paintDt = null; paintStartH = null; paintEndH = null;
+  });
+
+  histScreen.appendChild(overlay);
+
+  // ESC to close
+  const escHandler = e => {
+    if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", escHandler); renderHistoryScreen(_histDate); }
+  };
+  document.addEventListener("keydown", escHandler);
 }
-// ESC to cancel paint mode
-document.addEventListener("keydown", e => { if (e.key === "Escape" && _paintActId) _setPaintAct(null); });
 
 // ── Week grid ──
 function _renderWeekGrid(gridPanel, dates) {
@@ -1920,6 +2069,13 @@ function _renderWeekGrid(gridPanel, dates) {
   topbar.appendChild(prevBtn);
   topbar.appendChild(todayBtn);
   topbar.appendChild(nextBtn);
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "hs2-grid-edit-btn";
+  editBtn.textContent = "편집";
+  editBtn.addEventListener("click", () => _openPaintOverlay());
+  topbar.appendChild(editBtn);
+
   gridPanel.appendChild(topbar);
 
   // Day headers
@@ -1945,23 +2101,6 @@ function _renderWeekGrid(gridPanel, dates) {
   });
   gridPanel.appendChild(dayHeaders);
 
-  // Paint mode banner
-  const paintBanner = document.createElement("div");
-  paintBanner.className = "hs2-paint-banner";
-  paintBanner.style.display = "none";
-  const bannerDot = document.createElement("div");
-  bannerDot.className = "hs2-paint-banner-dot";
-  const bannerText = document.createElement("span");
-  bannerText.className = "hs2-paint-banner-text";
-  const bannerEsc = document.createElement("span");
-  bannerEsc.className = "hs2-paint-banner-esc";
-  bannerEsc.textContent = "ESC";
-  bannerEsc.addEventListener("click", () => _setPaintAct(null));
-  paintBanner.appendChild(bannerDot);
-  paintBanner.appendChild(bannerText);
-  paintBanner.appendChild(bannerEsc);
-  gridPanel.appendChild(paintBanner);
-
   // Scrollable grid
   const scroll = document.createElement("div");
   scroll.className = "hs2-grid-scroll";
@@ -1970,109 +2109,6 @@ function _renderWeekGrid(gridPanel, dates) {
   const body = document.createElement("div");
   body.className = "hs2-grid-body";
   scroll.appendChild(body);
-
-  // ── Drag-paint logic (coordinate-based) ──
-  const HOUR_H = 44;
-  const TIME_COL_W = 44;
-  let _painting = false;
-  let _paintStartH = null;
-  let _paintEndH = null;
-  let _paintDate = null;
-  let _paintPreview = null;
-  let _paintColIdx = null;
-
-  function _coordToInfo(e) {
-    const rect = scroll.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top + scroll.scrollTop;
-    if (x < TIME_COL_W || y < 0) return null;
-    const colW = (rect.width - TIME_COL_W) / 7;
-    const colIdx = Math.floor((x - TIME_COL_W) / colW);
-    if (colIdx < 0 || colIdx > 6) return null;
-    const hour = Math.floor(y / HOUR_H);
-    if (hour < 0 || hour > 23) return null;
-    return { colIdx, date: dates[colIdx], hour };
-  }
-
-  function _updatePreview() {
-    if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
-    if (!_painting || _paintDate === null) return;
-    const actsList = loadActs();
-    const act = actsList.find(a => a.id === _paintActId);
-    if (!act) return;
-    const col = body.querySelectorAll(".hs2-grid-day-col")[_paintColIdx];
-    if (!col) return;
-    const s = Math.min(_paintStartH, _paintEndH);
-    const e2 = Math.max(_paintStartH, _paintEndH) + 1;
-    _paintPreview = document.createElement("div");
-    _paintPreview.className = "hs2-time-block hs2-time-block--preview";
-    _paintPreview.style.background = act.color || "#555";
-    _paintPreview.style.top = (s * HOUR_H) + "px";
-    _paintPreview.style.height = Math.max((e2 - s) * HOUR_H - 2, 20) + "px";
-    _paintPreview.style.opacity = "0.55";
-    col.appendChild(_paintPreview);
-  }
-
-  scroll.addEventListener("pointerdown", e => {
-    if (!_paintActId) return;
-    const info = _coordToInfo(e);
-    if (!info) return;
-    e.preventDefault();
-    _painting = true;
-    _paintDate = info.date;
-    _paintColIdx = info.colIdx;
-    _paintStartH = info.hour;
-    _paintEndH = info.hour;
-    scroll.setPointerCapture(e.pointerId);
-    scroll.style.overflowY = "hidden"; // lock scroll while painting
-    _updatePreview();
-  }, { passive: false });
-
-  scroll.addEventListener("pointermove", e => {
-    if (!_painting) return;
-    e.preventDefault(); // prevent scroll while painting
-    const info = _coordToInfo(e);
-    if (!info || info.colIdx !== _paintColIdx) return;
-    _paintEndH = info.hour;
-    _updatePreview();
-  }, { passive: false });
-
-  scroll.addEventListener("pointerup", e => {
-    if (!_painting) return;
-    _painting = false;
-    const savedScrollTop = scroll.scrollTop; // save current position before re-render
-    if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
-    if (_paintDate && _paintActId && _paintStartH !== null && _paintEndH !== null) {
-      const s = Math.min(_paintStartH, _paintEndH);
-      const en = Math.max(_paintStartH, _paintEndH) + 1;
-      const tlog = loadTlog();
-      if (!tlog[_paintDate]) tlog[_paintDate] = [];
-      // Remove overlapping same-act blocks, then add new block
-      tlog[_paintDate] = tlog[_paintDate].filter(b => !(b.actId === _paintActId && b.startH < en && b.endH > s));
-      tlog[_paintDate].push({ actId: _paintActId, startH: s, endH: en });
-      // Merge adjacent/touching same-act blocks into one continuous block
-      tlog[_paintDate].sort((a, b) => a.startH - b.startH);
-      const merged = [];
-      for (const blk of tlog[_paintDate]) {
-        const last = merged[merged.length - 1];
-        if (last && last.actId === blk.actId && last.endH >= blk.startH) {
-          last.endH = Math.max(last.endH, blk.endH);
-          if (blk.tasks) last.tasks = [...(last.tasks || []), ...blk.tasks];
-        } else {
-          merged.push({ ...blk });
-        }
-      }
-      tlog[_paintDate] = merged;
-      localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
-      renderHistoryScreen(_histDate, savedScrollTop); // pass saved scroll to prevent jump
-    }
-    _paintDate = null; _paintStartH = null; _paintEndH = null; _paintColIdx = null;
-  });
-
-  // Block wheel scroll while in paint mode (prevents trackpad scroll during painting)
-  scroll.addEventListener("wheel", e => {
-    if (_paintActId) e.preventDefault();
-  }, { passive: false });
 
   const tlog = loadTlog();
   const acts = loadActs();
