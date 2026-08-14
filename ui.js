@@ -2946,20 +2946,7 @@ function _renderWeekGrid(gridPanel, dates) {
     document.addEventListener("pointerup", onUp, { once: true });
   }
 
-  if (_timetableView !== "both") {
-    const currentType = _timetableView;
-    const otherType = currentType === "plan" ? "actual" : "plan";
-    let currentCount = 0;
-    let otherCount = 0;
-    dates.forEach(dt => {
-      (tlog[dt] || []).forEach(block => {
-        const type = normalizeBlockType(block.type);
-        if (type === currentType) currentCount++;
-        if (type === otherType) otherCount++;
-      });
-    });
-    if (currentCount === 0 && otherCount > 0) setTimetableView(otherType);
-  }
+  // Auto-switch removed: user's explicit tab selection should be respected.
 
   // Topbar (week nav)
   const topbar = document.createElement("div");
