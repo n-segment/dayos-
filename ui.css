@@ -3618,16 +3618,14 @@ html, body {
   font-size: 9px;
 }
 #historyScreen .hs2-grid-time-col {
-  background: #1c1c1c; /* same as panel bg, hides gap color bleeding through */
-}
-#historyScreen .hs2-grid-body {
-  background: rgba(255,255,255,0.07) !important; /* gap line color */
-  gap: 1px !important;
-}
-#historyScreen .hs2-grid-time-col {
+  background: #1c1c1c;
   gap: 1px;
   display: flex;
   flex-direction: column;
+}
+#historyScreen .hs2-grid-body {
+  background: rgba(255,255,255,0.07) !important; /* gap line color — must not be overridden */
+  gap: 1px !important;
 }
 #historyScreen .hs2-grid-day-col {
   display: flex !important;
@@ -3667,7 +3665,6 @@ html, body {
   background: #1c1c1c !important;
 }
 #historyScreen .hs2-grid-scroll { background: #1c1c1c !important; }
-#historyScreen .hs2-grid-body { background: #1c1c1c !important; }
 
 /* LEFT — sidebar (Porto Rocha style) */
 .hs2-sidebar {
