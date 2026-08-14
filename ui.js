@@ -4720,15 +4720,6 @@ function init() {
     if (currentAppView === "timetable") setFloatingNavPeek(false, 450);
   });
 
-  // 새벽: 배경 영상 교체
-  const hour = new Date().getHours();
-  const isDawn = hour >= 0 && hour < 6;
-  if (isDawn) {
-    document.querySelectorAll(".welcome-bg-video").forEach(v => {
-      v.src = "./dawn-drive.mp4"; v.load(); v.play().catch(() => {});
-    });
-  }
-
   initMusicSystemV2();
 
   // 피드백 버튼

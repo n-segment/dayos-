@@ -1176,15 +1176,31 @@ body.app-view-timetable .doodle-toolbar {
   z-index: 9999;
   display: none;
   place-items: center;
-  background: #000;
+  background: linear-gradient(152deg,#5b7cc0 0%,#5b7cc0 22%,#ee7358 58%,#f8dc8f 100%);
+  overflow: hidden;
 }
 .login-overlay.is-active { display: grid; }
 .login-overlay::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(255,255,255,.10);
+  backdrop-filter: blur(22px) saturate(112%);
+  -webkit-backdrop-filter: blur(22px) saturate(112%);
   z-index: 1;
+}
+.mesh-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(152deg,#5b7cc0 0%,#5b7cc0 22%,#ee7358 58%,#f8dc8f 100%);
+  z-index: 0;
+}
+.mesh-blob {
+  position: absolute;
+  transform: translate(-50%,-50%);
+  filter: blur(6px);
+  pointer-events: none;
 }
 .dayos-app:has(.login-overlay.is-active) .app-header { display: none; }
 
@@ -1304,11 +1320,14 @@ body.app-view-timetable .app-floating-nav:focus-within {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: linear-gradient(152deg,#5b7cc0 0%,#5b7cc0 22%,#ee7358 58%,#f8dc8f 100%);
 }
 .home-section__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(22px) saturate(112%);
+  -webkit-backdrop-filter: blur(22px) saturate(112%);
   z-index: 1;
 }
 .home-section__content {
