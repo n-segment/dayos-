@@ -4233,7 +4233,7 @@ html, body {
   background: #1c1c1c;
 }
 .hs2-pedit-cell {
-  background: rgba(255,255,255,0.04);
+  background: transparent;
   border-radius: 4px;
   cursor: crosshair;
   transition: background 0.08s;

@@ -1259,6 +1259,27 @@ function loadTlog() {
 }
 function saveTlog(log) { localStorage.setItem(TLOG_KEY, JSON.stringify(log)); }
 
+function pruneTlogForActs(tlog, acts) {
+  const validActIds = new Set(acts.map(a => a.id));
+  let changed = false;
+  const next = {};
+  Object.entries(tlog || {}).forEach(([dt, blocks]) => {
+    if (!Array.isArray(blocks)) { changed = true; return; }
+    const validBlocks = [];
+    blocks.forEach(b => {
+      const startH = Number(b.startH);
+      const endH = Number(b.endH);
+      const keep = validActIds.has(b.actId) && Number.isInteger(startH) && Number.isInteger(endH) && startH >= 0 && endH <= 24 && startH < endH;
+      if (!keep) { changed = true; return; }
+      if (startH !== b.startH || endH !== b.endH) changed = true;
+      validBlocks.push({ ...b, startH, endH });
+    });
+    if (validBlocks.length) next[dt] = validBlocks;
+  });
+  if (changed) saveTlog(next);
+  return changed ? next : tlog;
+}
+
 function makeTblockId() { return "tb_" + Date.now() + "_" + Math.random().toString(36).slice(2,6); }
 
 // ── Main render ──
@@ -1824,7 +1845,9 @@ function _openPaintOverlay(defaultActId) {
   const acts = loadActs();
   if (!acts.length) return;
 
-  let selectedActId = defaultActId || acts[0].id;
+  pruneTlogForActs(loadTlog(), acts);
+
+  let selectedActId = acts.some(a => a.id === defaultActId) ? defaultActId : acts[0].id;
 
   // Clear grid panel, replace with edit mode UI
   gridPanel.innerHTML = "";
@@ -1836,16 +1859,30 @@ function _openPaintOverlay(defaultActId) {
 
   const palette = document.createElement("div");
   palette.className = "hs2-pedit-palette";
+  function setSelectedAct(actId) {
+    if (!acts.some(a => a.id === actId)) return;
+    selectedActId = actId;
+    palette.querySelectorAll(".hs2-pedit-chip").forEach(c => {
+      c.classList.toggle("selected", c.dataset.actId === selectedActId);
+    });
+  }
   acts.forEach(act => {
     const chip = document.createElement("button");
+    chip.type = "button";
+    chip.dataset.actId = act.id;
     chip.className = "hs2-pedit-chip" + (act.id === selectedActId ? " selected" : "");
     if (act.id === selectedActId) chip.scrollIntoView({ block: "nearest", inline: "center" });
     chip.style.background = act.color || "#555";
     chip.textContent = act.name;
-    chip.addEventListener("click", () => {
-      selectedActId = act.id;
-      palette.querySelectorAll(".hs2-pedit-chip").forEach(c => c.classList.remove("selected"));
-      chip.classList.add("selected");
+    chip.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedAct(act.id);
+    });
+    chip.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedAct(act.id);
     });
     palette.appendChild(chip);
   });
@@ -1922,7 +1959,7 @@ function _openPaintOverlay(defaultActId) {
   gridPanel.appendChild(bodyWrap);
 
   function refreshCells() {
-    const tlog = loadTlog();
+    const tlog = pruneTlogForActs(loadTlog(), acts);
     for (let h = 0; h < 24; h++) {
       dates.forEach(dt => {
         const cell = cellMap[`${dt}_${h}`];
@@ -1930,9 +1967,9 @@ function _openPaintOverlay(defaultActId) {
         const blk = (tlog[dt] || []).find(b => b.startH <= h && b.endH > h);
         if (blk) {
           const act = acts.find(a => a.id === blk.actId);
-          cell.style.background = act ? (act.color || "#555") : "";
+          cell.style.background = act ? (act.color || "#555") : "transparent";
         } else {
-          cell.style.background = "";
+          cell.style.background = "transparent";
         }
       });
     }
@@ -1953,11 +1990,27 @@ function _openPaintOverlay(defaultActId) {
 
   let painting = false, erasing = false, paintDt = null, paintStartH = null, paintEndH = null;
 
+  function paintPreview() {
+    if (!painting || !paintDt) return;
+    refreshCells();
+    const s = Math.min(paintStartH, paintEndH);
+    const en = Math.max(paintStartH, paintEndH);
+    const act = acts.find(a => a.id === selectedActId);
+    if (!act) return;
+    const actColor = act.color || "#555";
+    for (let hh = 0; hh < 24; hh++) {
+      const c = cellMap[`${paintDt}_${hh}`];
+      if (!c) continue;
+      if (hh >= s && hh <= en) c.style.background = erasing ? "transparent" : actColor;
+    }
+  }
+
   function commitPaint() {
     if (!paintDt || paintStartH === null || paintEndH === null) return;
+    if (!acts.some(a => a.id === selectedActId)) return;
     const s = Math.min(paintStartH, paintEndH);
     const en = Math.max(paintStartH, paintEndH) + 1;
-    const tlog = loadTlog();
+    const tlog = pruneTlogForActs(loadTlog(), acts);
     if (!tlog[paintDt]) tlog[paintDt] = [];
     if (erasing) {
       // Split or trim blocks that overlap the erased range
@@ -2002,7 +2055,7 @@ function _openPaintOverlay(defaultActId) {
     const existingBlk = (tlog[paintDt] || []).find(b => b.actId === selectedActId && b.startH <= paintStartH && b.endH > paintStartH);
     erasing = !!existingBlk;
     gridBody.setPointerCapture(e.pointerId);
-    if (erasing) cell.style.background = ""; // immediate visual feedback
+    paintPreview();
   }, { passive: false });
 
   gridBody.addEventListener("pointermove", e => {
@@ -2013,14 +2066,7 @@ function _openPaintOverlay(defaultActId) {
     const h = parseInt(cell.dataset.h);
     if (h === paintEndH) return;
     paintEndH = h;
-    const s = Math.min(paintStartH, paintEndH);
-    const en = Math.max(paintStartH, paintEndH);
-    const actColor = acts.find(a => a.id === selectedActId)?.color || "#555";
-    for (let hh = 0; hh < 24; hh++) {
-      const c = cellMap[`${paintDt}_${hh}`];
-      if (!c) continue;
-      if (hh >= s && hh <= en) c.style.background = erasing ? "" : actColor;
-    }
+    paintPreview();
   }, { passive: false });
 
   gridBody.addEventListener("pointerup", () => {
@@ -2146,8 +2192,8 @@ function _renderWeekGrid(gridPanel, dates) {
   body.style.height = (HOUR_H * 24 + 23 * GAP) + "px";
   scroll.appendChild(body);
 
-  const tlog = loadTlog();
   const acts = loadActs();
+  const tlog = pruneTlogForActs(loadTlog(), acts);
 
   // Time labels column
   const timeCol = document.createElement("div");
@@ -2167,7 +2213,7 @@ function _renderWeekGrid(gridPanel, dates) {
     col.className = "hs2-grid-day-col";
     col.dataset.date = dt;
 
-    const blocks = tlog[dt] || [];
+    const blocks = (tlog[dt] || []).filter(b => acts.some(a => a.id === b.actId));
 
     for (let h = 0; h < 24; h++) {
       const cell = document.createElement("div");
@@ -2206,6 +2252,7 @@ function _renderWeekGrid(gridPanel, dates) {
           const content = document.createElement("div");
           content.className = "hs2-time-block-content hs2-time-block-content--cell";
           content.style.height = blockHeight + "px";
+          cell.style.zIndex = "2";
 
           const label = document.createElement("div");
           label.className = "hs2-time-block-label hs2-time-block-label--cell";
