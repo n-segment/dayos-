@@ -1823,27 +1823,22 @@ function _openTaskPanel(date, block, act) {
   setTimeout(() => document.addEventListener("pointerdown", outsideClose), 100);
 }
 
-// ── Full-screen paint overlay ──
+// ── Inline paint mode (replaces grid panel content) ──
 function _openPaintOverlay() {
-  const histScreen = document.getElementById("historyScreen");
+  const gridPanel = document.querySelector(".hs2-grid-panel");
+  if (!gridPanel) return;
   const acts = loadActs();
   if (!acts.length) return;
 
   let selectedActId = acts[0].id;
 
-  const overlay = document.createElement("div");
-  overlay.className = "hs2-pedit-overlay";
+  // Clear grid panel, replace with edit mode UI
+  gridPanel.innerHTML = "";
+  gridPanel.classList.add("hs2-pedit-active");
 
-  // ── Topbar: week label + activity palette + done ──
+  // ── Topbar: palette + 완료 ──
   const topbar = document.createElement("div");
   topbar.className = "hs2-pedit-topbar";
-
-  const wsD = new Date(_histWeekStart + "T00:00:00");
-  const weD = new Date(_histWeekStart + "T00:00:00"); weD.setDate(weD.getDate() + 6);
-  const weekLbl = document.createElement("span");
-  weekLbl.className = "hs2-pedit-week-lbl";
-  weekLbl.textContent = `${wsD.getMonth()+1}월 ${wsD.getDate()}일 — ${weD.getDate()}일`;
-  topbar.appendChild(weekLbl);
 
   const palette = document.createElement("div");
   palette.className = "hs2-pedit-palette";
@@ -1864,11 +1859,14 @@ function _openPaintOverlay() {
   const doneBtn = document.createElement("button");
   doneBtn.className = "hs2-pedit-done";
   doneBtn.textContent = "완료";
-  doneBtn.addEventListener("click", () => { overlay.remove(); renderHistoryScreen(_histDate); });
+  doneBtn.addEventListener("click", () => {
+    gridPanel.classList.remove("hs2-pedit-active");
+    renderHistoryScreen(_histDate);
+  });
   topbar.appendChild(doneBtn);
-  overlay.appendChild(topbar);
+  gridPanel.appendChild(topbar);
 
-  // ── Grid: day headers + 24h rows ──
+  // ── Day headers ──
   const DAYS_EN = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
   const todayStr = toDateStr(Date.now());
   const dates = [];
@@ -1888,15 +1886,14 @@ function _openPaintOverlay() {
     hdr.innerHTML = `<span class="hs2-pedit-day-name">${DAYS_EN[i]}</span><span class="hs2-pedit-day-num">${d.getDate()}</span>`;
     dayHdrs.appendChild(hdr);
   });
-  overlay.appendChild(dayHdrs);
+  gridPanel.appendChild(dayHdrs);
 
-  // Grid body (no scroll — all 24h visible)
+  // ── Grid body: 24h × 7 days, no scroll ──
   const gridBody = document.createElement("div");
   gridBody.className = "hs2-pedit-grid";
   gridBody.style.touchAction = "none";
 
-  // Build cells
-  const cellMap = {}; // "dt_h" → cell element
+  const cellMap = {};
   for (let h = 0; h < 24; h++) {
     const timeLbl = document.createElement("div");
     timeLbl.className = "hs2-pedit-time-lbl";
@@ -1911,31 +1908,25 @@ function _openPaintOverlay() {
       gridBody.appendChild(cell);
     });
   }
-  overlay.appendChild(gridBody);
+  gridPanel.appendChild(gridBody);
 
-  // Render current tlog into cells
   function refreshCells() {
     const tlog = loadTlog();
     for (let h = 0; h < 24; h++) {
       dates.forEach(dt => {
         const cell = cellMap[`${dt}_${h}`];
         if (!cell) return;
-        const blocks = tlog[dt] || [];
-        const blk = blocks.find(b => b.startH <= h && b.endH > h);
+        const blk = (tlog[dt] || []).find(b => b.startH <= h && b.endH > h);
         if (blk) {
-          const act = acts.find(a => a.id === blk.actId);
-          cell.style.background = act?.color || "#555";
-          cell.dataset.actId = blk.actId;
+          cell.style.background = acts.find(a => a.id === blk.actId)?.color || "#555";
         } else {
           cell.style.background = "";
-          cell.dataset.actId = "";
         }
       });
     }
   }
   refreshCells();
 
-  // Merge helper
   function mergeBlocks(blocks) {
     blocks.sort((a, b) => a.startH - b.startH);
     const merged = [];
@@ -1943,17 +1934,12 @@ function _openPaintOverlay() {
       const last = merged[merged.length - 1];
       if (last && last.actId === blk.actId && last.endH >= blk.startH) {
         last.endH = Math.max(last.endH, blk.endH);
-        if (blk.tasks) last.tasks = [...(last.tasks || []), ...blk.tasks];
       } else { merged.push({ ...blk }); }
     }
     return merged;
   }
 
-  // Drag-paint logic
-  let painting = false;
-  let paintDt = null;
-  let paintStartH = null;
-  let paintEndH = null;
+  let painting = false, paintDt = null, paintStartH = null, paintEndH = null;
 
   function commitPaint() {
     if (!paintDt || paintStartH === null || paintEndH === null) return;
@@ -1961,9 +1947,7 @@ function _openPaintOverlay() {
     const en = Math.max(paintStartH, paintEndH) + 1;
     const tlog = loadTlog();
     if (!tlog[paintDt]) tlog[paintDt] = [];
-    // Remove overlapping blocks of same activity
     tlog[paintDt] = tlog[paintDt].filter(b => !(b.actId === selectedActId && b.startH < en && b.endH > s));
-    // Remove any other activity blocks that are fully covered (to allow overpainting)
     tlog[paintDt].push({ actId: selectedActId, startH: s, endH: en });
     tlog[paintDt] = mergeBlocks(tlog[paintDt]);
     localStorage.setItem(TLOG_KEY, JSON.stringify(tlog));
@@ -1979,7 +1963,6 @@ function _openPaintOverlay() {
     paintStartH = parseInt(cell.dataset.h);
     paintEndH = paintStartH;
     gridBody.setPointerCapture(e.pointerId);
-    cell.style.background = acts.find(a => a.id === selectedActId)?.color || "#555";
   }, { passive: false });
 
   gridBody.addEventListener("pointermove", e => {
@@ -1990,33 +1973,29 @@ function _openPaintOverlay() {
     const h = parseInt(cell.dataset.h);
     if (h === paintEndH) return;
     paintEndH = h;
-    // Preview: highlight range
     const s = Math.min(paintStartH, paintEndH);
     const en = Math.max(paintStartH, paintEndH);
     const actColor = acts.find(a => a.id === selectedActId)?.color || "#555";
-    dates.forEach(dt => {
-      for (let hh = 0; hh < 24; hh++) {
-        const c = cellMap[`${dt}_${hh}`];
-        if (!c) continue;
-        if (dt === paintDt && hh >= s && hh <= en) {
-          c.style.background = actColor;
-        }
-      }
-    });
+    for (let hh = 0; hh < 24; hh++) {
+      const c = cellMap[`${paintDt}_${hh}`];
+      if (c && hh >= s && hh <= en) c.style.background = actColor;
+    }
   }, { passive: false });
 
-  gridBody.addEventListener("pointerup", e => {
+  gridBody.addEventListener("pointerup", () => {
     if (!painting) return;
     painting = false;
     commitPaint();
     paintDt = null; paintStartH = null; paintEndH = null;
   });
 
-  histScreen.appendChild(overlay);
-
-  // ESC to close
+  // ESC to exit
   const escHandler = e => {
-    if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", escHandler); renderHistoryScreen(_histDate); }
+    if (e.key === "Escape") {
+      document.removeEventListener("keydown", escHandler);
+      gridPanel.classList.remove("hs2-pedit-active");
+      renderHistoryScreen(_histDate);
+    }
   };
   document.addEventListener("keydown", escHandler);
 }

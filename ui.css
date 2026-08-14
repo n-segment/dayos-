@@ -3979,15 +3979,10 @@ html, body {
 }
 .hs2-grid-edit-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
 
-/* ── Full-screen paint overlay ── */
-.hs2-pedit-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 60;
-  background: #1c1c1c;
+/* ── Inline paint mode (grid panel becomes editor) ── */
+.hs2-grid-panel.hs2-pedit-active {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 .hs2-pedit-topbar {
   display: flex;
