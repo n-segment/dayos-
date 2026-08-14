@@ -3762,6 +3762,21 @@ html, body {
 }
 .hs2-sb-add-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
+.hs2-sb-fill-btn {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.55);
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 9px;
+  cursor: pointer;
+  margin-left: auto;
+  margin-right: 6px;
+  transition: all 0.13s;
+}
+.hs2-sb-fill-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
 /* + add button (legacy, hidden now) */
 .hs2-act-add { display: none; }
 

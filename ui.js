@@ -1362,6 +1362,11 @@ function _renderSidebar(sidebar, dates) {
   actsLabel.className = "hs2-sb-acts-label";
   actsLabel.textContent = "활동";
   actsHeader.appendChild(actsLabel);
+  const fillBtn = document.createElement("button");
+  fillBtn.className = "hs2-sb-fill-btn";
+  fillBtn.textContent = "블록 채우기";
+  fillBtn.addEventListener("click", () => _openPaintOverlay());
+  actsHeader.appendChild(fillBtn);
   const addBtn = document.createElement("button");
   addBtn.className = "hs2-sb-add-btn";
   addBtn.textContent = "+";
@@ -2069,12 +2074,6 @@ function _renderWeekGrid(gridPanel, dates) {
   topbar.appendChild(prevBtn);
   topbar.appendChild(todayBtn);
   topbar.appendChild(nextBtn);
-
-  const editBtn = document.createElement("button");
-  editBtn.className = "hs2-grid-edit-btn";
-  editBtn.textContent = "편집";
-  editBtn.addEventListener("click", () => _openPaintOverlay());
-  topbar.appendChild(editBtn);
 
   gridPanel.appendChild(topbar);
 
