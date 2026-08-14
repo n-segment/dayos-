@@ -3752,8 +3752,9 @@ html, body {
 .hs2-sb-acts-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 2px 4px;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0 2px 8px;
   margin-bottom: 0;
 }
 .hs2-sb-acts-label {
@@ -3788,8 +3789,6 @@ html, body {
   font-size: 11px;
   padding: 4px 9px;
   cursor: pointer;
-  margin-left: auto;
-  margin-right: 6px;
   transition: all 0.13s;
 }
 .hs2-sb-fill-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
@@ -4188,12 +4187,9 @@ html, body {
   font-size: 10px;
   color: rgba(0,0,0,0.28);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  display: flex;
   align-items: flex-start;
-  justify-content: flex-end;
-  padding: 2px 6px 0 0;
+  justify-content: center;
+  padding: 2px 0 0;
   border-top: 1px solid transparent;
 }
 

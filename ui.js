@@ -2126,7 +2126,7 @@ function _renderWeekGrid(gridPanel, dates) {
     const lbl = document.createElement("div");
     lbl.className = "hs2-grid-hour-label";
     lbl.style.height = HOUR_H + "px";
-    lbl.textContent = `${h}`;
+    lbl.textContent = h === 0 ? "" : `${h}`;
     timeCol.appendChild(lbl);
   }
   // 24 marker at bottom
