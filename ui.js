@@ -1658,6 +1658,23 @@ function parseTimeInput(value) {
   return roundTimeHour(hour + minute / 60);
 }
 
+function formatTime24(hour) {
+  if (!Number.isFinite(Number(hour))) return "";
+  const totalMinutes = Math.round(Number(hour) * 60);
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function parseTime24(value) {
+  if (!value) return null;
+  const parts = String(value).split(":");
+  const h = Number(parts[0]);
+  const m = parts[1] !== undefined ? Number(parts[1]) : 0;
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return roundTimeHour(h + m / 60);
+}
+
 function formatTimeInput(hour) {
   if (!Number.isFinite(Number(hour))) return "";
   const totalMinutes = Math.round(Number(hour) * 60);
@@ -2324,25 +2341,15 @@ function _openAddBlockModal(act) {
   fields.appendChild(_row("구분", typeToggle.el));
 
   const startInput = document.createElement("input");
-  startInput.className = "hs2-abm-input";
-  startInput.type = "text";
-  startInput.placeholder = "오전 9:30";
-  startInput.autocomplete = "off";
-  startInput.value = formatTimeInput(act.defaultStartH ?? 22);
+  startInput.className = "hs2-abm-input hs2-abm-input--time";
+  startInput.type = "time";
+  startInput.value = formatTime24(act.defaultStartH ?? 22);
 
   const endInput = document.createElement("input");
-  endInput.className = "hs2-abm-input";
-  endInput.type = "text";
-  endInput.placeholder = "오후 6:00";
-  endInput.autocomplete = "off";
-  endInput.value = formatTimeInput(act.defaultEndH ?? Math.min((act.defaultStartH ?? 22) + (act.defaultDuration ?? 1), 24));
+  endInput.className = "hs2-abm-input hs2-abm-input--time";
+  endInput.type = "time";
+  endInput.value = formatTime24(act.defaultEndH ?? Math.min((act.defaultStartH ?? 22) + (act.defaultDuration ?? 1), 24));
 
-  const normalizeTimeInput = (input) => {
-    const parsed = parseTimeInput(input.value);
-    if (parsed !== null) input.value = formatTimeInput(parsed);
-  };
-  startInput.addEventListener("blur", () => normalizeTimeInput(startInput));
-  endInput.addEventListener("blur", () => normalizeTimeInput(endInput));
   fields.appendChild(_row("시작", startInput));
   fields.appendChild(_row("종료", endInput));
 
@@ -2405,8 +2412,8 @@ function _openAddBlockModal(act) {
   saveBtn.textContent = "추가";
   saveBtn.addEventListener("click", () => {
     const date = dateInput.value;
-    const s = parseTimeInput(startInput.value);
-    const en = parseTimeInput(endInput.value);
+    const s = parseTime24(startInput.value);
+    const en = parseTime24(endInput.value);
     const type = typeToggle.value;
     const repeat = type === "actual" ? "none" : repeatSel.value;
     if (!date) return;
@@ -3556,9 +3563,8 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
 
   const startInput = document.createElement("input");
   startInput.className = "hs2-block-time-input";
-  startInput.type = "text";
-  startInput.value = existingBlock ? formatTimeInput(existingBlock.startH) : formatTimeInput(hintH);
-  startInput.placeholder = "시작";
+  startInput.type = "time";
+  startInput.value = existingBlock ? formatTime24(existingBlock.startH) : formatTime24(hintH);
 
   const sep = document.createElement("span");
   sep.className = "hs2-block-time-sep";
@@ -3566,9 +3572,8 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
 
   const endInput = document.createElement("input");
   endInput.className = "hs2-block-time-input";
-  endInput.type = "text";
-  endInput.value = existingBlock ? formatTimeInput(existingBlock.endH) : formatTimeInput(Math.min(hintH + 1, 24));
-  endInput.placeholder = "종료";
+  endInput.type = "time";
+  endInput.value = existingBlock ? formatTime24(existingBlock.endH) : formatTime24(Math.min(hintH + 1, 24));
 
   timeRow.appendChild(startInput);
   timeRow.appendChild(sep);
@@ -3609,26 +3614,19 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
   };
   const syncBlockEndFromDuration = () => {
     if (!durationInput.value.trim()) return;
-    const start = parseTimeInput(startInput.value);
+    const start = parseTime24(startInput.value);
     const duration = parseDurationInput(durationInput.value);
     if (start === null || duration === null) return;
-    endInput.value = formatTimeInput(Math.min(start + duration, 24));
+    endInput.value = formatTime24(Math.min(start + duration, 24));
   };
   const syncBlockDurationFromEnd = () => {
-    const start = parseTimeInput(startInput.value);
-    const end = parseTimeInput(endInput.value);
+    const start = parseTime24(startInput.value);
+    const end = parseTime24(endInput.value);
     if (start === null || end === null || end <= start) return;
     durationInput.value = formatDurationHours(end - start);
   };
-  startInput.addEventListener("blur", () => {
-    normalizeTimeField(startInput);
-    syncBlockEndFromDuration();
-  });
-  endInput.addEventListener("input", syncBlockDurationFromEnd);
-  endInput.addEventListener("blur", () => {
-    normalizeTimeField(endInput);
-    syncBlockDurationFromEnd();
-  });
+  startInput.addEventListener("change", syncBlockEndFromDuration);
+  endInput.addEventListener("change", syncBlockDurationFromEnd);
   durationInput.addEventListener("input", syncBlockEndFromDuration);
   durationInput.addEventListener("blur", () => {
     const parsed = parseDurationInput(durationInput.value);
@@ -3660,8 +3658,8 @@ function _openBlockModal(dateStr, hintH, existingBlock, onDone) {
   saveBtn.className = "hs2-block-save";
   saveBtn.textContent = "저장";
   saveBtn.addEventListener("click", () => {
-    const startH = parseTimeInput(startInput.value);
-    const endH = parseTimeInput(endInput.value);
+    const startH = parseTime24(startInput.value);
+    const endH = parseTime24(endInput.value);
     if (startH === null || endH === null || endH <= startH) {
       startInput.style.borderColor = "#E64040";
       endInput.style.borderColor = "#E64040";

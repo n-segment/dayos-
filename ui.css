@@ -5256,6 +5256,7 @@ body.app-view-timetable .app-floating-nav:focus-within {
   -webkit-appearance: none;
 }
 .hs2-abm-input[type="text"] { cursor: text; }
+.hs2-abm-input[type="time"] { cursor: text; color-scheme: dark; }
 .hs2-abm-input:focus { border-color: rgba(255,255,255,0.25); }
 .hs2-abm-input option { background: #1c1c1e; color: #fff; }
 .hs2-date-picker {
@@ -5744,6 +5745,7 @@ body.app-view-timetable .app-floating-nav:focus-within {
   color: rgba(255,255,255,0.88);
   outline: none;
   text-align: center;
+  color-scheme: dark;
 }
 .hs2-block-time-input:focus {
   border-color: rgba(255,255,255,0.34);
