@@ -2305,7 +2305,6 @@ function _openActModal(actId, onDone) {
 
   const modal = document.getElementById("hsActModal");
   const nameInput = document.getElementById("hsActNameInput");
-  const goalInput = document.getElementById("hsActGoalInput");
   const colorRow = document.getElementById("hsActColorRow");
   const cancelBtn = document.getElementById("hsActCancelBtn");
   const saveBtn = document.getElementById("hsActSaveBtn");
@@ -2349,7 +2348,6 @@ function _openActModal(actId, onDone) {
   // Pre-fill
   let selColor = existing ? existing.color : ACT_COLORS[0];
   nameInput.value = existing ? existing.name : "";
-  goalInput.value = existing && existing.goalH ? String(existing.goalH) : "";
   startHSel.value = existing?.defaultStartH ?? 22;
   durInput.value = existing?.defaultDuration ?? "";
   repeatSel.value = existing?.defaultRepeat ?? "none";
@@ -2393,7 +2391,6 @@ function _openActModal(actId, onDone) {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
     const emoji = existing?.emoji || "";
-    const goalH = parseFloat(goalInput.value) || 0;
     const defaultStartH = parseInt(startHSel.value);
     const defaultDuration = Math.max(parseFloat(durInput.value) || 1, 0.5);
     const defaultEndH = Math.round((defaultStartH + defaultDuration) * 2) / 2; // keep 0.5h precision
@@ -2401,13 +2398,13 @@ function _openActModal(actId, onDone) {
 
     let savedActId;
     if (existing) {
-      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, goalH, defaultStartH, defaultDuration, defaultEndH, defaultRepeat } : a);
+      const acts2 = loadActs().map(a => a.id === actId ? { ...a, name, emoji, color: selColor, defaultStartH, defaultDuration, defaultEndH, defaultRepeat } : a);
       saveActs(acts2);
       savedActId = actId;
     } else {
       savedActId = "act_" + Date.now();
       const acts2 = loadActs();
-      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH, defaultStartH, defaultDuration, defaultEndH, defaultRepeat });
+      acts2.push({ id: savedActId, name, emoji, color: selColor, goalH: 0, defaultStartH, defaultDuration, defaultEndH, defaultRepeat });
       saveActs(acts2);
     }
 
