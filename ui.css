@@ -3992,6 +3992,7 @@ html, body {
 .hs2-grid-scroll {
   flex: 1;
   overflow-y: auto;
+  touch-action: pan-y;
 }
 .hs2-grid-body {
   display: grid;

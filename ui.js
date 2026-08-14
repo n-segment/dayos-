@@ -1840,6 +1840,17 @@ function _setPaintAct(actId) {
   // update grid cursor
   const body = document.querySelector(".hs2-grid-body");
   if (body) body.classList.toggle("hs2-paint-cursor", !!_paintActId);
+  // lock/unlock scroll on the grid while paint mode is active
+  const gridScroll = document.querySelector(".hs2-grid-scroll");
+  if (gridScroll) {
+    if (_paintActId) {
+      gridScroll.style.overflowY = "hidden";
+      gridScroll.style.touchAction = "none";
+    } else {
+      gridScroll.style.overflowY = "";
+      gridScroll.style.touchAction = "";
+    }
+  }
   // update paint banner
   const banner = document.querySelector(".hs2-paint-banner");
   if (banner) {
@@ -2029,8 +2040,7 @@ function _renderWeekGrid(gridPanel, dates) {
   scroll.addEventListener("pointerup", e => {
     if (!_painting) return;
     _painting = false;
-    const savedScrollTop = scroll.scrollTop; // save BEFORE overflowY is restored (browser may scroll on restore)
-    scroll.style.overflowY = ""; // restore scroll
+    const savedScrollTop = scroll.scrollTop; // save current position before re-render
     if (_paintPreview) { _paintPreview.remove(); _paintPreview = null; }
     if (_paintDate && _paintActId && _paintStartH !== null && _paintEndH !== null) {
       const s = Math.min(_paintStartH, _paintEndH);
