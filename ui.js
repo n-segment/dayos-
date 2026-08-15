@@ -262,26 +262,31 @@ async function initHomeBackgroundSystem() {
         alert("이미지나 영상 파일만 배경으로 사용할 수 있어요.");
         return;
       }
+
+      // 공통 로딩 토스트
+      const section = document.getElementById("homeSection");
+      const toast = document.createElement("div");
+      toast.className = "home-compress-toast";
+      toast.textContent = "배경 불러오는 중…";
+      section?.appendChild(toast);
+
       try {
         let fileToSave = file;
+
         // HEIC/HEIF → JPEG 자동 변환
         const isHeic = file.type === "image/heic" || file.type === "image/heif"
           || /\.(heic|heif)$/i.test(file.name);
         if (isHeic) {
-          const section = document.getElementById("homeSection");
-          const toast = document.createElement("div");
-          toast.className = "home-compress-toast";
           toast.textContent = "HEIC → JPEG 변환 중…";
-          section?.appendChild(toast);
+          if (typeof heic2any === "undefined") {
+            await new Promise((res, rej) => {
+              const s = document.createElement("script");
+              s.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+              s.onload = res; s.onerror = rej;
+              document.head.appendChild(s);
+            });
+          }
           try {
-            if (typeof heic2any === "undefined") {
-              await new Promise((res, rej) => {
-                const s = document.createElement("script");
-                s.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
-                s.onload = res; s.onerror = rej;
-                document.head.appendChild(s);
-              });
-            }
             const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.88 });
             const blob = Array.isArray(converted) ? converted[0] : converted;
             fileToSave = new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), { type: "image/jpeg" });
@@ -291,23 +296,22 @@ async function initHomeBackgroundSystem() {
             toast.remove();
             return;
           }
-          toast.remove();
         }
+
+        // 영상 압축 (20MB 초과)
         if (file.type.startsWith("video/") && file.size > 20 * 1024 * 1024) {
-          // 20MB 초과 영상은 압축
-          const section = document.getElementById("homeSection");
-          const toast = document.createElement("div");
-          toast.className = "home-compress-toast";
           toast.textContent = "영상 압축 중… 잠깐만요";
-          section?.appendChild(toast);
           fileToSave = await compressVideoFile(file, (p) => {
             toast.textContent = `영상 압축 중… ${Math.round(p * 100)}%`;
           });
-          toast.remove();
         }
+
+        toast.textContent = "배경 저장 중…";
         const record = await saveHomeBgRecord(fileToSave);
+        toast.remove();
         applyHomeBackground(record);
       } catch (err) {
+        toast.remove();
         console.error("배경 저장 실패:", err);
         alert("배경 파일을 저장하지 못했어요. 파일 용량을 줄여서 다시 시도해주세요.");
       }
