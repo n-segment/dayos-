@@ -1563,6 +1563,12 @@ body.palette-night .home-section__overlay {
   z-index: 0;
 }
 
+/* !important 그라데이션 override — 커스텀 배경 적용 시 */
+.home-section.has-custom-bg,
+body.palette-night .home-section.has-custom-bg {
+  background: none !important;
+}
+
 .home-compress-toast {
   position: absolute;
   bottom: 24px;

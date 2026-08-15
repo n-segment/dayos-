@@ -222,7 +222,7 @@ function applyHomeBackground(record) {
       video.play().catch(() => {});
     }
     if (overlay) overlay.style.display = "";
-    section.style.background = "";
+    section.classList.remove("has-custom-bg");
     return;
   }
 
@@ -230,7 +230,7 @@ function applyHomeBackground(record) {
   if (record.type?.startsWith("image/")) {
     if (video) video.style.display = "none";
     if (overlay) overlay.style.display = "none";
-    section.style.background = "none";
+    section.classList.add("has-custom-bg");
     const img = document.createElement("img");
     img.className = "home-custom-bg";
     img.src = homeBgObjectUrl;
@@ -242,7 +242,7 @@ function applyHomeBackground(record) {
 
   if (record.type?.startsWith("video/") && video) {
     if (overlay) overlay.style.display = "none";
-    section.style.background = "none";
+    section.classList.add("has-custom-bg");
     video.style.display = "";
     video.src = homeBgObjectUrl;
     video.load();
