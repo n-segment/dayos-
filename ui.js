@@ -227,9 +227,11 @@ function applyHomeBackground(record) {
   }
 
   homeBgObjectUrl = URL.createObjectURL(record.blob);
+  const meshBg = section.querySelector(".mesh-bg");
   if (record.type?.startsWith("image/")) {
     if (video) video.style.display = "none";
     if (overlay) overlay.style.display = "none";
+    if (meshBg) meshBg.style.display = "none";
     section.classList.add("has-custom-bg");
     const img = document.createElement("img");
     img.className = "home-custom-bg";
@@ -319,7 +321,16 @@ async function initHomeBackgroundSystem() {
   }
 
   try {
-    applyHomeBackground(await getHomeBgRecord());
+    const section = document.getElementById("homeSection");
+    const savedRecord = await getHomeBgRecord();
+    if (savedRecord?.blob) {
+      const loadingToast = document.createElement("div");
+      loadingToast.className = "home-compress-toast";
+      loadingToast.textContent = "배경 준비 중…";
+      section?.appendChild(loadingToast);
+      applyHomeBackground(savedRecord);
+      setTimeout(() => loadingToast.remove(), 800);
+    }
   } catch (err) {
     console.error("배경 불러오기 실패:", err);
   }
