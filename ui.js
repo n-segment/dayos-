@@ -264,6 +264,35 @@ async function initHomeBackgroundSystem() {
       }
       try {
         let fileToSave = file;
+        // HEIC/HEIF → JPEG 자동 변환
+        const isHeic = file.type === "image/heic" || file.type === "image/heif"
+          || /\.(heic|heif)$/i.test(file.name);
+        if (isHeic) {
+          const section = document.getElementById("homeSection");
+          const toast = document.createElement("div");
+          toast.className = "home-compress-toast";
+          toast.textContent = "HEIC → JPEG 변환 중…";
+          section?.appendChild(toast);
+          try {
+            if (typeof heic2any === "undefined") {
+              await new Promise((res, rej) => {
+                const s = document.createElement("script");
+                s.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+                s.onload = res; s.onerror = rej;
+                document.head.appendChild(s);
+              });
+            }
+            const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.88 });
+            const blob = Array.isArray(converted) ? converted[0] : converted;
+            fileToSave = new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), { type: "image/jpeg" });
+          } catch (e) {
+            console.error("HEIC 변환 실패:", e);
+            alert("HEIC 변환에 실패했어요. JPEG나 PNG 파일을 사용해주세요.");
+            toast.remove();
+            return;
+          }
+          toast.remove();
+        }
         if (file.type.startsWith("video/") && file.size > 20 * 1024 * 1024) {
           // 20MB 초과 영상은 압축
           const section = document.getElementById("homeSection");
