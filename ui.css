@@ -286,7 +286,7 @@ body.app-view-timetable .doodle-toolbar {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  z-index: 70;
+  z-index: 350;
   width: 220px;
   padding: 14px;
   border: 1px solid rgba(255,255,255,0.12);
