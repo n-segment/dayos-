@@ -233,10 +233,12 @@ function applyHomeBackground(record) {
     section.classList.add("has-custom-bg");
     const img = document.createElement("img");
     img.className = "home-custom-bg";
-    img.src = homeBgObjectUrl;
+    img.style.opacity = "0";
     img.alt = "";
     img.setAttribute("aria-hidden", "true");
+    img.src = homeBgObjectUrl;
     section.insertBefore(img, section.firstChild);
+    requestAnimationFrame(() => requestAnimationFrame(() => { img.style.opacity = "1"; }));
     return;
   }
 
