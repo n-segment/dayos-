@@ -119,6 +119,71 @@ async function getHomeBgRecord() {
   });
 }
 
+async function compressVideoFile(file, onProgress) {
+  const SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB 이상만 압축
+  if (file.size <= SIZE_THRESHOLD) return file;
+
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    const srcUrl = URL.createObjectURL(file);
+    video.src = srcUrl;
+
+    video.onloadedmetadata = () => {
+      const MAX_W = 1280, MAX_H = 720;
+      const ratio = Math.min(MAX_W / video.videoWidth, MAX_H / video.videoHeight, 1);
+      const w = Math.round(video.videoWidth * ratio);
+      const h = Math.round(video.videoHeight * ratio);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+        ? "video/webm;codecs=vp9"
+        : "video/webm";
+
+      const chunks = [];
+      let recorder;
+      try {
+        recorder = new MediaRecorder(canvas.captureStream(30), {
+          mimeType,
+          videoBitsPerSecond: 2_000_000,
+        });
+      } catch (e) {
+        URL.revokeObjectURL(srcUrl);
+        return resolve(file); // 압축 실패 시 원본 사용
+      }
+
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        URL.revokeObjectURL(srcUrl);
+        const blob = new Blob(chunks, { type: mimeType });
+        resolve(blob);
+      };
+      recorder.onerror = () => { URL.revokeObjectURL(srcUrl); resolve(file); };
+
+      recorder.start(100);
+      video.play().catch(() => {});
+
+      const duration = video.duration;
+      const draw = () => {
+        if (video.ended || video.paused) { recorder.stop(); return; }
+        ctx.drawImage(video, 0, 0, w, h);
+        if (onProgress && duration) onProgress(video.currentTime / duration);
+        requestAnimationFrame(draw);
+      };
+      video.onplay = () => requestAnimationFrame(draw);
+      video.onended = () => recorder.stop();
+      video.onerror = () => { URL.revokeObjectURL(srcUrl); resolve(file); };
+    };
+
+    video.onerror = () => { URL.revokeObjectURL(srcUrl); resolve(file); };
+  });
+}
+
 async function saveHomeBgRecord(file) {
   const dbi = await openHomeBgDb();
   const record = {
@@ -198,7 +263,20 @@ async function initHomeBackgroundSystem() {
         return;
       }
       try {
-        const record = await saveHomeBgRecord(file);
+        let fileToSave = file;
+        if (file.type.startsWith("video/") && file.size > 20 * 1024 * 1024) {
+          // 20MB 초과 영상은 압축
+          const section = document.getElementById("homeSection");
+          const toast = document.createElement("div");
+          toast.className = "home-compress-toast";
+          toast.textContent = "영상 압축 중… 잠깐만요";
+          section?.appendChild(toast);
+          fileToSave = await compressVideoFile(file, (p) => {
+            toast.textContent = `영상 압축 중… ${Math.round(p * 100)}%`;
+          });
+          toast.remove();
+        }
+        const record = await saveHomeBgRecord(fileToSave);
         applyHomeBackground(record);
       } catch (err) {
         console.error("배경 저장 실패:", err);
