@@ -144,6 +144,7 @@ function applyHomeBackground(record) {
   const section = document.getElementById("homeSection");
   if (!section) return;
   const video = section.querySelector(".welcome-bg-video");
+  const overlay = section.querySelector(".home-section__overlay");
   section.querySelectorAll(".home-custom-bg").forEach(el => el.remove());
   if (homeBgObjectUrl) URL.revokeObjectURL(homeBgObjectUrl);
   homeBgObjectUrl = null;
@@ -155,12 +156,14 @@ function applyHomeBackground(record) {
       video.load();
       video.play().catch(() => {});
     }
+    if (overlay) overlay.style.display = "";
     return;
   }
 
   homeBgObjectUrl = URL.createObjectURL(record.blob);
   if (record.type?.startsWith("image/")) {
     if (video) video.style.display = "none";
+    if (overlay) overlay.style.display = "none";
     const img = document.createElement("img");
     img.className = "home-custom-bg";
     img.src = homeBgObjectUrl;
@@ -171,6 +174,7 @@ function applyHomeBackground(record) {
   }
 
   if (record.type?.startsWith("video/") && video) {
+    if (overlay) overlay.style.display = "none";
     video.style.display = "";
     video.src = homeBgObjectUrl;
     video.load();
